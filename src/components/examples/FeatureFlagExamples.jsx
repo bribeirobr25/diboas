@@ -191,4 +191,114 @@ export function ConditionalFeatureExample() {
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">+12.5%</div>\n                <div className="text-sm text-gray-600">Portfolio Growth</div>\n              </div>\n              <div className="text-center">\n                <div className="text-2xl font-bold text-blue-600">94</div>\n                <div className="text-sm text-gray-600">Trade Score</div>\n              </div>\n              <div className="text-center">\n                <div className="text-2xl font-bold text-purple-600">A+</div>\n                <div className="text-sm text-gray-600">Risk Rating</div>\n              </div>\n            </div>\n            <Button className="w-full">View Detailed Analytics</Button>\n          </div>\n        ) : (\n          <div className="text-center py-6">\n            <p className="text-sm text-gray-600 mb-3">\n              Basic analytics available. Upgrade for advanced insights.\n            </p>\n            <Button variant="outline">Upgrade to Premium</Button>\n          </div>\n        )}\n      </CardContent>\n    </Card>\n  )\n}\n\n/**\n * Example 5: Regional feature differences\n */\nexport function RegionalFeaturesExample() {\n  const features = useFeatureFlags([\n    FEATURE_FLAGS.SOCIAL_LOGIN_PROVIDERS,\n    FEATURE_FLAGS.DEFI_INVESTMENTS,\n    FEATURE_FLAGS.AI_FINANCIAL_ADVISOR\n  ])\n\n  return (\n    <Card>\n      <CardHeader>\n        <CardTitle>Available in Your Region</CardTitle>\n      </CardHeader>\n      <CardContent>\n        <div className="space-y-2">\n          <div className="flex items-center justify-between">\n            <span className="text-sm">Social Login (Apple, Google)</span>\n            <Badge variant={features[FEATURE_FLAGS.SOCIAL_LOGIN_PROVIDERS] ? "default" : "secondary"}>\n              {features[FEATURE_FLAGS.SOCIAL_LOGIN_PROVIDERS] ? "Available" : "Coming Soon"}\n            </Badge>\n          </div>\n          \n          <div className="flex items-center justify-between">\n            <span className="text-sm">DeFi Investments</span>\n            <Badge variant={features[FEATURE_FLAGS.DEFI_INVESTMENTS] ? "default" : "secondary"}>\n              {features[FEATURE_FLAGS.DEFI_INVESTMENTS] ? "Available" : "Restricted"}\n            </Badge>\n          </div>\n          \n          <div className="flex items-center justify-between">\n            <span className="text-sm">AI Financial Advisor</span>\n            <Badge variant={features[FEATURE_FLAGS.AI_FINANCIAL_ADVISOR] ? "default" : "secondary"}>\n              {features[FEATURE_FLAGS.AI_FINANCIAL_ADVISOR] ? "Beta Access" : "Not Available"}\n            </Badge>\n          </div>\n        </div>\n      </CardContent>\n    </Card>\n  )\n}\n\n/**\n * Example 6: Kill switch demonstration\n */\nexport function EmergencyFeaturesExample() {\n  const isTradingDisabled = useFeatureFlag(FEATURE_FLAGS.DISABLE_TRADING)\n  const isWithdrawalsDisabled = useFeatureFlag(FEATURE_FLAGS.DISABLE_WITHDRAWALS)\n\n  if (isTradingDisabled || isWithdrawalsDisabled) {\n    return (\n      <Card className="border-red-200 bg-red-50">\n        <CardContent className="p-4">\n          <div className="text-center">\n            <h4 className="font-medium text-red-800 mb-2">Service Notice</h4>\n            <div className="space-y-1 text-sm text-red-700">\n              {isTradingDisabled && <p>Trading is temporarily disabled</p>}\n              {isWithdrawalsDisabled && <p>Withdrawals are temporarily disabled</p>}\n            </div>\n            <p className="text-xs text-red-600 mt-2">\n              We'll restore service as soon as possible\n            </p>\n          </div>\n        </CardContent>\n      </Card>\n    )\n  }\n\n  return (\n    <Card>\n      <CardContent className="p-4">\n        <div className="text-center">\n          <h4 className="font-medium text-green-800 mb-2">All Systems Operational</h4>\n          <p className="text-sm text-green-700">Trading and withdrawals are available</p>\n          <div className="mt-3 space-x-2">\n            <Button size="sm">Trade Now</Button>\n            <Button size="sm" variant="outline">Withdraw Funds</Button>\n          </div>\n        </div>\n      </CardContent>\n    </Card>\n  )\n}
+                <div className="text-2xl font-bold text-green-600">+12.5%</div>
+                <div className="text-sm text-gray-600">Portfolio Growth</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">94</div>
+                <div className="text-sm text-gray-600">Trade Score</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">A+</div>
+                <div className="text-sm text-gray-600">Risk Rating</div>
+              </div>
+            </div>
+            <Button className="w-full">View Detailed Analytics</Button>
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-sm text-gray-600 mb-3">
+              Basic analytics available. Upgrade for advanced insights.
+            </p>
+            <Button variant="outline">Upgrade to Premium</Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/**
+ * Example 5: Regional feature differences
+ */
+export function RegionalFeaturesExample() {
+  const features = useFeatureFlags([
+    FEATURE_FLAGS.SOCIAL_LOGIN_PROVIDERS,
+    FEATURE_FLAGS.DEFI_INVESTMENTS,
+    FEATURE_FLAGS.AI_FINANCIAL_ADVISOR
+  ])
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Available in Your Region</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Social Login (Apple, Google)</span>
+            <Badge variant={features[FEATURE_FLAGS.SOCIAL_LOGIN_PROVIDERS] ? "default" : "secondary"}>
+              {features[FEATURE_FLAGS.SOCIAL_LOGIN_PROVIDERS] ? "Available" : "Coming Soon"}
+            </Badge>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm">DeFi Investments</span>
+            <Badge variant={features[FEATURE_FLAGS.DEFI_INVESTMENTS] ? "default" : "secondary"}>
+              {features[FEATURE_FLAGS.DEFI_INVESTMENTS] ? "Available" : "Restricted"}
+            </Badge>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm">AI Financial Advisor</span>
+            <Badge variant={features[FEATURE_FLAGS.AI_FINANCIAL_ADVISOR] ? "default" : "secondary"}>
+              {features[FEATURE_FLAGS.AI_FINANCIAL_ADVISOR] ? "Beta Access" : "Not Available"}
+            </Badge>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/**
+ * Example 6: Kill switch demonstration
+ */
+export function EmergencyFeaturesExample() {
+  const isTradingDisabled = useFeatureFlag(FEATURE_FLAGS.DISABLE_TRADING)
+  const isWithdrawalsDisabled = useFeatureFlag(FEATURE_FLAGS.DISABLE_WITHDRAWALS)
+
+  if (isTradingDisabled || isWithdrawalsDisabled) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardContent className="p-4">
+          <div className="text-center">
+            <h4 className="font-medium text-red-800 mb-2">Service Notice</h4>
+            <div className="space-y-1 text-sm text-red-700">
+              {isTradingDisabled && <p>Trading is temporarily disabled</p>}
+              {isWithdrawalsDisabled && <p>Withdrawals are temporarily disabled</p>}
+            </div>
+            <p className="text-xs text-red-600 mt-2">
+              We'll restore service as soon as possible
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="text-center">
+          <h4 className="font-medium text-green-800 mb-2">All Systems Operational</h4>
+          <p className="text-sm text-green-700">Trading and withdrawals are available</p>
+          <div className="mt-3 space-x-2">
+            <Button size="sm">Trade Now</Button>
+            <Button size="sm" variant="outline">Withdraw Funds</Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
