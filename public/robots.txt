@@ -1,0 +1,59 @@
+# robots.txt for diBoaS OneFi Platform
+# This file tells search engine crawlers which pages to crawl and which to avoid
+
+User-agent: *
+Allow: /
+
+# Disallow sensitive areas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /_/
+Disallow: /tmp/
+Disallow: /temp/
+
+# Allow important directories
+Allow: /images/
+Allow: /assets/
+Allow: /static/
+
+# Sitemap location
+Sitemap: https://diboas.com/sitemap.xml
+
+# Crawl-delay for respectful crawling (1 second)
+Crawl-delay: 1
+
+# Specific bot instructions
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+# Block AI training bots (optional - for sensitive financial content)
+User-agent: CCBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+# Block other potential scrapers
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
