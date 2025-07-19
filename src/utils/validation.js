@@ -26,7 +26,7 @@ export const sanitize = {
   text: (input) => {
     if (typeof input !== 'string') return ''
     return input
-      .replace(/[<>\"'&]/g, '') // Remove HTML/XML characters
+      .replace(/[<>"'&]/g, '') // Remove HTML/XML characters
       .replace(/javascript:/gi, '') // Remove javascript protocols
       .replace(/on\w+=/gi, '') // Remove event handlers
       .trim()
@@ -44,14 +44,39 @@ export const sanitize = {
   },
 
   /**
-   * Sanitizes numeric input for amounts
+   * Sanitizes numeric input for financial amounts
+   * SECURITY: Prevents decimal point manipulation and ensures valid financial format
    */
   amount: (input) => {
     if (typeof input !== 'string') return ''
-    return input
-      .replace(/[^0-9.]/g, '') // Only numbers and decimal point
-      .replace(/^0+(?=\d)/, '') // Remove leading zeros
-      .replace(/(\.\d{2})\d+/, '$1') // Limit to 2 decimal places
+    
+    // Remove all non-numeric and non-decimal characters
+    let sanitized = input.replace(/[^0-9.]/g, '')
+    
+    // Handle multiple decimal points - keep only the first one
+    const parts = sanitized.split('.')
+    if (parts.length > 2) {
+      sanitized = parts[0] + '.' + parts.slice(1).join('')
+    }
+    
+    // Remove leading zeros but preserve single zero before decimal
+    sanitized = sanitized.replace(/^0+(?=\d)/, '')
+    if (sanitized.startsWith('.')) {
+      sanitized = '0' + sanitized
+    }
+    
+    // Limit to 2 decimal places for fiat, more for crypto (handle in Money class)
+    if (sanitized.includes('.')) {
+      const [whole, decimal] = sanitized.split('.')
+      sanitized = whole + '.' + decimal.slice(0, 8) // Max 8 decimals (Bitcoin precision)
+    }
+    
+    // Validate final format
+    if (!/^\d*\.?\d*$/.test(sanitized)) {
+      return ''
+    }
+    
+    return sanitized
   },
 
   /**
@@ -130,7 +155,7 @@ export function validatePassword(password, isRegistering = false) {
       hasUppercase: /[A-Z]/.test(password),
       hasLowercase: /[a-z]/.test(password),
       hasNumber: /\d/.test(password),
-      hasSpecial: /[!@#$%^&*(),.?\":{}|<>]/.test(password)
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password)
     }
 
     const missingRequirements = []

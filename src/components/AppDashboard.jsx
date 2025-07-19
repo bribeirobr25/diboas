@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -26,14 +26,56 @@ import MarketIndicators from './MarketIndicators.jsx'
 import PageHeader from './shared/PageHeader.jsx'
 import { QUICK_ACTIONS, createTransactionNavigator } from '../utils/navigationHelpers.js'
 
+// PERFORMANCE: Memoized transaction item component
+const TransactionItem = memo(({ transaction, onNavigate }) => (
+  <div 
+    key={transaction.id}
+    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+    onClick={() => onNavigate(transaction.type)}
+  >
+    <div className="flex items-center space-x-3">
+      {transaction.icon}
+      <div>
+        <p className="font-medium text-sm">{transaction.description}</p>
+        <p className="text-xs text-gray-500">{transaction.time}</p>
+      </div>
+    </div>
+    <span className={`font-semibold text-sm ${
+      transaction.type === 'received' ? 'text-green-600' : 'text-red-600'
+    }`}>
+      {transaction.amount}
+    </span>
+  </div>
+))
+
+// PERFORMANCE: Memoized portfolio item component  
+const PortfolioItem = memo(({ item }) => (
+  <div className="flex items-center justify-between">
+    <div className="flex items-center space-x-3">
+      <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+      <span className="font-medium">{item.name}</span>
+    </div>
+    <div className="text-right">
+      <div className="font-semibold">{item.amount}</div>
+      <div className="text-sm text-gray-500">{item.value}%</div>
+    </div>
+  </div>
+))
+
 export default function AppDashboard() {
   const navigate = useNavigate()
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
-  const [currentActiveTab, setCurrentActiveTab] = useState('overview')
   
-  const navigateToTransaction = createTransactionNavigator(navigate)
+  // PERFORMANCE: Memoized navigation function
+  const navigateToTransaction = useMemo(() => createTransactionNavigator(navigate), [navigate])
+  
+  // PERFORMANCE: Memoized toggle function
+  const toggleBalanceVisibility = useCallback(() => {
+    setIsBalanceVisible(prev => !prev)
+  }, [])
 
-  const userRecentTransactions = [
+  // PERFORMANCE: Memoize static data to prevent re-creation on every render
+  const userRecentTransactions = useMemo(() => [
     {
       id: 1,
       type: 'received',
@@ -66,13 +108,22 @@ export default function AppDashboard() {
       time: '2 days ago',
       icon: <Star className="w-4 h-4 text-yellow-600" />
     }
-  ]
+  ], [])
 
-  const userPortfolioData = [
+  // PERFORMANCE: Memoize portfolio data
+  const userPortfolioData = useMemo(() => [
     { name: 'Traditional', value: 65, amount: '$26,430.75', color: 'bg-blue-500' },
     { name: 'Crypto', value: 25, amount: '$10,175.50', color: 'bg-purple-500' },
     { name: 'DeFi', value: 10, amount: '$4,070.25', color: 'bg-green-500' }
-  ]
+  ], [])
+
+  // PERFORMANCE: Memoize total balance calculation
+  const totalBalance = useMemo(() => {
+    return userPortfolioData.reduce((total, item) => {
+      const amount = parseFloat(item.amount.replace(/[$,]/g, ''))
+      return total + amount
+    }, 0)
+  }, [userPortfolioData])
 
   return (
     <div className="main-layout">

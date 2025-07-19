@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useDebounce } from '../utils/performanceOptimizations.js'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -128,8 +129,9 @@ export default function TransactionPage() {
   const isOffRamp = transactionType === 'withdraw'
   const isOnChain = ['send', 'receive', 'buy', 'sell', 'transfer'].includes(transactionType)
 
-  const calculateFees = () => {
-    const baseAmount = parseFloat(amount) || 0
+  // PERFORMANCE: Memoized fee calculation to prevent recalculation on every render
+  const calculateFees = useCallback((inputAmount) => {
+    const baseAmount = parseFloat(inputAmount) || 0
     let diBoaSFee = 0
     let networkFee = 0.50
     let providerFee = 0
@@ -150,9 +152,13 @@ export default function TransactionPage() {
       providerFee: providerFee.toFixed(2),
       total: (baseAmount + diBoaSFee + networkFee + providerFee).toFixed(2)
     }
-  }
+  }, [isOffRamp, isOnRamp, transactionType])
 
-  const fees = calculateFees()
+  // PERFORMANCE: Debounced fee calculation to prevent excessive calculations during typing
+  const debouncedCalculateFees = useDebounce(calculateFees, 300)
+  
+  // PERFORMANCE: Memoized fees calculation
+  const fees = useMemo(() => calculateFees(amount), [amount, calculateFees])
 
   const handleTransaction = async () => {
     setIsProcessing(true)

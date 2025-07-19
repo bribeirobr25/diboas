@@ -302,7 +302,23 @@ export class BankAccount {
   }
 
   generateTransferId() {
-    return `ach_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    // SECURITY: Use cryptographically secure random ID generation
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+      const array = new Uint8Array(16)
+      window.crypto.getRandomValues(array)
+      const randomHex = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+      return `ach_${randomHex}`
+    }
+    
+    // Fallback for Node.js environments
+    try {
+      const crypto = require('crypto')
+      return `ach_${crypto.randomBytes(16).toString('hex')}`
+    } catch (error) {
+      // Ultimate fallback (should not be used in production)
+      console.warn('⚠️  Using weak random ID generation. Install crypto module.')
+      return `ach_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`
+    }
   }
 
   calculateSettlementDate() {

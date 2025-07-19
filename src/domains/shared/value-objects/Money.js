@@ -167,11 +167,39 @@ export class Money {
     if (!isFinite(amount)) {
       throw new Error('Amount must be finite')
     }
+    
+    // SECURITY: Prevent extremely large numbers that could cause overflow
+    const MAX_SAFE_AMOUNT = Number.MAX_SAFE_INTEGER / 1000000 // Leave room for calculations
+    if (Math.abs(amount) > MAX_SAFE_AMOUNT) {
+      throw new Error(`Amount exceeds maximum safe value: ${MAX_SAFE_AMOUNT}`)
+    }
+    
+    // SECURITY: Prevent precision attacks with tiny amounts
+    const MIN_AMOUNT = 1e-18 // Smallest meaningful amount (18 decimals for ETH)
+    if (amount !== 0 && Math.abs(amount) < MIN_AMOUNT) {
+      throw new Error(`Amount too small: minimum ${MIN_AMOUNT}`)
+    }
   }
 
   validateCurrency(currency) {
     if (typeof currency !== 'string' || currency.length === 0) {
       throw new Error('Currency must be a non-empty string')
+    }
+    
+    // SECURITY: Validate currency format and prevent injection
+    if (!/^[A-Z]{2,10}$/.test(currency.toUpperCase())) {
+      throw new Error('Currency must be 2-10 uppercase letters')
+    }
+    
+    // SECURITY: Whitelist of supported currencies to prevent unknown currency attacks
+    const SUPPORTED_CURRENCIES = [
+      'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY',
+      'BTC', 'ETH', 'USDC', 'USDT', 'DAI', 'WETH', 'MATIC', 'SOL',
+      'BUSD', 'SHIB', 'DOGE', 'ADA', 'DOT', 'AVAX', 'UNI'
+    ]
+    
+    if (!SUPPORTED_CURRENCIES.includes(currency.toUpperCase())) {
+      throw new Error(`Unsupported currency: ${currency}. Supported: ${SUPPORTED_CURRENCIES.join(', ')}`)
     }
   }
 
