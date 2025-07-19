@@ -4,9 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Label } from '@/components/ui/label.jsx'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.jsx'
 import { 
-  ArrowLeft,
   Plus,
   Send,
   ArrowDownLeft,
@@ -15,8 +13,6 @@ import {
   ArrowRight,
   CreditCard,
   Wallet,
-  Bell,
-  Settings,
   Info,
   CheckCircle,
   AlertCircle,
@@ -27,7 +23,8 @@ import {
   EyeOff
 } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import diBoaSLogo from '../assets/diboas-logo.png'
+import PageHeader from './shared/PageHeader.jsx'
+import { NAVIGATION_PATHS } from '../utils/navigationHelpers.js'
 
 export default function TransactionPage() {
   const navigate = useNavigate()
@@ -167,39 +164,13 @@ export default function TransactionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/app')}
-                className="flex items-center"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <img src={diBoaSLogo} alt="diBoaS Logo" className="h-8 w-auto" />
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Settings className="w-5 h-5" />
-              </Button>
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="/api/placeholder/32/32" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="main-layout">
+      <PageHeader 
+        showBackButton={true} 
+        backTo={NAVIGATION_PATHS.APP}
+        showUserActions={true}
+        title="Transaction"
+      />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Transaction Type Selection */}

@@ -6,9 +6,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:staging": "VITE_APP_ENV=staging vite",
     "build": "vite build",
+    "build:staging": "VITE_APP_ENV=staging vite build",
+    "build:production": "VITE_APP_ENV=production vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit",
+    "preview": "vite preview",
+    "test": "echo 'Tests would run here'",
+    "test:watch": "echo 'Test watch mode would run here'",
+    "env:validate": "node scripts/validate-env.js",
+    "deploy:dev": "bash scripts/deploy.sh development",
+    "deploy:staging": "bash scripts/deploy.sh staging",
+    "deploy:prod": "bash scripts/deploy.sh production",
+    "feature-flags:list": "node scripts/list-features.js",
+    "feature-flags:toggle": "node scripts/toggle-feature.js",
+    "clean": "rm -rf dist node_modules/.cache",
+    "prepare": "chmod +x scripts/*.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
