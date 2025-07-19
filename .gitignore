@@ -1,0 +1,51 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Vite cache
+.vite/
+.cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment variables
+.env
+.env.*.local
+
+# Editor/OS/System files
+.DS_Store
+Thumbs.db
+
+# VS Code settings (optional)
+.vscode/
+
+# Parcel cache (if accidentally mixed in)
+.parcel-cache/
+
+# IDE files
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Output from Tailwind CLI (if any custom use)
+*.css.map
+
+# Coverage from tests
+coverage/
+
+# Mac OS and Linux swap files
+*.swp
+*.swo
+
+# Optional: storybook output
+storybook-static/
+
+# Optional: TypeScript
+*.tsbuildinfo
