@@ -1,0 +1,41 @@
+# Security.txt for diBoaS OneFi Platform
+# This file provides security contact information and policies
+
+Contact: security@diboas.com
+Contact: https://diboas.com/security/report
+Expires: 2025-12-31T23:59:59.000Z
+
+# Preferred Languages
+Preferred-Languages: en
+
+# Canonical URL
+Canonical: https://diboas.com/.well-known/security.txt
+
+# Security Policy
+Policy: https://diboas.com/security/policy
+
+# Acknowledgments
+Acknowledgments: https://diboas.com/security/hall-of-fame
+
+# Hiring
+Hiring: https://diboas.com/careers/security
+
+# Encryption
+Encryption: https://diboas.com/security/pgp-key.asc
+
+# Additional Information
+# We take security seriously and welcome responsible disclosure
+# of security vulnerabilities in our platform.
+#
+# Scope:
+# - diboas.com and all subdomains
+# - Mobile applications
+# - API endpoints
+#
+# Out of scope:
+# - Third-party services and integrations
+# - Social engineering attacks
+# - Physical attacks
+#
+# Please do not test on user accounts or perform
+# destructive testing that could impact our users.

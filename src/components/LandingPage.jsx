@@ -24,6 +24,8 @@ import {
   X
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { PAGE_SEO_CONFIG, useSEO } from '../utils/seoUtils.js'
+import SEOHelmet from './SEOHelmet.jsx'
 import diBoaSLogo from '../assets/diboas-logo.png'
 import mascotFinancialBasics from '../assets/mascot-financial-basics.png'
 import mascotInvestmentGuide from '../assets/mascot-investment-guide.png'
@@ -34,8 +36,23 @@ export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('traditional')
 
+  // SEO configuration for homepage
+  const homeSEO = PAGE_SEO_CONFIG.home
+  useSEO(homeSEO)
+
   return (
-    <div className="main-layout">
+    <>
+      {/* SEO Meta Tags */}
+      <SEOHelmet
+        title={homeSEO.title}
+        description={homeSEO.description}
+        keywords={homeSEO.keywords}
+        structuredData={homeSEO.structuredData}
+        url="https://diboas.com/"
+        type="website"
+      />
+      
+      <div className="main-layout">
       {/* Navigation */}
       <nav className="page-header">
         <div className="content-container">
@@ -545,7 +562,8 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   )
 }
 
