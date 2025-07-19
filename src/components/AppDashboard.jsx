@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.jsx'
 import { 
   ArrowUpRight,
   ArrowDownLeft,
@@ -13,10 +12,6 @@ import {
   Send,
   CreditCard,
   Wallet,
-  Bell,
-  Settings,
-  Menu,
-  X,
   Eye,
   EyeOff,
   Plus,
@@ -28,40 +23,15 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import MarketIndicators from './MarketIndicators.jsx'
-import diBoaSLogo from '../assets/diboas-logo.png'
+import PageHeader from './shared/PageHeader.jsx'
+import { QUICK_ACTIONS, createTransactionNavigator } from '../utils/navigationHelpers.js'
 
 export default function AppDashboard() {
   const navigate = useNavigate()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
   const [currentActiveTab, setCurrentActiveTab] = useState('overview')
-
-  const dashboardQuickActions = [
-    { 
-      icon: <Plus className="w-5 h-5" />, 
-      label: 'Add', 
-      color: 'text-green-600',
-      bgColor: 'bg-green-50 hover:bg-green-100',
-      borderColor: 'border-green-200',
-      action: () => navigate('/transaction?type=add')
-    },
-    { 
-      icon: <Send className="w-5 h-5" />, 
-      label: 'Send', 
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50 hover:bg-blue-100',
-      borderColor: 'border-blue-200',
-      action: () => navigate('/transaction?type=send')
-    },
-    { 
-      icon: <TrendingUp className="w-5 h-5" />, 
-      label: 'Invest', 
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50 hover:bg-purple-100',
-      borderColor: 'border-purple-200',
-      action: () => navigate('/transaction?type=invest')
-    }
-  ]
+  
+  const navigateToTransaction = createTransactionNavigator(navigate)
 
   const userRecentTransactions = [
     {
@@ -106,29 +76,7 @@ export default function AppDashboard() {
 
   return (
     <div className="main-layout">
-      {/* Header */}
-      <header className="page-header">
-        <div className="content-container">
-          <div className="main-navigation">
-            <div className="flex items-center">
-              <img src={diBoaSLogo} alt="diBoaS Logo" className="h-8 w-auto" />
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Settings className="w-5 h-5" />
-              </Button>
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="/api/placeholder/32/32" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader showUserActions={true} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Welcome Section with Market Indicators */}
@@ -197,19 +145,22 @@ export default function AppDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid-3-cols">
-              {dashboardQuickActions.map((action, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className="quick-action-button"
-                  onClick={action.action}
-                >
-                  <div>
-                    {action.icon}
-                  </div>
-                  <span className="font-medium">{action.label}</span>
-                </Button>
-              ))}
+              {QUICK_ACTIONS.map((action, index) => {
+                const IconComponent = action.icon === 'Plus' ? Plus : action.icon === 'Send' ? Send : TrendingUp
+                return (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className={`quick-action-button ${action.colorClass}`}
+                    onClick={() => navigateToTransaction(action.type)}
+                  >
+                    <div>
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <span className="font-medium">{action.label}</span>
+                  </Button>
+                )
+              })}
             </div>
           </CardContent>
         </Card>

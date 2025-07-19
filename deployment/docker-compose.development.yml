@@ -1,0 +1,83 @@
+# Docker Compose for Development Environment
+# Includes all development services and debugging tools
+
+version: '3.8'
+
+services:
+  # Main Application
+  diboas-app:
+    build: 
+      context: ..
+      dockerfile: Dockerfile.development
+    ports:
+      - "5173:5173"
+      - "24678:24678"  # Vite HMR
+    volumes:
+      - ../src:/app/src
+      - ../public:/app/public
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_APP_ENV=development
+      - VITE_APP_REGION=global
+      - VITE_DEBUG_MODE=true
+      - VITE_ENABLE_MOCK_DATA=true
+    depends_on:
+      - mock-api
+      - redis-dev
+    networks:
+      - diboas-dev
+
+  # Mock API Server for Development
+  mock-api:
+    image: wiremock/wiremock:latest
+    ports:
+      - "3001:8080"
+    volumes:
+      - ./mock-api:/home/wiremock
+    command: ["--global-response-templating", "--verbose"]
+    networks:
+      - diboas-dev
+
+  # Redis for Development Caching
+  redis-dev:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - diboas-dev
+
+  # Development Database (PostgreSQL)
+  postgres-dev:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=diboas_dev
+      - POSTGRES_USER=diboas_dev
+      - POSTGRES_PASSWORD=dev_password_123
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - diboas-dev
+
+  # Development Tools Container
+  dev-tools:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ..:/app
+    command: tail -f /dev/null  # Keep container running
+    networks:
+      - diboas-dev
+
+volumes:
+  redis_dev_data:
+  postgres_dev_data:
+
+networks:
+  diboas-dev:
+    driver: bridge

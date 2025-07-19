@@ -1,0 +1,97 @@
+# Docker Compose for Production Environment
+# Optimized for performance and security
+
+version: '3.8'
+
+services:
+  # Main Application
+  diboas-app:
+    image: diboas:${VERSION:-latest}
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - NODE_ENV=production
+      - VITE_APP_ENV=production
+      - VITE_APP_REGION=${REGION}
+      - VITE_APP_VERSION=${VERSION}
+      - VITE_BUILD_TIME=${BUILD_TIME}
+    secrets:
+      - prod_api_key
+      - prod_client_id
+      - prod_encryption_key
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - diboas-prod
+
+  # Load Balancer
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - diboas-app
+    networks:
+      - diboas-prod
+
+  # Redis for Production Caching
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_prod_data:/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - diboas-prod-internal
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - diboas-prod-internal
+
+secrets:
+  prod_api_key:
+    external: true
+  prod_client_id:
+    external: true
+  prod_encryption_key:
+    external: true
+
+volumes:
+  redis_prod_data:
+  prometheus_data:
+
+networks:
+  diboas-prod:
+    driver: overlay
+    attachable: true
+  diboas-prod-internal:
+    driver: overlay
+    internal: true
