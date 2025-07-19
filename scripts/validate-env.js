@@ -10,26 +10,137 @@ process.env.VITE_APP_ENV = process.env.VITE_APP_ENV || 'development'
 process.env.VITE_APP_REGION = process.env.VITE_APP_REGION || 'global'
 process.env.VITE_APP_VERSION = process.env.VITE_APP_VERSION || '1.0.0-dev'
 
-// Mock import.meta.env for Node.js
-if (typeof globalThis.import === 'undefined') {
-  globalThis.import = {
-    meta: {
-      env: {
-        DEV: process.env.NODE_ENV !== 'production',
-        PROD: process.env.NODE_ENV === 'production',
-        VITE_APP_ENV: process.env.VITE_APP_ENV,
-        VITE_APP_REGION: process.env.VITE_APP_REGION,
-        VITE_APP_VERSION: process.env.VITE_APP_VERSION,
-        VITE_DEBUG_MODE: process.env.VITE_DEBUG_MODE || 'true',
-        VITE_DEV_API_KEY: process.env.VITE_DEV_API_KEY,
-        VITE_STAGING_API_KEY: process.env.VITE_STAGING_API_KEY,
-        VITE_PROD_API_KEY: process.env.VITE_PROD_API_KEY
-      }
-    }
+// Node.js compatible environment functions (inline to avoid import.meta.env issues)
+const ENV_TYPES = {
+  DEVELOPMENT: 'development',
+  STAGING: 'staging',
+  PRODUCTION: 'production',
+  TEST: 'test'
+}
+
+const API_ENVIRONMENTS = {
+  LOCAL: 'local',
+  DEV: 'dev',
+  STAGING: 'staging',
+  PRODUCTION: 'production'
+}
+
+const REGIONS = {
+  US_EAST: 'us-east-1',
+  US_WEST: 'us-west-1',
+  EU_WEST: 'eu-west-1',
+  ASIA_PACIFIC: 'ap-southeast-1',
+  GLOBAL: 'global'
+}
+
+const getCurrentEnvironment = () => {
+  if (process.env.VITE_APP_ENV) {
+    return process.env.VITE_APP_ENV
+  }
+  
+  if (process.env.NODE_ENV === 'production') {
+    return ENV_TYPES.PRODUCTION
+  }
+  
+  return ENV_TYPES.DEVELOPMENT
+}
+
+const getCurrentRegion = () => {
+  return process.env.VITE_APP_REGION || REGIONS.GLOBAL
+}
+
+const environmentConfigs = {
+  [ENV_TYPES.DEVELOPMENT]: {
+    name: 'Development',
+    apiEnvironment: API_ENVIRONMENTS.LOCAL,
+    debugMode: true,
+    sslRequired: false
+  },
+  [ENV_TYPES.STAGING]: {
+    name: 'Staging',
+    apiEnvironment: API_ENVIRONMENTS.STAGING,
+    debugMode: true,
+    sslRequired: true
+  },
+  [ENV_TYPES.PRODUCTION]: {
+    name: 'Production',
+    apiEnvironment: API_ENVIRONMENTS.PRODUCTION,
+    debugMode: false,
+    sslRequired: true
   }
 }
 
-import { validateEnvironment, getEnvironmentInfo } from '../src/config/environments.js'
+const apiConfigs = {
+  [API_ENVIRONMENTS.LOCAL]: {
+    baseUrl: 'http://localhost:3001/api'
+  },
+  [API_ENVIRONMENTS.STAGING]: {
+    baseUrl: 'https://api-staging.diboas.com/api'
+  },
+  [API_ENVIRONMENTS.PRODUCTION]: {
+    baseUrl: 'https://api.diboas.com/api'
+  }
+}
+
+const getEnvironmentConfig = () => {
+  const currentEnv = getCurrentEnvironment()
+  return environmentConfigs[currentEnv] || environmentConfigs[ENV_TYPES.DEVELOPMENT]
+}
+
+const getApiConfig = () => {
+  const envConfig = getEnvironmentConfig()
+  return apiConfigs[envConfig.apiEnvironment] || apiConfigs[API_ENVIRONMENTS.LOCAL]
+}
+
+const getEnvironmentInfo = () => {
+  const currentEnv = getCurrentEnvironment()
+  const currentRegion = getCurrentRegion()
+  const envConfig = getEnvironmentConfig()
+  const apiConfig = getApiConfig()
+  
+  return {
+    environment: currentEnv,
+    region: currentRegion,
+    name: envConfig.name,
+    apiEnvironment: envConfig.apiEnvironment,
+    baseUrl: apiConfig.baseUrl,
+    debugMode: envConfig.debugMode,
+    buildTime: process.env.VITE_BUILD_TIME || 'development',
+    version: process.env.VITE_APP_VERSION || '1.0.0-dev'
+  }
+}
+
+const validateEnvironment = () => {
+  const env = getCurrentEnvironment()
+  const config = getEnvironmentConfig()
+  const apiConfig = getApiConfig()
+  const issues = []
+  
+  if (env === ENV_TYPES.PRODUCTION) {
+    if (!process.env.VITE_PROD_API_KEY) {
+      issues.push('Missing VITE_PROD_API_KEY')
+    }
+    if (!process.env.VITE_PROD_CLIENT_ID) {
+      issues.push('Missing VITE_PROD_CLIENT_ID')
+    }
+  }
+  
+  if (env === ENV_TYPES.PRODUCTION) {
+    if (apiConfig.baseUrl.includes('localhost')) {
+      issues.push('Using localhost API in production')
+    }
+  }
+  
+  if (config.sslRequired && !apiConfig.baseUrl.startsWith('https')) {
+    issues.push('SSL required but HTTP URL configured')
+  }
+  
+  return {
+    isValid: issues.length === 0,
+    issues,
+    environment: env
+  }
+}
 
 const colors = {
   reset: '\x1b[0m',
@@ -48,7 +159,7 @@ function colorize(text, color) {
 
 function printHeader() {
   console.log(colorize('\n🚀 diBoaS Environment Validation', 'cyan'))
-  console.log(colorize('=' * 50, 'cyan'))
+  console.log(colorize('='.repeat(50), 'cyan'))
 }
 
 function printEnvironmentInfo() {
