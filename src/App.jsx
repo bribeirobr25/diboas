@@ -16,18 +16,22 @@ function App() {
   const validation = validateEnvironment()
   const envInfo = getEnvironmentInfo()
   
-  // Log environment info in development
+  // Log environment info in development (throttled to avoid React StrictMode duplicates)
   if (envInfo.debugMode) {
-    console.group('🚀 diBoaS Application Started')
-    console.log('Environment:', envInfo.environment)
-    console.log('Region:', envInfo.region)
-    console.log('Version:', envInfo.version)
-    console.log('API Base:', envInfo.baseUrl)
-    console.log('Debug Mode:', envInfo.debugMode)
-    if (!validation.isValid) {
-      console.warn('Configuration Issues:', validation.issues)
+    const logKey = 'diboas_app_logged'
+    if (!window[logKey]) {
+      window[logKey] = true
+      console.group('🚀 diBoaS Application Started')
+      console.log('Environment:', envInfo.environment)
+      console.log('Region:', envInfo.region)
+      console.log('Version:', envInfo.version)
+      console.log('API Base:', envInfo.baseUrl)
+      console.log('Debug Mode:', envInfo.debugMode)
+      if (!validation.isValid) {
+        console.warn('Configuration Issues:', validation.issues)
+      }
+      console.groupEnd()
     }
-    console.groupEnd()
   }
   
   // Get initial user context (in real app, this would come from auth state)

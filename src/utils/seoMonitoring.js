@@ -12,7 +12,8 @@ export const coreWebVitals = {
     if (typeof window === 'undefined') return
 
     // Dynamic import of web-vitals library
-    import('web-vitals').then(({ onCLS, onFID, onFCP, onLCP, onTTFB }) => {
+    import('web-vitals').then((module) => {
+      const { onCLS, onFID, onFCP, onLCP, onTTFB } = module
       // Largest Contentful Paint
       onLCP((metric) => {
         coreWebVitals.reportMetric('LCP', metric)
@@ -38,7 +39,10 @@ export const coreWebVitals = {
         coreWebVitals.reportMetric('TTFB', metric)
       })
     }).catch(() => {
-      console.warn('Web Vitals library not available')
+      // Web Vitals library not available - this is normal in development
+      if (import.meta.env.DEV) {
+        console.info('Web Vitals library not available (development mode)')
+      }
     })
   },
 
@@ -371,9 +375,19 @@ export const seoReporting = {
     URL.revokeObjectURL(url)
   },
 
-  // Log report to console (development)
-  logReport: () => {
-    if (import.meta.env.DEV) {
+  // Log report to console (development) - throttled to avoid spam
+  logReport: (() => {
+    let lastReportTime = 0
+    const REPORT_THROTTLE = 10000 // 10 seconds between reports
+    
+    return () => {
+      if (!import.meta.env.DEV) return
+      
+      const now = Date.now()
+      if (now - lastReportTime < REPORT_THROTTLE) return
+      
+      lastReportTime = now
+      
       const report = seoReporting.generateReport()
       console.group('📊 SEO Report')
       console.log('Overall Grade:', report.summary.overallGrade)
@@ -392,7 +406,7 @@ export const seoReporting = {
       
       console.groupEnd()
     }
-  }
+  })()
 }
 
 /**
