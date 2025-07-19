@@ -205,33 +205,65 @@ export const isTest = () => getCurrentEnvironment() === ENV_TYPES.TEST
 
 /**
  * Environment-safe credential helpers
+ * SECURITY: No placeholder credentials - fail securely if missing
  */
 export const getCredentials = () => {
   const env = getCurrentEnvironment()
   
-  // Prevent accidental production credential usage in development
-  if (env === ENV_TYPES.DEVELOPMENT || env === ENV_TYPES.TEST) {
-    return {
-      apiKey: import.meta.env.VITE_DEV_API_KEY || 'dev-key-placeholder',
-      clientId: import.meta.env.VITE_DEV_CLIENT_ID || 'dev-client-placeholder',
-      encryptionKey: import.meta.env.VITE_DEV_ENCRYPTION_KEY || 'dev-encryption-placeholder'
+  // Validate all required credentials are present
+  const validateCredentials = (creds, envName) => {
+    const missing = []
+    if (!creds.apiKey) missing.push('apiKey')
+    if (!creds.clientId) missing.push('clientId')
+    if (!creds.encryptionKey) missing.push('encryptionKey')
+    
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required credentials for ${envName}: ${missing.join(', ')}. ` +
+        `Set the following environment variables: ${missing.map(key => 
+          `VITE_${envName.toUpperCase()}_${key.toUpperCase().replace(/([A-Z])/g, '_$1')}`
+        ).join(', ')}`
+      )
     }
+    return creds
+  }
+  
+  if (env === ENV_TYPES.DEVELOPMENT || env === ENV_TYPES.TEST) {
+    const creds = {
+      apiKey: import.meta.env.VITE_DEV_API_KEY,
+      clientId: import.meta.env.VITE_DEV_CLIENT_ID,
+      encryptionKey: import.meta.env.VITE_DEV_ENCRYPTION_KEY
+    }
+    
+    // Allow missing credentials in development for easier local setup
+    if (env === ENV_TYPES.DEVELOPMENT && (!creds.apiKey || !creds.clientId || !creds.encryptionKey)) {
+      console.warn('⚠️  Missing development credentials. Some features may not work.')
+      return {
+        apiKey: creds.apiKey || null,
+        clientId: creds.clientId || null,
+        encryptionKey: creds.encryptionKey || null
+      }
+    }
+    
+    return validateCredentials(creds, 'dev')
   }
   
   if (env === ENV_TYPES.STAGING) {
-    return {
+    const creds = {
       apiKey: import.meta.env.VITE_STAGING_API_KEY,
       clientId: import.meta.env.VITE_STAGING_CLIENT_ID,
       encryptionKey: import.meta.env.VITE_STAGING_ENCRYPTION_KEY
     }
+    return validateCredentials(creds, 'staging')
   }
   
   if (env === ENV_TYPES.PRODUCTION) {
-    return {
+    const creds = {
       apiKey: import.meta.env.VITE_PROD_API_KEY,
       clientId: import.meta.env.VITE_PROD_CLIENT_ID,
       encryptionKey: import.meta.env.VITE_PROD_ENCRYPTION_KEY
     }
+    return validateCredentials(creds, 'production')
   }
   
   throw new Error(`Invalid environment for credentials: ${env}`)
