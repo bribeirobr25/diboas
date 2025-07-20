@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo } from 'react'
+import { useState, useMemo, useCallback, memo, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -25,6 +25,7 @@ import { useNavigate } from 'react-router-dom'
 import MarketIndicators from './MarketIndicators.jsx'
 import PageHeader from './shared/PageHeader.jsx'
 import { QUICK_ACTIONS, createTransactionNavigator } from '../utils/navigationHelpers.js'
+import { useWallet } from '../hooks/useTransactions.jsx'
 
 // PERFORMANCE: Memoized transaction item component
 const TransactionItem = memo(({ transaction, onNavigate }) => (
@@ -66,6 +67,51 @@ export default function AppDashboard() {
   const navigate = useNavigate()
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
   
+  // Get real wallet balance
+  const { balance, getBalance, isLoading: balanceLoading } = useWallet()
+  
+  // Refresh balance when component mounts and periodically
+  useEffect(() => {
+    getBalance(true) // Force refresh
+  }, [])
+  
+  // Get transaction history from localStorage
+  const getTransactionHistory = useCallback(() => {
+    const userId = 'demo_user_12345' // Demo user ID
+    const historyKey = `diboas_transaction_history_${userId}`
+    const history = JSON.parse(localStorage.getItem(historyKey) || '[]')
+    return history.slice(0, 5) // Get last 5 transactions
+  }, [])
+  
+  const [transactionHistory, setTransactionHistory] = useState([])
+  
+  useEffect(() => {
+    setTransactionHistory(getTransactionHistory())
+    
+    // Listen for storage changes to refresh transaction history
+    const handleStorageChange = (e) => {
+      if (e.key && e.key.includes('diboas_transaction_history_')) {
+        setTransactionHistory(getTransactionHistory())
+        getBalance(true) // Also refresh balance
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also listen for custom events (for same-tab updates)
+    const handleTransactionUpdate = () => {
+      setTransactionHistory(getTransactionHistory())
+      getBalance(true)
+    }
+    
+    window.addEventListener('diboas-transaction-completed', handleTransactionUpdate)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('diboas-transaction-completed', handleTransactionUpdate)
+    }
+  }, [getTransactionHistory, getBalance])
+  
   // PERFORMANCE: Memoized navigation function
   const navigateToTransaction = useMemo(() => createTransactionNavigator(navigate), [navigate])
   
@@ -74,41 +120,66 @@ export default function AppDashboard() {
     setIsBalanceVisible(prev => !prev)
   }, [])
 
-  // PERFORMANCE: Memoize static data to prevent re-creation on every render
-  const userRecentTransactions = useMemo(() => [
-    {
-      id: 1,
-      type: 'received',
-      description: 'Salary Deposit',
-      amount: '+$3,200.00',
-      time: '2 hours ago',
-      icon: <ArrowDownLeft className="w-4 h-4 text-green-600" />
-    },
-    {
-      id: 2,
-      type: 'sent',
-      description: 'Coffee Shop',
-      amount: '-$4.50',
-      time: '5 hours ago',
-      icon: <ArrowUpRight className="w-4 h-4 text-red-600" />
-    },
-    {
-      id: 3,
-      type: 'investment',
-      description: 'ETH Purchase',
-      amount: '-$500.00',
-      time: '1 day ago',
-      icon: <TrendingUp className="w-4 h-4 text-blue-600" />
-    },
-    {
-      id: 4,
-      type: 'received',
-      description: 'Staking Rewards',
-      amount: '+$12.34',
-      time: '2 days ago',
-      icon: <Star className="w-4 h-4 text-yellow-600" />
+  // PERFORMANCE: Convert transaction history to display format
+  const userRecentTransactions = useMemo(() => {
+    if (!transactionHistory.length) {
+      return [{
+        id: 'empty',
+        type: 'sent',
+        description: 'No recent transactions',
+        amount: '$0.00',
+        time: '',
+        icon: <DollarSign className="w-4 h-4 text-gray-400" />
+      }]
     }
-  ], [])
+    
+    return transactionHistory.map(tx => {
+      const getTransactionIcon = (type) => {
+        switch (type) {
+          case 'add':
+            return <ArrowDownLeft className="w-4 h-4 text-green-600" />
+          case 'send':
+            return <Send className="w-4 h-4 text-blue-600" />
+          case 'withdraw':
+            return <ArrowUpRight className="w-4 h-4 text-red-600" />
+          case 'buy':
+            return <TrendingUp className="w-4 h-4 text-purple-600" />
+          case 'sell':
+            return <TrendingDown className="w-4 h-4 text-orange-600" />
+          default:
+            return <DollarSign className="w-4 h-4 text-gray-600" />
+        }
+      }
+      
+      const getAmountDisplay = (type, amount, netAmount) => {
+        const sign = ['add', 'receive'].includes(type) ? '+' : '-'
+        // For incoming transactions, show net amount (after fees)
+        // For outgoing transactions, show original amount (before fees)
+        const displayAmount = ['add', 'receive'].includes(type) ? (netAmount || amount) : amount
+        return `${sign}$${parseFloat(displayAmount).toFixed(2)}`
+      }
+      
+      const getTimeAgo = (timestamp) => {
+        const now = new Date()
+        const txTime = new Date(timestamp)
+        const diffMinutes = Math.floor((now - txTime) / (1000 * 60))
+        
+        if (diffMinutes < 1) return 'Just now'
+        if (diffMinutes < 60) return `${diffMinutes}m ago`
+        if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`
+        return `${Math.floor(diffMinutes / 1440)}d ago`
+      }
+      
+      return {
+        id: tx.id,
+        type: ['add', 'receive'].includes(tx.type) ? 'received' : 'sent',
+        description: tx.description,
+        amount: getAmountDisplay(tx.type, tx.amount, tx.netAmount),
+        time: getTimeAgo(tx.timestamp),
+        icon: getTransactionIcon(tx.type)
+      }
+    })
+  }, [transactionHistory])
 
   // PERFORMANCE: Memoize portfolio data
   const userPortfolioData = useMemo(() => [
@@ -146,7 +217,10 @@ export default function AppDashboard() {
                 <p className="text-blue-100 text-sm mb-1">Total Balance</p>
                 <div className="flex items-center">
                   <h2 className="text-3xl font-bold mr-3">
-                    {isBalanceVisible ? '$40,676.50' : '••••••••'}
+                    {isBalanceVisible ? 
+                      `$${balance?.totalUSD?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
+                      '••••••••'
+                    }
                   </h2>
                   <Button
                     variant="ghost"
@@ -173,13 +247,19 @@ export default function AppDashboard() {
               <div>
                 <p className="text-blue-100 text-sm">Available</p>
                 <p className="text-xl font-semibold">
-                  {isBalanceVisible ? '$38,450.25' : '••••••••'}
+                  {isBalanceVisible ? 
+                    `$${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
+                    '••••••••'
+                  }
                 </p>
               </div>
               <div>
                 <p className="text-blue-100 text-sm">Invested</p>
                 <p className="text-xl font-semibold">
-                  {isBalanceVisible ? '$2,226.25' : '••••••••'}
+                  {isBalanceVisible ? 
+                    `$${(balance?.investedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
+                    '••••••••'
+                  }
                 </p>
               </div>
             </div>
