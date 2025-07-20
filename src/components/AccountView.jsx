@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -25,102 +25,123 @@ import { Input } from '@/components/ui/input.jsx'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from './shared/PageHeader.jsx'
 import { NAVIGATION_PATHS } from '../utils/navigationHelpers.js'
+import { useWallet } from '../hooks/useTransactions.jsx'
 
 export default function AccountView() {
   const navigate = useNavigate()
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [filterType, setFilterType] = useState('all')
-
-  const transactions = [
-    {
-      id: 1,
-      type: 'received',
-      description: 'Salary Deposit',
-      amount: '+$3,200.00',
-      time: '2 hours ago',
-      date: 'Dec 15, 2024',
-      status: 'completed',
-      icon: <ArrowDownLeft className="w-4 h-4 text-green-600" />,
-      category: 'deposit'
-    },
-    {
-      id: 2,
-      type: 'sent',
-      description: 'Coffee Shop Payment',
-      amount: '-$4.50',
-      time: '5 hours ago',
-      date: 'Dec 15, 2024',
-      status: 'completed',
-      icon: <ArrowUpRight className="w-4 h-4 text-red-600" />,
-      category: 'payment'
-    },
-    {
-      id: 3,
-      type: 'investment',
-      description: 'ETH Purchase',
-      amount: '-$500.00',
-      time: '1 day ago',
-      date: 'Dec 14, 2024',
-      status: 'completed',
-      icon: <TrendingUp className="w-4 h-4 text-blue-600" />,
-      category: 'buy'
-    },
-    {
-      id: 4,
-      type: 'received',
-      description: 'Staking Rewards',
-      amount: '+$12.34',
-      time: '2 days ago',
-      date: 'Dec 13, 2024',
-      status: 'completed',
-      icon: <Star className="w-4 h-4 text-yellow-600" />,
-      category: 'reward'
-    },
-    {
-      id: 5,
-      type: 'sent',
-      description: 'Transfer to @alice',
-      amount: '-$150.00',
-      time: '3 days ago',
-      date: 'Dec 12, 2024',
-      status: 'completed',
-      icon: <Send className="w-4 h-4 text-purple-600" />,
-      category: 'send'
-    },
-    {
-      id: 6,
-      type: 'received',
-      description: 'Freelance Payment',
-      amount: '+$750.00',
-      time: '4 days ago',
-      date: 'Dec 11, 2024',
-      status: 'completed',
-      icon: <ArrowDownLeft className="w-4 h-4 text-green-600" />,
-      category: 'received'
-    },
-    {
-      id: 7,
-      type: 'investment',
-      description: 'BTC Purchase',
-      amount: '-$1,000.00',
-      time: '5 days ago',
-      date: 'Dec 10, 2024',
-      status: 'completed',
-      icon: <TrendingUp className="w-4 h-4 text-orange-600" />,
-      category: 'buy'
-    },
-    {
-      id: 8,
-      type: 'sent',
-      description: 'Withdraw to Bank',
-      amount: '-$200.00',
-      time: '6 days ago',
-      date: 'Dec 9, 2024',
-      status: 'completed',
-      icon: <CreditCard className="w-4 h-4 text-gray-600" />,
-      category: 'withdraw'
+  
+  // Get real wallet balance
+  const { balance, getBalance, isLoading: balanceLoading } = useWallet()
+  
+  // Refresh balance when component mounts
+  useEffect(() => {
+    getBalance(true) // Force refresh
+  }, [])
+  
+  // Get transaction history from localStorage
+  const getTransactionHistory = useCallback(() => {
+    const userId = 'demo_user_12345' // Demo user ID
+    const historyKey = `diboas_transaction_history_${userId}`
+    const history = JSON.parse(localStorage.getItem(historyKey) || '[]')
+    return history
+  }, [])
+  
+  const [transactionHistory, setTransactionHistory] = useState([])
+  
+  useEffect(() => {
+    setTransactionHistory(getTransactionHistory())
+    
+    // Listen for storage changes to refresh transaction history
+    const handleStorageChange = (e) => {
+      if (e.key && e.key.includes('diboas_transaction_history_')) {
+        setTransactionHistory(getTransactionHistory())
+        getBalance(true) // Also refresh balance
+      }
     }
-  ]
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also listen for custom events (for same-tab updates)
+    const handleTransactionUpdate = () => {
+      setTransactionHistory(getTransactionHistory())
+      getBalance(true)
+    }
+    
+    window.addEventListener('diboas-transaction-completed', handleTransactionUpdate)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('diboas-transaction-completed', handleTransactionUpdate)
+    }
+  }, [getTransactionHistory, getBalance])
+
+  // Convert transaction history to display format
+  const transactions = useMemo(() => {
+    return transactionHistory.map(tx => {
+      const getTransactionIcon = (type) => {
+        switch (type) {
+          case 'add':
+            return <ArrowDownLeft className="w-4 h-4 text-green-600" />
+          case 'send':
+            return <Send className="w-4 h-4 text-blue-600" />
+          case 'withdraw':
+            return <CreditCard className="w-4 h-4 text-red-600" />
+          case 'buy':
+            return <TrendingUp className="w-4 h-4 text-purple-600" />
+          case 'sell':
+            return <TrendingDown className="w-4 h-4 text-orange-600" />
+          case 'receive':
+            return <ArrowDownLeft className="w-4 h-4 text-green-600" />
+          case 'transfer':
+            return <ArrowUpRight className="w-4 h-4 text-red-600" />
+          default:
+            return <DollarSign className="w-4 h-4 text-gray-600" />
+        }
+      }
+      
+      const getAmountDisplay = (type, amount, netAmount) => {
+        const sign = ['add', 'receive'].includes(type) ? '+' : '-'
+        // For incoming transactions, show net amount (after fees)
+        // For outgoing transactions, show original amount (before fees)
+        const displayAmount = ['add', 'receive'].includes(type) ? (netAmount || amount) : amount
+        return `${sign}$${parseFloat(displayAmount).toFixed(2)}`
+      }
+      
+      const getTimeAgo = (timestamp) => {
+        const now = new Date()
+        const txTime = new Date(timestamp)
+        const diffMinutes = Math.floor((now - txTime) / (1000 * 60))
+        
+        if (diffMinutes < 1) return 'Just now'
+        if (diffMinutes < 60) return `${diffMinutes}m ago`
+        if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`
+        return `${Math.floor(diffMinutes / 1440)}d ago`
+      }
+      
+      const getDisplayDate = (timestamp) => {
+        const txDate = new Date(timestamp)
+        return txDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        })
+      }
+      
+      return {
+        id: tx.id,
+        type: ['add', 'receive'].includes(tx.type) ? 'received' : 'sent',
+        description: tx.description,
+        amount: getAmountDisplay(tx.type, tx.amount, tx.netAmount),
+        time: getTimeAgo(tx.timestamp),
+        date: getDisplayDate(tx.timestamp),
+        status: tx.status || 'completed',
+        icon: getTransactionIcon(tx.type),
+        category: tx.type // Use the transaction type as category
+      }
+    })
+  }, [transactionHistory])
 
   const filteredTransactions = filterType === 'all' 
     ? transactions 
@@ -160,7 +181,10 @@ export default function AccountView() {
                     <p className="text-blue-100 text-sm mb-1">Total Balance</p>
                     <div className="flex items-center">
                       <h2 className="text-2xl font-bold mr-3">
-                        {balanceVisible ? '$40,676.50' : '••••••••'}
+                        {balanceVisible ? 
+                          `$${balance?.totalUSD?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
+                          '••••••••'
+                        }
                       </h2>
                       <Button
                         variant="ghost"
@@ -183,7 +207,10 @@ export default function AccountView() {
               <CardContent className="p-6">
                 <p className="text-gray-600 text-sm mb-1">Available</p>
                 <h3 className="text-2xl font-bold text-gray-900">
-                  {balanceVisible ? '$38,450.25' : '••••••••'}
+                  {balanceVisible ? 
+                    `$${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
+                    '••••••••'
+                  }
                 </h3>
                 <p className="text-sm text-green-600 mt-2">Ready to use</p>
               </CardContent>
@@ -193,7 +220,10 @@ export default function AccountView() {
               <CardContent className="p-6">
                 <p className="text-gray-600 text-sm mb-1">Invested</p>
                 <h3 className="text-2xl font-bold text-gray-900">
-                  {balanceVisible ? '$2,226.25' : '••••••••'}
+                  {balanceVisible ? 
+                    `$${(balance?.investedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
+                    '••••••••'
+                  }
                 </h3>
                 <p className="text-sm text-blue-600 mt-2">In portfolio</p>
               </CardContent>

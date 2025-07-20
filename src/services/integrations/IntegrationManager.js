@@ -23,6 +23,9 @@ export class IntegrationManager {
     this.twoFARegistry = new TwoFAProviderRegistry()
     this.onChainRegistry = new OnChainProviderRegistry()
     
+    // Transaction-specific registries
+    this.registries = new Map()
+    
     // Support services
     this.healthMonitor = new ProviderHealthMonitor()
     this.logger = new IntegrationLogger()
@@ -30,6 +33,13 @@ export class IntegrationManager {
     // Initialization state
     this.isInitialized = false
     this.initializationPromise = null
+  }
+
+  /**
+   * Register additional registry (for transaction providers)
+   */
+  registerRegistry(name, registry) {
+    this.registries.set(name, registry)
   }
 
   /**
@@ -46,6 +56,10 @@ export class IntegrationManager {
 
     this.initializationPromise = this._performInitialization()
     await this.initializationPromise
+    
+    // Initialize transaction providers
+    await this._initializeTransactionProviders()
+    
     this.isInitialized = true
     
     return this

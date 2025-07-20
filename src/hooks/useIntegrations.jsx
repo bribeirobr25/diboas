@@ -50,7 +50,27 @@ export const useIntegrations = () => {
 export const useAuth = () => {
   const { integrationManager, isInitialized } = useIntegrations()
   const [isLoading, setIsLoading] = useState(false)
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    // Initialize with demo user immediately to prevent loops
+    return {
+      id: 'demo_user_12345',
+      email: 'demo@diboas.com',
+      name: 'Demo User',
+      wallets: {
+        BTC: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+        ETH: '0x742d35Cc6634C0532925a3b8D0b2B0B04D4A9A47',
+        SOL: 'J3dxNj7nDRRqRRXuEMynDG57DkZK4jYRuv3Garmb1i99',
+        SUI: '0x123456789abcdef123456789abcdef123456789abcdef'
+      },
+      settings: {
+        twoFAEnabled: true,
+        notifications: true,
+        currency: 'USD'
+      },
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString()
+    }
+  })
   const [error, setError] = useState(null)
 
   // Sign in with email/password
