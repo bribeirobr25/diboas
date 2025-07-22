@@ -43,7 +43,9 @@ import {
 } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PageHeader from './shared/PageHeader.jsx'
+import TransactionProgressScreen from './shared/TransactionProgressScreen.jsx'
 import { NAVIGATION_PATHS } from '../utils/navigationHelpers.js'
+import { defaultFeeCalculator } from '../utils/feeCalculations.js'
 import { 
   useWallet, 
   useFeeCalculator, 
@@ -52,13 +54,29 @@ import {
   useTransactionTwoFA 
 } from '../hooks/useTransactions.jsx'
 
-export default function TransactionPage() {
+export default function TransactionPage({ transactionType: propTransactionType }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const initialType = searchParams.get('type') || 'add'
+  
+  // Support both prop-based routing (new RESTful) and query parameter routing (legacy)
+  const initialType = propTransactionType || searchParams.get('type') || 'add'
   
   // Enhanced state management
   const [transactionType, setTransactionType] = useState(initialType)
+  
+  // Sync transaction type with prop changes (for RESTful routing)
+  useEffect(() => {
+    if (propTransactionType && propTransactionType !== transactionType) {
+      setTransactionType(propTransactionType)
+    }
+  }, [propTransactionType, transactionType])
+
+  // Ensure fiat-only transactions always use USD
+  useEffect(() => {
+    if (['add', 'withdraw', 'send', 'transfer', 'receive'].includes(transactionType)) {
+      setSelectedAsset('USD')
+    }
+  }, [transactionType])
   const [amount, setAmount] = useState('')
   const [recipient, setRecipient] = useState('')
   const [selectedAsset, setSelectedAsset] = useState('USD')
@@ -93,15 +111,6 @@ export default function TransactionPage() {
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200'
-    },
-    { 
-      id: 'receive', 
-      label: 'Receive', 
-      icon: <ArrowDownLeft className="w-4 h-4" />, 
-      description: 'Request money from another diBoaS user',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200'
     },
     { 
       id: 'buy', 
@@ -149,16 +158,25 @@ export default function TransactionPage() {
     { id: 'paypal', label: 'PayPal', icon: '🅿️' }
   ]
 
-  const assets = [
-    { id: 'USD', label: 'USD', icon: '💵', price: '$1.00', available: balance?.availableForSpending || 0 },
-    { id: 'BTC', label: 'Bitcoin', icon: '₿', price: '$43,250.00', available: balance?.assets?.BTC?.amount || 0 },
-    { id: 'ETH', label: 'Ethereum', icon: '⟠', price: '$2,680.00', available: balance?.assets?.ETH?.amount || 0 },
-    { id: 'SOL', label: 'Solana', icon: '◎', price: '$98.50', available: balance?.assets?.SOL?.amount || 0 },
-    { id: 'SUI', label: 'Sui', icon: '🌊', price: '$3.45', available: balance?.assets?.SUI?.amount || 0 },
-    { id: 'USDC', label: 'USDC', icon: '🔵', price: '$1.00', available: balance?.breakdown?.SOL?.usdc || 0 },
-    { id: 'GOLD', label: 'Tokenized Gold', icon: '🥇', price: '$2,045.30', available: balance?.assets?.GOLD?.amount || 0 },
-    { id: 'STOCKS', label: 'Tokenized Stocks', icon: '📈', price: 'Various', available: balance?.assets?.STOCKS?.amount || 0 }
+  // Payment methods for Buy/Sell transactions (diBoaS Wallet first)
+  const buyPaymentMethods = [
+    { id: 'diboas_wallet', label: 'diBoaS Wallet', icon: '🔷' },
+    ...paymentMethods
   ]
+
+  const assets = [
+    { id: 'USD', label: 'USD', name: 'US Dollar', symbol: 'USD', icon: '💵', price: '$1.00', available: balance?.availableForSpending || 0 },
+    { id: 'BTC', label: 'Bitcoin', name: 'Bitcoin', symbol: 'BTC', icon: '₿', price: '$43,250.00', available: balance?.assets?.BTC?.amount || 0 },
+    { id: 'ETH', label: 'Ethereum', name: 'Ethereum', symbol: 'ETH', icon: '⟠', price: '$2,680.00', available: balance?.assets?.ETH?.amount || 0 },
+    { id: 'SOL', label: 'Solana', name: 'Solana', symbol: 'SOL', icon: '◎', price: '$98.50', available: balance?.assets?.SOL?.amount || 0 },
+    { id: 'SUI', label: 'Sui', name: 'Sui Network', symbol: 'SUI', icon: '🌊', price: '$3.45', available: balance?.assets?.SUI?.amount || 0 },
+    { id: 'USDC', label: 'USDC', name: 'USD Coin', symbol: 'USDC', icon: '🔵', price: '$1.00', available: balance?.breakdown?.SOL?.usdc || 0 },
+    { id: 'GOLD', label: 'Tokenized Gold', name: 'Tokenized Gold', symbol: 'GOLD', icon: '🥇', price: '$2,045.30', available: balance?.assets?.GOLD?.amount || 0 },
+    { id: 'STOCKS', label: 'Tokenized Stocks', name: 'Tokenized Stocks', symbol: 'STOCKS', icon: '📈', price: 'Various', available: balance?.assets?.STOCKS?.amount || 0 }
+  ]
+
+  // Assets available for Buy/Sell (only supported chains)
+  const tradableAssets = assets.filter(asset => ['BTC', 'ETH', 'SOL', 'SUI'].includes(asset.id))
 
   const investmentCategories = [
     { id: 'gold', label: 'Tokenized Gold', icon: '🥇', description: 'Physical gold backed tokens' },
@@ -186,8 +204,7 @@ export default function TransactionPage() {
       case 'buy':
         return balance.availableForSpending || 0
       case 'sell':
-        const asset = assets.find(a => a.id === selectedAsset)
-        return asset?.available || 0
+        return balance?.assets?.[selectedAsset]?.investedAmount || 0
       case 'transfer':
         return balance.availableForSpending || 0
       default:
@@ -195,31 +212,38 @@ export default function TransactionPage() {
     }
   }, [balance, transactionType, selectedAsset, assets])
 
-  // Real-time fee calculation
+  // Real-time fee calculation with debounced amount but immediate payment method updates
   const debouncedAmount = useValueDebounce(amount, 500)
+  const debouncedRecipient = useValueDebounce(recipient, 500) // Debounce recipient for transfer fee calculations
   
+  // Auto-select payment method for Sell transactions
   useEffect(() => {
-    console.log('🔢 Fee calculation check:', { 
-      debouncedAmount, 
-      amount: parseFloat(debouncedAmount), 
-      selectedPaymentMethod,
-      shouldCalculate: debouncedAmount && parseFloat(debouncedAmount) > 0 && selectedPaymentMethod
-    })
+    if (transactionType === 'sell') {
+      setSelectedPaymentMethod('diboas_wallet')
+    }
+  }, [transactionType])
+
+  useEffect(() => {
     
-    // Only calculate fees when amount > 0 AND payment method is selected (as per requirements)
-    if (debouncedAmount && parseFloat(debouncedAmount) > 0 && selectedPaymentMethod) {
+    // Calculate fees when amount > 0 AND either payment method is selected (for add/withdraw) OR for send/transfer/buy/sell
+    const shouldCalculateFees = debouncedAmount && parseFloat(debouncedAmount) > 0 && (
+      selectedPaymentMethod || // For add/withdraw transactions
+      ['send', 'transfer', 'buy', 'sell'].includes(transactionType) // These don't need payment method
+    )
+    
+    if (shouldCalculateFees) {
       const transactionData = {
         type: transactionType,
         amount: debouncedAmount,
         asset: selectedAsset,
         paymentMethod: selectedPaymentMethod,
-        category: selectedCategory
+        category: selectedCategory,
+        recipient: debouncedRecipient // Use debounced recipient for transfer fee calculations
       }
       
-      console.log('💰 Triggering fee calculation with:', transactionData)
       getRealTimeFees(transactionData).catch(console.error)
     }
-  }, [debouncedAmount, transactionType, selectedAsset, selectedPaymentMethod, selectedCategory, getRealTimeFees])
+  }, [debouncedAmount, transactionType, selectedAsset, selectedPaymentMethod, selectedCategory, debouncedRecipient, getRealTimeFees])
   
   // Validation on form changes
   useEffect(() => {
@@ -248,8 +272,6 @@ export default function TransactionPage() {
         category: selectedCategory,
         destination: recipient // For withdrawals
       }
-      
-      console.log('🚀 Starting transaction with data:', transactionData)
 
       // Check if 2FA is required
       const needs2FA = await checkTwoFARequirement(transactionData)
@@ -259,35 +281,28 @@ export default function TransactionPage() {
         return
       }
 
-      // Execute transaction flow with detailed debugging
-      console.log('📋 About to execute transaction flow...')
-      const result = await executeTransactionFlow(transactionData)
-      console.log('✅ Transaction flow completed successfully:', result)
+      // Execute transaction flow with direct confirmation
+      const flowResult = await executeTransactionFlow(transactionData)
+      
+      // If flow is successful, immediately confirm transaction
+      if (flowResult.success) {
+        const result = await confirmTransaction()
+        await getBalance(true) // Refresh balance
+      }
     } catch (error) {
-      console.error('❌ Transaction failed with error:', error)
-      console.error('📊 Error details:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      })
+      // Error handling managed by transaction flow
     }
   }
 
   const handleTransactionConfirm = async () => {
     try {
-      console.log('🔄 Starting transaction confirmation...')
-      
       // Execute the actual transaction
       const result = await confirmTransaction()
-      console.log('✅ Transaction executed successfully:', result)
       
       // Refresh balance to show updated amount
-      console.log('💰 Refreshing wallet balance...')
       await getBalance(true)
-      
-      console.log('🎉 Transaction completed successfully!')
     } catch (error) {
-      console.error('❌ Transaction confirmation failed:', error)
+      // Error handling managed by transaction flow
     }
   }
 
@@ -311,7 +326,7 @@ export default function TransactionPage() {
         await executeTransactionFlow(transactionData)
       }
     } catch (error) {
-      console.error('2FA verification failed:', error)
+      // Error handling for 2FA verification
     }
   }
 
@@ -327,11 +342,40 @@ export default function TransactionPage() {
     if (transactionType === 'add' || transactionType === 'withdraw' || ['send', 'receive'].includes(transactionType)) {
       return rates.SOL // Always Solana for these operations
     } else if (transactionType === 'transfer') {
-      return rates.SOL // Default to Solana for external transfers
+      // For transfers, detect network from recipient address using fee calculator
+      if (recipient) {
+        try {
+          const addressInfo = defaultFeeCalculator.detectNetworkFromAddress(recipient)
+          
+          if (addressInfo.isValid && addressInfo.isSupported) {
+            return rates[addressInfo.network] || rates.SOL
+          } else {
+            return 'Invalid Chain' // Invalid or unsupported network
+          }
+        } catch (error) {
+          console.error('Error detecting network:', error)
+        }
+      }
+      return rates.SOL // Default to Solana if no valid address
     } else if (['buy', 'sell'].includes(transactionType)) {
-      return rates.SOL // Default to Solana for asset transactions
+      // Use the selected asset's network for buy/sell transactions
+      return rates[selectedAsset] || rates.SOL
     }
     return rates.SOL
+  }
+
+  const getPaymentMethodFeeRate = () => {
+    if (!selectedPaymentMethod || selectedPaymentMethod === 'diboas_wallet') return '0%'
+    
+    const rates = {
+      'apple_pay': '0.5%',
+      'credit_card': '1%',
+      'bank': '1%',
+      'paypal': '3%',
+      'google_pay': '0.5%'
+    }
+    
+    return rates[selectedPaymentMethod] || '0%'
   }
   
   const getProviderFeeRate = () => {
@@ -358,6 +402,16 @@ export default function TransactionPage() {
       return rates.onramp[selectedPaymentMethod] || '0%'
     } else if (isOffRamp) {
       return rates.offramp[selectedPaymentMethod] || '0%'
+    } else if (['buy', 'sell'].includes(transactionType)) {
+      if (selectedPaymentMethod === 'diboas_wallet') {
+        return '1%' // DEX fee only
+      } else {
+        // External payment method + DEX fee
+        const baseRate = transactionType === 'buy' 
+          ? rates.onramp[selectedPaymentMethod] 
+          : rates.offramp[selectedPaymentMethod]
+        return baseRate ? `${baseRate} + 1%` : '1%'
+      }
     }
     return '0%'
   }
@@ -367,6 +421,65 @@ export default function TransactionPage() {
     resetFlow()
     clearValidationErrors()
   }, [transactionType, resetFlow, clearValidationErrors])
+
+  // Transaction validation function
+  const isTransactionValid = useMemo(() => {
+    // Check if amount is valid
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return false
+    }
+
+    // Check validation errors
+    if (Object.keys(validationErrors).length > 0) {
+      return false
+    }
+
+    // Transaction-specific validations
+    switch (transactionType) {
+      case 'add':
+        // Add/Deposit requires payment method
+        return selectedPaymentMethod && selectedPaymentMethod.length > 0
+      
+      case 'withdraw':
+        // Withdraw requires payment method and sufficient balance
+        return selectedPaymentMethod && 
+               selectedPaymentMethod.length > 0 &&
+               parseFloat(amount) <= (balance?.availableForSpending || 0)
+      
+      case 'send':
+        // Send requires recipient and sufficient balance
+        return recipient && 
+               recipient.length > 0 && 
+               parseFloat(amount) <= (balance?.availableForSpending || 0)
+      
+      
+      case 'transfer':
+        // Transfer requires recipient address and sufficient balance
+        return recipient && 
+               recipient.length > 0 && 
+               parseFloat(amount) <= (balance?.availableForSpending || 0)
+      
+      case 'buy':
+        // Buy requires asset selection and payment method
+        // If paying with diBoaS wallet, check balance; if paying with external methods, no balance check needed
+        const hasValidAsset = selectedAsset && ['BTC', 'ETH', 'SOL', 'SUI'].includes(selectedAsset)
+        const hasPaymentMethod = selectedPaymentMethod && selectedPaymentMethod.length > 0
+        const hasEnoughBalance = selectedPaymentMethod === 'diboas_wallet' 
+          ? parseFloat(amount) <= (balance?.availableForSpending || 0)
+          : true // External payment methods don't need balance check
+        
+        return hasValidAsset && hasPaymentMethod && hasEnoughBalance
+      
+      case 'sell':
+        // Sell requires asset selection and sufficient invested balance (USD value)
+        const hasValidSellAsset = selectedAsset && ['BTC', 'ETH', 'SOL', 'SUI'].includes(selectedAsset)
+        const hasAssetBalance = hasValidSellAsset && (balance?.assets?.[selectedAsset]?.investedAmount || 0) >= parseFloat(amount)
+        return hasValidSellAsset && hasAssetBalance && selectedPaymentMethod === 'diboas_wallet'
+      
+      default:
+        return false
+    }
+  }, [transactionType, amount, selectedPaymentMethod, recipient, selectedAsset, balance, validationErrors])
   
   // Listen for balance updates from other pages/transactions
   useEffect(() => {
@@ -380,6 +493,27 @@ export default function TransactionPage() {
       window.removeEventListener('diboas-transaction-completed', handleTransactionUpdate)
     }
   }, [getBalance])
+
+  // Show progress screen during processing, completion, or error
+  if (['processing', 'completed', 'error'].includes(flowState)) {
+    return (
+      <TransactionProgressScreen
+        transactionData={{
+          type: transactionType,
+          amount: amount,
+          recipient: recipient,
+          asset: selectedAsset,
+          paymentMethod: selectedPaymentMethod
+        }}
+        currentStep={flowState === 'processing' ? 'Processing transaction...' : undefined}
+        isCompleted={flowState === 'completed'}
+        isError={flowState === 'error'}
+        errorMessage={flowError?.message}
+        fees={fees}
+        result={flowData?.result}
+      />
+    )
+  }
 
   return (
     <div className="main-layout">
@@ -410,7 +544,25 @@ export default function TransactionPage() {
                       ? 'diboas-button' 
                       : `${type.bgColor} ${type.color} ${type.borderColor} hover:scale-105`
                   } transition-transform`}
-                  onClick={() => setTransactionType(type.id)}
+                  onClick={() => {
+                    // For RESTful routing, navigate to the specific route
+                    if (!propTransactionType) {
+                      setTransactionType(type.id)
+                    } else {
+                      // Navigate to the specific transaction route
+                      const routeMap = {
+                        'add': '/add',
+                        'send': '/send',
+                        'receive': '/receive',
+                        'buy': '/buy',
+                        'sell': '/sell',
+                        'transfer': '/transfer',
+                        'withdraw': '/withdraw',
+                        'invest': '/invest'
+                      }
+                      navigate(routeMap[type.id] || `/transaction?type=${type.id}`)
+                    }
+                  }}
                 >
                   {type.icon}
                   <span className="text-xs font-medium">{type.label}</span>
@@ -441,48 +593,36 @@ export default function TransactionPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Amount Input */}
-                <div>
-                  <Label htmlFor="amount">Amount</Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="text-2xl h-14 pr-20"
-                    />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <select
-                        value={selectedAsset}
-                        onChange={(e) => setSelectedAsset(e.target.value)}
-                        className="bg-transparent border-none text-sm font-medium focus:outline-none"
-                      >
-                        {assets.map((asset) => (
-                          <option key={asset.id} value={asset.id}>
-                            {asset.label}
-                          </option>
-                        ))}
-                      </select>
+                {/* Asset Selection for Buy - shown first for Buy */}
+                {transactionType === 'buy' && (
+                  <div>
+                    <Label>Buy Asset</Label>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      {tradableAssets.map((asset) => (
+                        <Button
+                          key={asset.id}
+                          variant={selectedAsset === asset.id ? "default" : "outline"}
+                          className={`h-20 flex-col p-3 ${
+                            selectedAsset === asset.id ? 'diboas-button' : ''
+                          }`}
+                          onClick={() => setSelectedAsset(asset.id)}
+                        >
+                          <span className="text-2xl mb-1">{asset.icon}</span>
+                          <div className="text-center">
+                            <span className="text-xs font-semibold block">{asset.name}</span>
+                            <span className="text-xs text-gray-500 block">{asset.symbol}</span>
+                          </div>
+                          <span className="text-xs text-gray-600 mt-1">{asset.price}</span>
+                        </Button>
+                      ))}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Available: ${typeof availableBalance === 'number' ? availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                  </p>
-                  {validationErrors.amount && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {validationErrors.amount.message}
-                    </p>
-                  )}
-                </div>
+                )}
 
-                {/* Recipient/Asset Selection */}
-                {(transactionType === 'send' || transactionType === 'receive') && (
+                {/* Recipient Selection for Send - shown first */}
+                {transactionType === 'send' && (
                   <div>
-                    <Label htmlFor="recipient">
-                      {transactionType === 'send' ? 'Send to' : 'Request from'}
-                    </Label>
+                    <Label htmlFor="recipient">Send to</Label>
                     <div className="relative mt-1">
                       <Input
                         id="recipient"
@@ -498,9 +638,21 @@ export default function TransactionPage() {
                         {validationErrors.recipient.message}
                       </p>
                     )}
+                    
+                    {/* Irreversible Transaction Warning for Send */}
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-amber-700">
+                          <p className="font-medium">⚠️ Transaction cannot be reverted</p>
+                          <p>Please verify the recipient details. You are responsible for the accuracy of the recipient information. This transaction cannot be undone once confirmed.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
+                {/* Wallet Address for Transfer - shown first */}
                 {transactionType === 'transfer' && (
                   <div>
                     <Label htmlFor="wallet">Wallet Address</Label>
@@ -525,15 +677,220 @@ export default function TransactionPage() {
                         {validationErrors.recipient.message}
                       </p>
                     )}
+                    
+                    {/* Irreversible Transaction Warning for Transfer */}
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-amber-700">
+                          <p className="font-medium">⚠️ Transaction cannot be reverted</p>
+                          <p>Please verify the wallet address carefully. You are responsible for the accuracy of the address. This external transfer cannot be undone once confirmed.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Payment Method Selection */}
-                {(isOnRamp || isOffRamp) && (
+                {/* Asset Selection for Sell - shown first */}
+                {transactionType === 'sell' && (
+                  <div>
+                    <Label>Sell Asset</Label>
+                    {(() => {
+                      // Show assets from invested balance, not available balance
+                      const availableAssets = tradableAssets.filter(asset => (balance?.assets?.[asset.id]?.investedAmount || 0) > 0)
+                      
+                      if (availableAssets.length === 0) {
+                        return (
+                          <div className="mt-2 p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                            <TrendingUp className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-600 mb-3">No assets available to sell</p>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                const routeMap = {
+                                  'buy': '/buy'
+                                }
+                                navigate(routeMap['buy'])
+                              }}
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              Buy Assets First
+                            </Button>
+                          </div>
+                        )
+                      }
+                      
+                      return (
+                        <div className="grid grid-cols-2 gap-3 mt-2">
+                          {availableAssets.map((asset) => (
+                            <Button
+                              key={asset.id}
+                              variant={selectedAsset === asset.id ? "default" : "outline"}
+                              className={`h-20 flex-col p-3 ${
+                                selectedAsset === asset.id ? 'diboas-button' : ''
+                              }`}
+                              onClick={() => setSelectedAsset(asset.id)}
+                            >
+                              <span className="text-2xl mb-1">{asset.icon}</span>
+                              <div className="text-center">
+                                <span className="text-xs font-semibold block">{asset.name}</span>
+                                <span className="text-xs text-gray-500 block">{asset.symbol}</span>
+                              </div>
+                              <span className="text-xs text-blue-600 mt-1">
+                                {(balance?.assets?.[asset.id]?.investedAmount || 0).toFixed(4)} {asset.symbol}
+                              </span>
+                            </Button>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+
+                {/* Amount Input */}
+                <div>
+                  <Label htmlFor="amount">Amount</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="amount"
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      style={{ 
+                        MozAppearance: 'textfield',
+                        WebkitAppearance: 'none',
+                        appearance: 'none'
+                      }}
+                      className={`text-2xl h-14 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                        transactionType === 'sell'
+                          ? 'pr-20'  // Space for asset dropdown (Sell only)
+                          : 'pr-16'  // Space for USD label only
+                      } ${validationErrors.amount ? 'border-red-500 focus:border-red-500' : ''}`}
+                    />
+                    {/* Show USD for most transactions, asset dropdown only for Sell */}
+                    {transactionType === 'sell' ? (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <select
+                          value={selectedAsset}
+                          onChange={(e) => setSelectedAsset(e.target.value)}
+                          className="bg-transparent border-none text-sm font-medium focus:outline-none"
+                        >
+                          {assets.map((asset) => (
+                            <option key={asset.id} value={asset.id}>
+                              {asset.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <span className="text-sm font-medium text-gray-500">USD</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Amount Quick Options */}
+                  <div className="flex gap-2 mt-2">
+                    {(() => {
+                      const getAmountOptions = () => {
+                        switch(transactionType) {
+                          case 'add':
+                          case 'buy':
+                            return [
+                              { label: '$25', value: '25' },
+                              { label: '$50', value: '50' },
+                              { label: '$100', value: '100' }
+                            ]
+                          case 'send':
+                            return [
+                              { label: '5%', value: Math.round((balance?.availableForSpending || 0) * 0.05 * 100) / 100 },
+                              { label: '10%', value: Math.round((balance?.availableForSpending || 0) * 0.10 * 100) / 100 },
+                              { label: '25%', value: Math.round((balance?.availableForSpending || 0) * 0.25 * 100) / 100 }
+                            ]
+                          case 'transfer':
+                            return [
+                              { label: '25%', value: Math.round((balance?.availableForSpending || 0) * 0.25 * 100) / 100 },
+                              { label: '50%', value: Math.round((balance?.availableForSpending || 0) * 0.50 * 100) / 100 },
+                              { label: 'Max', value: balance?.availableForSpending || 0 }
+                            ]
+                          case 'sell':
+                            const assetBalance = balance?.assets?.[selectedAsset]?.investedAmount || 0
+                            return [
+                              { label: '25%', value: Math.round(assetBalance * 0.25 * 100) / 100 },
+                              { label: '50%', value: Math.round(assetBalance * 0.50 * 100) / 100 },
+                              { label: 'Max', value: assetBalance }
+                            ]
+                          case 'withdraw':
+                            return [
+                              { label: '25%', value: Math.round((balance?.availableForSpending || 0) * 0.25 * 100) / 100 },
+                              { label: '50%', value: Math.round((balance?.availableForSpending || 0) * 0.50 * 100) / 100 },
+                              { label: 'Max', value: balance?.availableForSpending || 0 }
+                            ]
+                          default:
+                            return []
+                        }
+                      }
+
+                      return getAmountOptions().map((option, index) => (
+                        <Button
+                          key={index}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-xs"
+                          onClick={() => setAmount(option.value.toString())}
+                        >
+                          {option.label}
+                        </Button>
+                      ))
+                    })()}
+                  </div>
+
+                  <p className="text-sm text-gray-500 mt-1">
+                    {['withdraw', 'send', 'transfer'].includes(transactionType)
+                      ? `Maximum ${transactionType === 'withdraw' ? 'withdrawable' : transactionType === 'send' ? 'sendable' : 'transferable'}: $${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` 
+                      : transactionType === 'sell'
+                      ? `Invested in ${selectedAsset}: $${typeof availableBalance === 'number' ? availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`
+                      : `Available: $${typeof availableBalance === 'number' ? availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`
+                    }
+                  </p>
+                  {validationErrors.amount && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {validationErrors.amount.message}
+                    </p>
+                  )}
+                  {['withdraw', 'send', 'transfer'].includes(transactionType) && balance?.investedAmount > 0 && (
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start space-x-2">
+                        <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-blue-700">
+                          <p className="font-medium">Invested funds cannot be {transactionType === 'withdraw' ? 'withdrawn' : transactionType === 'send' ? 'sent' : 'transferred'} directly</p>
+                          <p>You have ${balance.investedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} in investments. To {transactionType === 'withdraw' ? 'withdraw' : transactionType === 'send' ? 'send' : 'transfer'} invested funds, first sell your assets.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {transactionType === 'buy' && selectedPaymentMethod === 'diboas_wallet' && amount && parseFloat(amount) > (balance?.availableForSpending || 0) && (
+                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-red-700">
+                          <p className="font-medium">Insufficient diBoaS wallet balance</p>
+                          <p>You need ${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} but only have ${(balance?.availableForSpending || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} available. Choose an external payment method or add funds first.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+
+                {/* Payment Method Selection - Hidden for Sell transactions */}
+                {(isOnRamp || isOffRamp || transactionType === 'buy') && (
                   <div>
                     <Label>Payment Method</Label>
                     <div className="grid grid-cols-2 gap-3 mt-2">
-                      {paymentMethods.map((method) => (
+                      {(transactionType === 'buy' ? buyPaymentMethods : paymentMethods).map((method) => (
                         <Button
                           key={method.id}
                           variant={selectedPaymentMethod === method.id ? "default" : "outline"}
@@ -550,28 +907,6 @@ export default function TransactionPage() {
                   </div>
                 )}
 
-                {/* Asset Selection for Buy/Sell */}
-                {(transactionType === 'buy' || transactionType === 'sell') && (
-                  <div>
-                    <Label>Select Asset</Label>
-                    <div className="grid grid-cols-2 gap-3 mt-2">
-                      {assets.filter(a => a.id !== 'USD').map((asset) => (
-                        <Button
-                          key={asset.id}
-                          variant={selectedAsset === asset.id ? "default" : "outline"}
-                          className={`h-16 flex-col ${
-                            selectedAsset === asset.id ? 'diboas-button' : ''
-                          }`}
-                          onClick={() => setSelectedAsset(asset.id)}
-                        >
-                          <span className="text-lg mb-1">{asset.icon}</span>
-                          <span className="text-xs">{asset.label}</span>
-                          <span className="text-xs text-gray-500">{asset.price}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
@@ -585,7 +920,30 @@ export default function TransactionPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span>Amount</span>
-                  <span className="font-medium">${amount || '0.00'}</span>
+                  <div className="text-right">
+                    <span className="font-medium">${amount || '0.00'}</span>
+                    {/* Show estimated asset quantity for Buy/Sell transactions */}
+                    {(['buy', 'sell'].includes(transactionType) && amount && selectedAsset && selectedAsset !== 'USD') && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {(() => {
+                          const assetData = assets.find(a => a.id === selectedAsset)
+                          if (!assetData || !assetData.price) return ''
+                          
+                          const priceValue = parseFloat(assetData.price.replace(/[$,]/g, ''))
+                          const amountValue = parseFloat(amount)
+                          
+                          if (transactionType === 'buy' && priceValue > 0) {
+                            const estimatedQuantity = amountValue / priceValue
+                            return `≈ ${estimatedQuantity.toFixed(6)} ${assetData.symbol}`
+                          } else if (transactionType === 'sell' && amountValue > 0) {
+                            const estimatedFiat = amountValue * priceValue
+                            return `≈ $${estimatedFiat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          }
+                          return ''
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="border-t pt-4">
@@ -614,6 +972,22 @@ export default function TransactionPage() {
                           <span>${fees?.provider?.toFixed(2) || '0.00'}</span>
                         </div>
                       )}
+                      {['buy', 'sell'].includes(transactionType) && (
+                        <>
+                          {/* Payment Method Fee - only for external payment methods */}
+                          {transactionType === 'buy' && selectedPaymentMethod !== 'diboas_wallet' && (
+                            <div className="flex justify-between text-gray-600">
+                              <span>Payment Fee ({getPaymentMethodFeeRate()})</span>
+                              <span>${fees?.payment?.toFixed(2) || '0.00'}</span>
+                            </div>
+                          )}
+                          {/* DEX Fee - always shown for buy/sell */}
+                          <div className="flex justify-between text-gray-600">
+                            <span>DEX Fee (1%)</span>
+                            <span>${fees?.dex?.toFixed(2) || '0.00'}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -626,88 +1000,13 @@ export default function TransactionPage() {
                 </div>
                 
                 <div className="pt-4">
-                  {flowState === 'confirming' ? (
-                    <Button
-                      className="w-full diboas-button"
-                      onClick={handleTransactionConfirm}
-                    >
-                      Confirm Transaction
-                    </Button>
-                  ) : flowState === 'processing' ? (
-                    <Button
-                      className="w-full diboas-button"
-                      disabled
-                    >
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Processing Transaction...</span>
-                      </div>
-                    </Button>
-                  ) : flowState === 'completed' ? (
-                    <div className="space-y-4">
-                      <div className="text-center">
-                        <div className="flex items-center justify-center space-x-2 text-green-600 mb-2">
-                          <CheckCircle className="w-6 h-6" />
-                          <span className="font-medium text-lg">Transaction Completed!</span>
-                        </div>
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Transaction Type:</span>
-                              <span className="font-medium">{currentType?.label}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Amount Processed:</span>
-                              <span className="font-medium">${amount}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Total Fees:</span>
-                              <span className="font-medium">${fees?.total?.toFixed(2) || '0.00'}</span>
-                            </div>
-                            <div className="border-t pt-2 flex justify-between font-semibold">
-                              <span>Net Amount:</span>
-                              <span className="text-green-600">${amount && fees ? (parseFloat(amount) - parseFloat(fees.total || 0)).toFixed(2) : amount || '0.00'}</span>
-                            </div>
-                            <div className="border-t pt-2 flex justify-between text-sm">
-                              <span className="text-gray-600">Available Balance:</span>
-                              <span className="font-medium text-blue-600">${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        className="w-full diboas-button"
-                        onClick={() => navigate('/app')}
-                      >
-                        Back to Dashboard
-                      </Button>
-                    </div>
-                  ) : flowState === 'error' ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-center space-x-2 text-red-600">
-                        <AlertCircle className="w-5 h-5" />
-                        <span className="font-medium">Transaction Failed</span>
-                      </div>
-                      <p className="text-sm text-red-600 text-center">
-                        {flowError?.message || 'Please try again'}
-                      </p>
-                      <Button
-                        className="w-full diboas-button"
-                        onClick={() => resetFlow()}
-                        variant="outline"
-                      >
-                        Try Again
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      className="w-full diboas-button"
-                      onClick={handleTransactionStart}
-                      disabled={!amount}
-                    >
-                      {`${currentType?.label} ${amount ? `$${amount}` : ''}`}
-                    </Button>
-                  )}
+                  <Button
+                    className="w-full diboas-button"
+                    onClick={handleTransactionStart}
+                    disabled={!isTransactionValid}
+                  >
+                    {`${currentType?.label} ${amount ? `$${amount}` : ''}`}
+                  </Button>
                 </div>
                 
                 <div className="text-xs text-gray-500 text-center">

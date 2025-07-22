@@ -5,12 +5,27 @@
 
 /**
  * Common navigation paths used throughout the app
+ * Using RESTful routing structure for better organization
  */
 export const NAVIGATION_PATHS = {
   HOME: '/',
   AUTH: '/auth',
   APP: '/app',
   ACCOUNT: '/account',
+  
+  // Transaction routes - RESTful structure
+  TRANSACTIONS: {
+    ADD: '/add',
+    SEND: '/send', 
+    RECEIVE: '/receive',
+    BUY: '/buy',
+    SELL: '/sell',
+    TRANSFER: '/transfer',
+    WITHDRAW: '/withdraw',
+    INVEST: '/invest'
+  },
+  
+  // Legacy support (will be removed)
   TRANSACTION: '/transaction',
   TRANSACTION_WITH_TYPE: (type) => `/transaction?type=${type}`
 }
@@ -55,10 +70,23 @@ export const QUICK_ACTIONS = [
 
 /**
  * Creates a navigation handler for transaction types
+ * Uses new RESTful route structure
  */
 export function createTransactionNavigator(navigate) {
   return (transactionType) => {
-    navigate(NAVIGATION_PATHS.TRANSACTION_WITH_TYPE(transactionType))
+    const routeMap = {
+      [TRANSACTION_TYPES.ADD]: NAVIGATION_PATHS.TRANSACTIONS.ADD,
+      [TRANSACTION_TYPES.SEND]: NAVIGATION_PATHS.TRANSACTIONS.SEND,
+      [TRANSACTION_TYPES.RECEIVE]: NAVIGATION_PATHS.TRANSACTIONS.RECEIVE,
+      [TRANSACTION_TYPES.BUY]: NAVIGATION_PATHS.TRANSACTIONS.BUY,
+      [TRANSACTION_TYPES.SELL]: NAVIGATION_PATHS.TRANSACTIONS.SELL,
+      [TRANSACTION_TYPES.TRANSFER]: NAVIGATION_PATHS.TRANSACTIONS.TRANSFER,
+      [TRANSACTION_TYPES.WITHDRAW]: NAVIGATION_PATHS.TRANSACTIONS.WITHDRAW,
+      [TRANSACTION_TYPES.INVEST]: NAVIGATION_PATHS.TRANSACTIONS.INVEST
+    }
+    
+    const route = routeMap[transactionType] || NAVIGATION_PATHS.TRANSACTION_WITH_TYPE(transactionType)
+    navigate(route)
   }
 }
 
