@@ -12,7 +12,6 @@ export const FEE_STRUCTURE = {
     'add': 0.0009,      // 0.09%
     'withdraw': 0.009,   // 0.9%
     'send': 0.0009,     // 0.09%
-    'receive': 0.0009,  // 0.09%
     'transfer': 0.009,  // 0.9%
     'buy': 0.0009,      // 0.09%
     'sell': 0.0009,     // 0.09%
@@ -56,9 +55,10 @@ export const FEE_STRUCTURE = {
 
   // Minimum fees
   MINIMUM_FEES: {
-    network: 0.10,
-    provider: 0.50,
-    diBoaS: 0.01
+    // Network fees have NO minimums - users pay exactly the calculated percentage
+    network: 0, // No minimum for network fees
+    provider: 0.50, // Keep provider minimum (payment processor requirements)
+    diBoaS: 0.01     // Keep diBoaS minimum (business requirement)
   }
 }
 
@@ -77,7 +77,7 @@ export class FeeCalculator {
    * Calculate comprehensive fees for any transaction type
    */
   async calculateTransactionFees(transactionData, routingPlan = null) {
-    const { type, amount, asset, fromChain, toChain, paymentMethod } = transactionData
+    const { type, amount, asset, fromChain, toChain, paymentMethod, recipient } = transactionData
     const numericAmount = parseFloat(amount)
 
     if (isNaN(numericAmount) || numericAmount <= 0) {
@@ -88,6 +88,8 @@ export class FeeCalculator {
       diBoaS: 0,
       network: 0,
       provider: 0,
+      payment: 0,  // Separate payment method fee
+      dex: 0,      // Separate DEX fee
       routing: 0,
       gas: 0,
       total: 0,
@@ -101,10 +103,10 @@ export class FeeCalculator {
     fees.diBoaS = Math.max(numericAmount * diBoaSRate, FEE_STRUCTURE.MINIMUM_FEES.diBoaS)
 
     // Calculate network fees based on transaction type
-    fees.network = await this.calculateNetworkFees(type, numericAmount, fromChain, toChain)
+    fees.network = await this.calculateNetworkFees(type, numericAmount, fromChain, toChain, recipient, transactionData)
 
     // Calculate provider fees
-    fees.provider = await this.calculateProviderFees(type, numericAmount, paymentMethod, asset)
+    fees.provider = await this.calculateProviderFees(type, numericAmount, paymentMethod, asset, fees)
 
     // Calculate routing fees if cross-chain operation
     if (routingPlan?.needsRouting) {
@@ -118,7 +120,7 @@ export class FeeCalculator {
     fees.breakdown = this.buildFeeBreakdown(fees, type, numericAmount)
 
     // Calculate totals
-    fees.total = fees.diBoaS + fees.network + fees.provider + fees.routing + fees.gas
+    fees.total = fees.diBoaS + fees.network + fees.provider + fees.payment + fees.dex + fees.routing + fees.gas
     fees.effectiveRate = (fees.total / numericAmount) * 100
 
     // Generate display summary
@@ -128,42 +130,105 @@ export class FeeCalculator {
   }
 
   /**
+   * Detect network based on wallet address format
+   * Only accepts the specific address formats listed in requirements
+   */
+  detectNetworkFromAddress(address) {
+    if (!address) return { network: 'SOL', isValid: true, isSupported: true }
+    
+    // Only supported address patterns as per requirements
+    const supportedPatterns = {
+      'BTC': {
+        // Bitcoin Legacy (starts with 1), SegWit (starts with 3), Bech32 (starts with bc1)
+        // 26-35 characters for Legacy/SegWit, 39-59 for Bech32
+        pattern: /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{38,58}$/,
+        examples: ['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq']
+      },
+      'ETH': {
+        // Ethereum (also Arbitrum, Base) - starts with 0x, 42 characters total (40 hex chars)
+        pattern: /^0x[a-fA-F0-9]{40}$/,
+        examples: ['0x71C7656EC7ab88b098defB751B7401B5f6d8976F', '0x6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5', '0x5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4']
+      },
+      'SOL': {
+        // Solana - Base58-encoded, 32-44 characters, no 0, O, I, l characters
+        pattern: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+        examples: ['5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2NFD']
+      },
+      'SUI': {
+        // Sui - starts with 0x, followed by exactly 64 hex characters (66 total)
+        pattern: /^0x[a-fA-F0-9]{64}$/,
+        examples: ['0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2']
+      }
+    }
+
+    // Check only supported networks
+    for (const [network, config] of Object.entries(supportedPatterns)) {
+      if (config.pattern.test(address)) {
+        return { network, isValid: true, isSupported: true }
+      }
+    }
+    
+    // Any format not matching supported patterns is invalid
+    return { network: 'Invalid Chain', isValid: false, isSupported: false }
+  }
+
+  /**
    * Calculate network fees for transaction (now percentage-based)
    */
-  async calculateNetworkFees(type, amount, fromChain, toChain) {
+  async calculateNetworkFees(type, amount, fromChain, toChain, recipient, transactionData = {}) {
     let networkFeeRate = 0
+    let detectedNetwork = 'SOL' // Default network
 
     // On-ramp and off-ramp use destination chain
     if (type === 'add') {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // Always Solana for on-ramp
+      detectedNetwork = 'SOL'
     } else if (type === 'withdraw') {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // Always from Solana
-    } else if (['send', 'receive'].includes(type)) {
+      detectedNetwork = 'SOL'
+    } else if (type === 'send') {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // P2P on Solana
+      detectedNetwork = 'SOL'
     } else if (type === 'transfer') {
-      // External transfer - may involve multiple chains
-      networkFeeRate = FEE_STRUCTURE.NETWORK_FEES[fromChain] || 0
-      if (toChain && toChain !== fromChain) {
-        networkFeeRate += FEE_STRUCTURE.NETWORK_FEES[toChain] || 0
+      // External transfer - detect network from recipient address
+      const addressInfo = this.detectNetworkFromAddress(recipient)
+      
+      // If invalid, set network fee to 0 and mark as invalid chain
+      if (!addressInfo.isValid) {
+        networkFeeRate = 0
+        detectedNetwork = 'Invalid Chain'
+      } else {
+        detectedNetwork = addressInfo.network
+        networkFeeRate = FEE_STRUCTURE.NETWORK_FEES[addressInfo.network] || FEE_STRUCTURE.NETWORK_FEES.SOL
       }
     } else if (['buy', 'sell'].includes(type)) {
-      // Asset transactions may involve multiple chains
-      networkFeeRate = FEE_STRUCTURE.NETWORK_FEES[fromChain] || FEE_STRUCTURE.NETWORK_FEES.SOL
-      if (toChain && toChain !== fromChain) {
-        networkFeeRate += FEE_STRUCTURE.NETWORK_FEES[toChain] || 0
+      // Asset transactions - use the asset's native network for network fees
+      const assetNetworkMap = {
+        'BTC': 'BTC',
+        'ETH': 'ETH', 
+        'SOL': 'SOL',
+        'SUI': 'SUI'
       }
+      
+      // Get the asset from transaction data (for buy/sell, it's in the asset field)
+      const transactionAsset = transactionData?.asset || 'SOL'
+      const assetNetwork = assetNetworkMap[transactionAsset] || 'SOL'
+      
+      networkFeeRate = FEE_STRUCTURE.NETWORK_FEES[assetNetwork] || FEE_STRUCTURE.NETWORK_FEES.SOL
+      detectedNetwork = assetNetwork
     } else if (type === 'invest') {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // Investments on Solana
+      detectedNetwork = 'SOL'
     }
 
     const networkFee = parseFloat(amount) * networkFeeRate
-    return Math.max(networkFee, FEE_STRUCTURE.MINIMUM_FEES.network)
+    return networkFee
   }
 
   /**
-   * Calculate provider-specific fees
+   * Calculate provider-specific fees with separation for payment/DEX fees
    */
-  async calculateProviderFees(type, amount, paymentMethod, asset) {
+  async calculateProviderFees(type, amount, paymentMethod, asset, fees) {
     let providerFee = 0
 
     // Return 0 if no payment method selected (as per requirements)
@@ -190,28 +255,50 @@ export class FeeCalculator {
         break
 
       case 'buy':
-      case 'sell':
-        // DEX/trading fees for asset swaps
-        if (asset && asset !== 'USDC') {
-          const swapRate = (FEE_STRUCTURE.ONCHAIN_FEES.swap.min + FEE_STRUCTURE.ONCHAIN_FEES.swap.max) / 2
-          providerFee = amount * swapRate
+        // Buy transaction fees - DEX fee only for On-Chain, Payment fee only for On-Ramp
+        if (paymentMethod === 'diboas_wallet') {
+          // Buy On-Chain: uses diBoaS wallet, only DEX fee applies
+          fees.dex = amount * 0.01 // 1% DEX fee
+          fees.payment = 0 // No payment method fee
+          providerFee = fees.dex
+        } else if (['apple_pay', 'credit_card', 'bank', 'paypal', 'google_pay'].includes(paymentMethod)) {
+          // Buy On-Ramp: uses external payment methods, only payment fee applies
+          const paymentRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.onramp[paymentMethod] || 0
+          
+          fees.payment = amount * paymentRate // Payment method fee
+          fees.dex = 0 // No DEX fee for On-Ramp transactions
+          providerFee = fees.payment
+        } else {
+          // Default case
+          fees.dex = 0
+          fees.payment = 0
+          providerFee = 0
         }
         break
 
+      case 'sell':
+        // Sell transaction fees - only DEX fee, no payment provider fee
+        fees.dex = amount * 0.01 // 1% DEX fee
+        fees.payment = 0 // No payment method fee for selling
+        providerFee = fees.dex
+        break
+
       case 'send':
-      case 'receive':
+        // P2P transactions have no provider fees
+        providerFee = 0
+        break
+
       case 'transfer':
-        // On-chain fees for cross-chain operations
-        const bridgeBaseFee = FEE_STRUCTURE.ONCHAIN_FEES.bridge.base
-        const bridgePercentageFee = amount * FEE_STRUCTURE.ONCHAIN_FEES.bridge.percentage
-        providerFee = bridgeBaseFee + bridgePercentageFee
+        // External transfer fees - 0.8% DEX/Bridge provider fee
+        providerFee = amount * 0.008 // 0.8% provider fee
         break
 
       default:
         providerFee = 0
     }
 
-    return Math.max(providerFee, providerFee > 0 ? FEE_STRUCTURE.MINIMUM_FEES.provider : 0)
+    const finalFee = Math.max(providerFee, providerFee > 0 ? FEE_STRUCTURE.MINIMUM_FEES.provider : 0)
+    return finalFee
   }
 
   /**
@@ -454,8 +541,8 @@ export class FeeCalculator {
    * Helper methods
    */
   generateCacheKey(transactionData) {
-    const { type, amount, asset, fromChain, toChain } = transactionData
-    return `${type}_${amount}_${asset || 'none'}_${fromChain || 'none'}_${toChain || 'none'}`
+    const { type, amount, asset, fromChain, toChain, paymentMethod, recipient } = transactionData
+    return `${type}_${amount}_${asset || 'none'}_${fromChain || 'none'}_${toChain || 'none'}_${paymentMethod || 'none'}_${recipient || 'none'}`
   }
 
   shouldFetchRealTimeData(type) {
@@ -469,11 +556,8 @@ export class FeeCalculator {
     // - Bridge services (Wormhole, LayerZero)
     // - Gas oracle services
 
-    // Mock enhancement for now
-    const volatilityFactor = 0.95 + (Math.random() * 0.1) // ±5% variation
-    fees.network *= volatilityFactor
-    fees.provider *= volatilityFactor
-    fees.total = fees.diBoaS + fees.network + fees.provider + fees.routing + fees.gas
+    // Real-time enhancement disabled for accurate fee calculations
+    fees.total = fees.diBoaS + fees.network + fees.provider + fees.payment + fees.dex + fees.routing + fees.gas
   }
 
   /**
@@ -504,11 +588,21 @@ export class FeeCalculator {
  */
 export const FeeUtils = {
   /**
-   * Format fee amount for display
+   * Format fee amount for display with 3 decimals
    */
   formatFee: (amount, currency = 'USD') => {
     if (currency === 'USD') {
-      return `$${amount.toFixed(2)}`
+      // Format to 3 decimals, handling very small amounts properly
+      if (amount < 0.001 && amount > 0) {
+        // For very small amounts, show more precise decimals
+        const formatted = amount.toFixed(6)
+        // Find first two non-zero digits after decimal
+        const match = formatted.match(/0\.0*(\d{2})/)
+        if (match) {
+          return `$0.0${match[1].padEnd(2, '0')}`
+        }
+      }
+      return `$${amount.toFixed(3)}`
     }
     return `${amount.toFixed(6)} ${currency}`
   },

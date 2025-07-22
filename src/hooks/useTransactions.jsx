@@ -1,13 +1,14 @@
 /**
  * Transaction Hook
  * React hook for accessing comprehensive transaction system
+ * Uses centralized DataManager for single source of truth
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import TransactionEngine from '../services/transactions/TransactionEngine.js'
-import MultiWalletManager from '../services/transactions/MultiWalletManager.js'
 import { defaultFeeCalculator } from '../utils/feeCalculations.js'
 import { useAuth } from './useIntegrations.jsx'
+import { dataManager } from '../services/DataManager.js'
 
 let transactionEngineInstance = null
 let walletManagerInstance = null
@@ -77,147 +78,228 @@ export const useTransactions = () => {
 }
 
 /**
- * Wallet management hook
+ * Wallet management hook - now uses centralized DataManager
  */
 export const useWallet = () => {
-  const { walletManager, user, isInitialized } = useTransactions()
+  const { user } = useAuth()
   const [balance, setBalance] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Initialize user wallets
-  const initializeWallets = useCallback(async () => {
-    if (!walletManager || !user) return null
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const result = await walletManager.initializeWallets(user.id)
-      return result
-    } catch (err) {
-      setError(err)
-      throw err
-    } finally {
-      setIsLoading(false)
+  // Subscribe to balance updates from DataManager
+  useEffect(() => {
+    // Set initial balance from DataManager state
+    const currentBalance = dataManager.getBalance()
+    if (currentBalance) {
+      setBalance(currentBalance)
     }
-  }, [walletManager, user])
+
+    // Subscribe to balance updates
+    const unsubscribeBalance = dataManager.subscribe('balance:updated', (newBalance) => {
+      setBalance(newBalance)
+    })
+
+    const unsubscribeLoading = dataManager.subscribe('balance:loading', (loading) => {
+      setIsLoading(loading)
+    })
+
+    const unsubscribeError = dataManager.subscribe('balance:error', (error) => {
+      setError(error)
+    })
+
+    return () => {
+      unsubscribeBalance()
+      unsubscribeLoading()
+      unsubscribeError()
+    }
+  }, [])
 
   // Get unified balance
   const getBalance = useCallback(async (forceRefresh = false) => {
-    if (!walletManager || !user) return null
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const balanceData = await walletManager.getUnifiedBalance(user.id, forceRefresh)
-      setBalance(balanceData)
-      return balanceData
-    } catch (err) {
-      setError(err)
-      throw err
-    } finally {
-      setIsLoading(false)
-    }
-  }, [walletManager, user])
-
-  // Check balance sufficiency
-  const checkSufficientBalance = useCallback(async (amount, transactionType, targetChain) => {
-    console.log('🔍 Balance check called with:', { amount, transactionType, targetChain })
-    console.log('🔍 Available dependencies:', { 
-      walletManager: !!walletManager, 
-      user: !!user,
-      userId: user?.id 
-    })
-    
-    if (!walletManager || !user) {
-      console.log('🟡 Balance check skipped - missing walletManager or user, returning demo values')
-      return { sufficient: true, availableBalance: 999999, requiredAmount: amount } // Allow transactions for demo
+    if (!user) {
+      // Return current balance from DataManager for demo
+      const currentBalance = dataManager.getBalance()
+      setBalance(currentBalance)
+      return currentBalance
     }
 
     try {
-      console.log('🔍 Checking balance for:', { userId: user.id, amount, transactionType, targetChain })
-      const result = await walletManager.checkSufficientBalance(user.id, amount, transactionType, targetChain)
-      console.log('💰 Balance check result:', result)
-      return result
+      // Force refresh from DataManager if needed
+      if (forceRefresh) {
+        // In a real implementation, this would trigger a blockchain refresh
+        // For demo, we just return the current state
+        const currentBalance = dataManager.getBalance()
+        setBalance(currentBalance)
+        return currentBalance
+      }
+      
+      const currentBalance = dataManager.getBalance()
+      setBalance(currentBalance)
+      return currentBalance
     } catch (err) {
-      console.error('❌ Balance check failed:', err)
-      console.error('❌ Balance check error details:', {
-        message: err.message,
-        stack: err.stack,
-        walletManagerState: walletManager ? 'initialized' : 'null',
-        userState: user ? 'exists' : 'null'
-      })
       setError(err)
       throw err
     }
-  }, [walletManager, user])
+  }, [user])
 
-  // Auto-refresh balance on component mount
+  // Check balance sufficiency - Updated to match proper financial flow
+  const checkSufficientBalance = useCallback(async (amount, transactionType, targetChain, paymentMethod) => {
+    try {
+      const currentBalance = dataManager.getBalance()
+      
+      const checks = {
+        sufficient: false,
+        availableBalance: 0,
+        requiredAmount: amount,
+        deficit: 0
+      }
+
+      // For add transactions (on-ramp), no balance check needed - external payment
+      if (transactionType === 'add') {
+        checks.sufficient = true
+        checks.availableBalance = 999999 // External fiat source
+        return checks
+      }
+
+      // For transactions that use Available Balance only
+      if (['send', 'withdraw', 'transfer'].includes(transactionType)) {
+        const available = currentBalance?.availableForSpending || 0
+        checks.sufficient = available >= amount
+        checks.availableBalance = available
+        
+        if (!checks.sufficient) {
+          checks.deficit = amount - available
+        }
+        return checks
+      }
+
+      // For buy transactions
+      if (transactionType === 'buy') {
+        if (paymentMethod === 'diboas_wallet') {
+          // Buy On-Chain: Check Available Balance
+          const available = currentBalance?.availableForSpending || 0
+          checks.sufficient = available >= amount
+          checks.availableBalance = available
+          
+          if (!checks.sufficient) {
+            checks.deficit = amount - available
+          }
+        } else {
+          // Buy On-Ramp: External payment, no balance check needed
+          checks.sufficient = true
+          checks.availableBalance = 999999 // External payment source
+        }
+        return checks
+      }
+
+      // For sell transactions: check invested amount
+      if (transactionType === 'sell') {
+        const invested = currentBalance?.investedAmount || 0
+        checks.sufficient = invested >= amount
+        checks.availableBalance = invested
+        
+        if (!checks.sufficient) {
+          checks.deficit = amount - invested
+        }
+        return checks
+      }
+
+      return checks
+    } catch (err) {
+      setError(err)
+      throw err
+    }
+  }, [])
+
+  // Initialize balance on mount
   useEffect(() => {
-    if (isInitialized && user) {
-      getBalance()
-    }
-  }, [isInitialized, user, getBalance])
+    getBalance()
+  }, [])
 
   return {
     balance,
     isLoading,
     error,
-    initializeWallets,
     getBalance,
     checkSufficientBalance,
-    isInitialized
+    isInitialized: true // DataManager is always initialized
   }
 }
 
 /**
- * Transaction processing hook
+ * Transaction processing hook - now uses centralized DataManager
  */
 export const useTransactionProcessor = () => {
-  const { transactionEngine, user, isInitialized } = useTransactions()
+  const { user } = useAuth()
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState(null)
   const [currentTransaction, setCurrentTransaction] = useState(null)
 
-  // Process transaction
-  const processTransaction = useCallback(async (transactionData, options = {}) => {
-    if (!transactionEngine || !user) throw new Error('Transaction system not ready')
+  // Subscribe to transaction events from DataManager
+  useEffect(() => {
+    const unsubscribeError = dataManager.subscribe('transaction:error', (error) => {
+      setError(error)
+      setIsProcessing(false)
+    })
 
+    const unsubscribeCompleted = dataManager.subscribe('transaction:completed', ({ transaction }) => {
+      setCurrentTransaction(transaction)
+      setIsProcessing(false)
+    })
+
+    return () => {
+      unsubscribeError()
+      unsubscribeCompleted()
+    }
+  }, [])
+
+  // Process transaction using DataManager
+  const processTransaction = useCallback(async (transactionData, options = {}) => {
     setIsProcessing(true)
     setError(null)
     setCurrentTransaction(null)
 
     try {
-      const result = await transactionEngine.processTransaction(user.id, transactionData, {
-        userAgent: navigator.userAgent,
+      // Calculate net amount (amount - fees) for the transaction
+      const fees = transactionData.fees || { total: 0 }
+      const netAmount = parseFloat(transactionData.amount) - parseFloat(fees.total || 0)
+      
+      const enrichedTransactionData = {
+        ...transactionData,
+        netAmount: netAmount,
+        userId: user?.id || 'demo_user_12345',
+        timestamp: new Date().toISOString(),
         ...options
-      })
+      }
 
+      // Process through DataManager
+      const result = await dataManager.processTransaction(enrichedTransactionData)
       setCurrentTransaction(result.transaction)
       return result
     } catch (err) {
       setError(err)
-      throw err
-    } finally {
       setIsProcessing(false)
+      throw err
     }
-  }, [transactionEngine, user])
+  }, [user])
 
-  // Get transaction history
+  // Get transaction history from DataManager
   const getTransactionHistory = useCallback((options = {}) => {
-    if (!transactionEngine || !user) return []
-
-    return transactionEngine.getTransactionHistory(user.id, options)
-  }, [transactionEngine, user])
+    const transactions = dataManager.getTransactions()
+    
+    // Apply filtering if options provided
+    if (options.limit) {
+      return transactions.slice(0, options.limit)
+    }
+    
+    return transactions
+  }, [])
 
   // Get specific transaction
   const getTransaction = useCallback((transactionId) => {
-    if (!transactionEngine) return null
-
-    return transactionEngine.getTransaction(transactionId)
-  }, [transactionEngine])
+    const transactions = dataManager.getTransactions()
+    return transactions.find(tx => tx.id === transactionId) || null
+  }, [])
 
   return {
     processTransaction,
@@ -226,7 +308,7 @@ export const useTransactionProcessor = () => {
     isProcessing,
     error,
     currentTransaction,
-    isInitialized
+    isInitialized: true
   }
 }
 
@@ -344,8 +426,8 @@ export const useTransactionValidation = () => {
 
       // Minimum amount validation
       const minimumAmounts = {
-        'add': 10, 'withdraw': 1, 'send': 0.01, 'receive': 0.01,
-        'transfer': 1, 'buy': 1, 'sell': 0.01, 'invest': 10
+        'add': 10, 'withdraw': 10, 'send': 5,
+        'transfer': 10, 'buy': 10, 'sell': 10, 'invest': 10
       }
 
       if (numericAmount < minimumAmounts[type]) {
@@ -355,21 +437,55 @@ export const useTransactionValidation = () => {
         }
       }
 
+      // Balance validation based on transaction type and proper financial flow
+      const currentBalance = dataManager.getBalance()
+      
+      if (['withdraw', 'send', 'transfer'].includes(type)) {
+        // These transactions only use Available Balance (USDC)
+        const availableBalance = currentBalance?.availableForSpending || 0
+        
+        if (numericAmount > availableBalance) {
+          const actionName = type === 'withdraw' ? 'withdraw' : type === 'send' ? 'send' : 'transfer'
+          errors.amount = { 
+            message: `Cannot ${actionName} more than available balance. Maximum: $${availableBalance.toFixed(2)}`, 
+            isValid: false 
+          }
+        }
+      } else if (type === 'buy' && transactionData.paymentMethod === 'diboas_wallet') {
+        // Buy On-Chain: uses Available Balance
+        const availableBalance = currentBalance?.availableForSpending || 0
+        
+        if (numericAmount > availableBalance) {
+          errors.amount = { 
+            message: `Cannot buy more than available balance. Maximum: $${availableBalance.toFixed(2)}`, 
+            isValid: false 
+          }
+        }
+      } else if (type === 'sell') {
+        // Sell: uses Invested Balance
+        const investedBalance = currentBalance?.investedAmount || 0
+        
+        if (numericAmount > investedBalance) {
+          errors.amount = { 
+            message: `Cannot sell more than invested balance. Maximum: $${investedBalance.toFixed(2)}`, 
+            isValid: false 
+          }
+        }
+      }
+
       // Recipient validation
-      if (['send', 'receive', 'transfer'].includes(type)) {
+      if (['send', 'transfer'].includes(type)) {
         if (!recipient) {
           errors.recipient = { message: 'Recipient is required', isValid: false }
         } else if (type === 'transfer') {
-          // External wallet address validation
-          const addressPatterns = {
-            bitcoin: /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{39,59}$/,
-            ethereum: /^0x[a-fA-F0-9]{40}$/,
-            solana: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
-          }
-
-          const isValidAddress = Object.values(addressPatterns).some(pattern => pattern.test(recipient))
-          if (!isValidAddress) {
-            errors.recipient = { message: 'Invalid wallet address format', isValid: false }
+          // External wallet address validation using fee calculator
+          const addressInfo = defaultFeeCalculator.detectNetworkFromAddress(recipient)
+          
+          if (!addressInfo.isValid) {
+            errors.recipient = { 
+              message: 'Invalid wallet address format. Supported networks: Bitcoin (BTC), Ethereum (ETH), Arbitrum (ARB), Base (BASE), Solana (SOL), Sui (SUI)', 
+              isValid: false 
+            }
           }
         } else {
           // diBoaS username validation
@@ -386,10 +502,8 @@ export const useTransactionValidation = () => {
 
       setValidationErrors(errors)
       const result = { isValid: Object.keys(errors).length === 0, errors }
-      console.log('🔍 Transaction validation result:', result)
       return result
     } catch (err) {
-      console.error('❌ Transaction validation error:', err)
       const error = { message: err.message, isValid: false }
       setValidationErrors({ general: error })
       return { isValid: false, errors: { general: error } }
@@ -419,7 +533,7 @@ export const useTransactionFlow = () => {
   const { calculateFees } = useFeeCalculator()
   const { validateTransaction } = useTransactionValidation()
   const { checkSufficientBalance } = useWallet()
-  const [flowState, setFlowState] = useState('idle') // idle, validating, calculating, confirming, processing, completed, error
+  const [flowState, setFlowState] = useState('idle') // idle, validating, calculating, confirming, processing, pending, completed, error
   const [flowData, setFlowData] = useState(null)
   const [flowError, setFlowError] = useState(null)
 
@@ -428,43 +542,29 @@ export const useTransactionFlow = () => {
     setFlowError(null)
     
     try {
-      console.log('🔄 Starting transaction flow for:', transactionData)
-      
       // Step 1: Validation
-      console.log('🔍 Step 1: Validating transaction...')
       setFlowState('validating')
       const validation = await validateTransaction(transactionData)
-      console.log('✅ Validation result:', validation)
       if (!validation.isValid) {
-        console.log('❌ Validation failed with errors:', validation.errors)
         throw new Error(`Transaction validation failed: ${JSON.stringify(validation.errors)}`)
       }
 
       // Step 2: Balance check
-      console.log('💰 Step 2: Checking balance...')
       const balanceCheck = await checkSufficientBalance(
         parseFloat(transactionData.amount),
         transactionData.type,
-        transactionData.targetChain
+        transactionData.targetChain,
+        transactionData.paymentMethod
       )
-      console.log('💰 Balance check result:', balanceCheck)
       if (!balanceCheck?.sufficient) {
-        console.log('❌ Insufficient balance:', {
-          required: parseFloat(transactionData.amount),
-          available: balanceCheck?.availableBalance,
-          type: transactionData.type
-        })
         throw new Error(`Insufficient balance for transaction: required ${parseFloat(transactionData.amount)}, available ${balanceCheck?.availableBalance}`)
       }
 
       // Step 3: Fee calculation
-      console.log('🧮 Step 3: Calculating fees...')
       setFlowState('calculating')
       const fees = await calculateFees(transactionData)
-      console.log('🧮 Fee calculation result:', fees)
 
       // Step 4: Update flow data for confirmation
-      console.log('📋 Step 4: Setting up confirmation data...')
       const confirmationData = {
         transaction: transactionData,
         fees,
@@ -473,11 +573,8 @@ export const useTransactionFlow = () => {
       }
       setFlowData(confirmationData)
       setFlowState('confirming')
-
-      console.log('✅ Transaction flow completed successfully')
       return { success: true, flowData: confirmationData }
     } catch (error) {
-      console.error('❌ Transaction flow failed at step:', error.message)
       setFlowError(error)
       setFlowState('error')
       throw error
@@ -492,10 +589,64 @@ export const useTransactionFlow = () => {
 
     try {
       setFlowState('processing')
-      const result = await processTransaction(flowData.transaction)
       
-      setFlowData({ ...flowData, result })
-      setFlowState('completed')
+      // Add fees to transaction data before processing
+      const transactionWithFees = {
+        ...flowData.transaction,
+        fees: flowData.fees
+      }
+      
+      // Add realistic processing time based on asset type (simulate On-Chain response time)
+      const getProcessingDelay = (transactionData) => {
+        // BTC transactions take 5 seconds, all others take 2 seconds
+        if (transactionData.asset === 'BTC' || 
+            (transactionData.type === 'transfer' && transactionData.recipient?.startsWith('1') || 
+             transactionData.recipient?.startsWith('3') || 
+             transactionData.recipient?.startsWith('bc1'))) {
+          return 5000 // 5 seconds for BTC
+        }
+        return 2000 // 2 seconds for all other assets/chains
+      }
+      
+      const processingDelay = getProcessingDelay(transactionWithFees)
+      
+      // Set a timeout to show "Not Yet Summary" after 3 seconds if still processing
+      const pendingTimeout = setTimeout(() => {
+        if (flowState === 'processing') {
+          setFlowState('pending')
+          // Auto-return to dashboard after 3 more seconds
+          setTimeout(() => {
+            setFlowState('completed')
+            setFlowData({ 
+              ...flowData, 
+              result: { 
+                success: true, 
+                pending: true,
+                message: 'Transaction is processing and will complete shortly'
+              }
+            })
+          }, 3000)
+        }
+      }, 3000)
+      
+      let result
+      try {
+        const [transactionResult] = await Promise.all([
+          processTransaction(transactionWithFees),
+          new Promise(resolve => setTimeout(resolve, processingDelay))
+        ])
+        
+        result = transactionResult
+        
+        // Clear the pending timeout since we got a result
+        clearTimeout(pendingTimeout)
+        
+        setFlowData({ ...flowData, result })
+        setFlowState('completed')
+      } catch (error) {
+        clearTimeout(pendingTimeout)
+        throw error
+      }
       
       return result
     } catch (error) {

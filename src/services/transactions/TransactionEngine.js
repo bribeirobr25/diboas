@@ -29,12 +29,12 @@ export class TransactionEngine {
 
     this.minimumAmounts = {
       'add': 10.0,
-      'withdraw': 1.0,
-      'send': 0.01,
-      'receive': 0.01,
-      'transfer': 1.0,
-      'buy': 1.0,
-      'sell': 0.01,
+      'withdraw': 10.0,
+      'send': 5.0,
+      'receive': 5.0,
+      'transfer': 10.0,
+      'buy': 10.0,
+      'sell': 10.0,
       'invest': 10.0
     }
   }

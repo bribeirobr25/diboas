@@ -9,6 +9,7 @@ import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
 import { FeatureFlagProvider } from './hooks/useFeatureFlags.jsx'
 import EnvironmentDebugPanel from './components/debug/EnvironmentDebugPanel.jsx'
 import { validateEnvironment, getEnvironmentInfo } from './config/environments.js'
+import { resetToCleanState, isCleanState } from './utils/resetDataForTesting.js'
 import './App.css'
 
 function App() {
@@ -27,6 +28,16 @@ function App() {
       console.log('Version:', envInfo.version)
       console.log('API Base:', envInfo.baseUrl)
       console.log('Debug Mode:', envInfo.debugMode)
+      
+      // Initialize clean data state for testing
+      console.log('📊 Initializing clean data state for testing...')
+      if (!isCleanState()) {
+        console.log('⚠️ Data is not clean, resetting to clean state')
+        resetToCleanState()
+      } else {
+        console.log('✅ Data is already in clean state')
+      }
+      
       if (!validation.isValid) {
         console.warn('Configuration Issues:', validation.issues)
       }
@@ -51,6 +62,18 @@ function App() {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/app" element={<AppDashboard />} />
               <Route path="/account" element={<AccountView />} />
+              
+              {/* RESTful Transaction Routes */}
+              <Route path="/add" element={<TransactionPage transactionType="add" />} />
+              <Route path="/send" element={<TransactionPage transactionType="send" />} />
+              <Route path="/receive" element={<TransactionPage transactionType="receive" />} />
+              <Route path="/buy" element={<TransactionPage transactionType="buy" />} />
+              <Route path="/sell" element={<TransactionPage transactionType="sell" />} />
+              <Route path="/transfer" element={<TransactionPage transactionType="transfer" />} />
+              <Route path="/withdraw" element={<TransactionPage transactionType="withdraw" />} />
+              <Route path="/invest" element={<TransactionPage transactionType="invest" />} />
+              
+              {/* Legacy transaction route for backward compatibility */}
               <Route path="/transaction" element={<TransactionPage />} />
             </Routes>
             

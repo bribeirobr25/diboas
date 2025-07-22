@@ -1,291 +1,624 @@
-# diBoaS Transactions - Technical Requirements Document
+# diBoaS Transactions - Implementation Documentation
 
 ## Overview
-diBoaS Transactions will allow On/Off-Ramp and On/Off chain with multiple chains, swaps and briddging happening behind the scenes to keep the user experience easy and with no complexity. The wallet supports BTC, ETH L2, SOL, and SUI chains while presenting a single wallet view to users.
+diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with complex swap and bridging operations hidden from users. The system presents a unified wallet experience while supporting BTC, ETH Layer 1, SOL, and SUI chains behind the scenes.
 
-## 1. Authentication System
+## 1. Balance System
 
-### 1.1 Sign Up/Sign In
-- **Primary Provider**: Main authentication service with failover backup
-- **Supported Methods**:
+### 1.1 Balance Structure
+**Total Balance**: Available Balance + Invested Balance
+**Available Balance**: USDC only (liquid funds ready for spending)
+**Invested Balance**: All non-USDC assets (BTC, ETH, SOL, SUI, Tokenized Gold, Stocks, DeFi investments)
+
+### 1.2 Balance Categories
+**Available for Spending**: USDC balance that can be used for withdrawals, sends, transfers, buy and investments
+**Invested Amount**: Value of all cryptocurrency, tokenized assets and DeFi investments
+**Asset Tracking**: Individual tracking of each asset type with FIAT values
+
+## 2. Authentication System
+
+### 2.1 Sign Up/Sign In
+**Primary Provider**: Main authentication service with failover backup
+**Supported Methods**:
   - OAuth: Google, X (Twitter), Apple
   - Email/Password
-  - Web3: Metamask, Phantom wallet integration
+  - Web3: MetaMask, Phantom wallet integration
 
-### 1.2 Wallet Creation
-- **Auto-generation**: 4 non-custodial wallets created during signup
-- **Supported Chains**: BTC, ETH L2, SOL, SUI
-- **User Experience**: Single unified "diBoaS wallet" interface
-- **Provider**: 3rd party wallet creation service
+### 2.2 Wallet Creation
+**Auto-generation**: 4 non-custodial wallets created during signup
+**Supported Chains**: BTC, ETH Layer 1, SOL, SUI
+  - Create SOL wallet 1st, then keep creating the others
+**User Experience**: Single unified "diBoaS wallet" interface
+**Provider**: 3rd party wallet creation service
 
-## 2. Core Transaction Types
+## 3. Implemented Transaction Types
 
-### 2.1 Deposit/Add (On-Ramp)
-**Purpose**: Convert fiat to crypto
+### 3.1 Add/Deposit (On-Ramp) ✅
+**Purpose**: Convert fiat to crypto and add to diBoaS wallet
+**Provider**: 3rd party payment service provider
 
 **Payment Methods**:
-- Bank account, Credit Card, Apple Pay, Google Pay, PayPal
+  - Credit/Debit Card, Bank Account, Apple Pay, Google Pay, PayPal
+  - Availability depends on 3rd party Provider geo-location allowance 
+
+**Money Flow**:
+  - From = selected payment method (transaction amount)
+  - To = diBoaS wallet Available Balance (transaction amount - fees)
+
+**Balance Impact**:
+  - Available Balance = current + (transaction amount - fees)
+  - Invested Balance = current (no change)
 
 **Technical Details**:
-- **Default Chain**: Solana
-- **Assets**: Small SOL amount (gas fees) + remainder in USDC
-- **Minimum**: $10
-- **KYC**: Handled by 3rd party on-ramp provider
+  - **Default Chain**: Solana
+  - **Assets**: Small SOL amount (gas fees) + remainder in USDC
+  - **Minimum**: $10
+  - **Validation**: Requires payment method selection
+  - **KYC**: Handled by 3rd party on-ramp provider
+  - **Balance Check**: Not required (external payment source)
 
 **Fee Structure**:
-- Network gas fees
-- On-ramp provider fees  
-- diBoaS fee: 0.09%
+  - **diBoaS fee**: 0.09% of fiat transaction amount
+  - **Network fee**: Solana network fee, comes from Payment Provider
+    - 0.001% (mockup service for now) - NO minimum applied
+  - **Provider fees**: Variable by payment method (comes from Payment Provider):
+    - Apple Pay: 0.5%, Google Pay: 0.5% (mockup service for now)
+    - Credit Card: 1%, Bank: 1% (mockup service for now)
+    - PayPal: 3% (mockup service for now)
 
-### 2.2 Withdraw (Off-Ramp)
-**Purpose**: Convert crypto to fiat
+### 3.2 Withdraw (Off-Ramp) ✅
+**Purpose**: Convert crypto to fiat and withdraw from diBoaS wallet
+**Provider**: 3rd party payment service provider
 
 **Output Methods**:
-- Bank account, Credit Card, Apple Pay, Google Pay, PayPal
+  - Credit/Debit Card, Bank Account, Apple Pay, Google Pay, PayPal
+  - Availability depends on 3rd party Provider geo-location allowance
+
+**Money Flow**:
+  - From = diBoaS wallet Available Balance (transaction amount)
+  - To = selected payment method (transaction amount - fees) 
+
+**Balance Impact**:
+  - Available Balance = current - transaction amount
+  - Invested Balance = current (no change)
 
 **Technical Details**:
-- **Chain**: Solana (USDC → Fiat)
-- **Currency**: USD, EUR, or user's geo-location currency
-- **KYC**: Handled by 3rd party off-ramp provider
-
+  - **Default Chain**: Solana
+  - **Assets**: USDC → Fiat
+  - **Minimum**: $10
+  - **Validation**: Requires payment method selection and sufficient available balance
+  - **KYC**: Handled by 3rd party off-ramp provider
+  - **Balance Check**: Available balance only (cannot use invested funds)
+  
 **Fee Structure**:
-- Network gas fees
-- Off-ramp provider fees
-- diBoaS fee: 0.9%
+  - **diBoaS fee**: 0.9% of fiat transaction amount
+  - **Network fee**: Solana network fee, comes from Payment Provider
+    - 0.001% (mockup service for now) - NO minimum applied
+  - **Provider fees**: Variable by payment method (comes from Payment Provider):
+    - Apple Pay: 1%, Google Pay: 1% (mockup service for now)
+    - Credit Card: 2%, Bank: 2% (mockup service for now)
+    - PayPal: 4% (mockup service for now)
 
-### 2.3 Send/Receive (P2P Transfer)
+### 3.3 Send (P2P Transfer) ✅
 **Purpose**: On-chain transfers between diBoaS users
+**Provider**: Market Data Provider
+
+**Output Methods**:
+  - diBoaS wallet Available Balance
+
+**Money Flow**:
+  - From = diBoaS wallet Available Balance (transaction amount)
+  - To = another user diBoaS wallet Available Balance, selected before the transaction (transaction amount - fees)
+
+**Balance Impact**:
+  - Available Balance = current - transaction amount
+  - Invested Balance = current (no change)
 
 **Technical Details**:
-- **Chain**: Solana
-- **Assets**: Small SOL (gas) + remainder in USDC
-- **Auto-processing**: Background swapping/bridging from user's 4 wallets
-- **User Input**: diBoaS username + amount
+  - **Chain**: Solana
+  - **Assets**: Small SOL (gas) + remainder in USDC
+  - **Minimum**: $5
+  - **Validation**: Requires valid user input selection and sufficient available balance
+  - **KYC**: not applicable
+  - **Balance Check**: Available balance only (cannot use invested funds)
+  - **User Input**: diBoaS username (@username format) + amount
+  - **Warning**: Irreversible transaction warning displayed
 
 **Fee Structure**:
-- Network gas fees
-- Swap/bridge fees (if applicable)
-- diBoaS fee: 0.09%
+  - **diBoaS fee**: 0.09% of fiat transaction amount
+  - **Network fee**: Solana Network Fee (comes from Market Data Provider)
+    - 0.001% (mockup service for now) - NO minimum applied
+  - **Provider fee**: $0 (P2P transaction)
 
-### 2.4 Transfer (External Wallet)
-**Purpose**: Send to external wallet addresses
+### 3.4 Transfer (External Wallet) ✅
+**Purpose**: Send to external wallet addresses on supported networks
+**Provider**: Market Data Provider + 3rd party DEX, Swap and Bridging providers
+
+**Output Methods**:
+  - diBoaS wallet Available Balance
+
+**Money Flow**:
+  - From = diBoaS wallet Available Balance (transaction amount)
+  - To = external wallet address, selected before the transaction (transaction amount - fees)
+
+**Balance Impact**:
+  - Available Balance = current - transaction amount
+  - Invested Balance = current (no change)
+
+**Supported Networks & Address Formats**:
+  - **Bitcoin (BTC)**: Legacy (starts with 1), SegWit (starts with 3), Bech32 (starts with bc1)
+  - **Ethereum (ETH)**: starts with 0x, 42 characters total. It will also support Arbitrum and Base in the future
+  - **Solana (SOL)**: Base58-encoded, 32-44 characters
+  - **Sui (SUI)**: Starts with 0x, 66 characters total (64 hex chars)
 
 **Technical Details**:
-- **Chain Selection**: Auto-detected from recipient address
-- **Asset**: USDC on target chain
-- **Auto-processing**: Background swapping/bridging
-- **User Input**: External wallet address + amount
-- **Warning**: Irreversible operation
+  - **Chain - Network Detection**: Auto-detected from recipient address format
+  - **Assets**: Small SOL (gas) + remainder in USDC
+  - **Minimum**: $10
+  - **Validation**: Strict address format validation, unsupported addresses show "Invalid Chain" and sufficient available balance
+  - **KYC**: not applicable
+  - **Balance Check**: Available balance only (cannot use invested funds)
+  - **User Input**: External wallet address + amount
+  - **Warning**: Irreversible operation warning displayed
+  - **Ethereum Specific Case**: as layer 1, arbitrum and base have the same wallet address format, for the moment, all transfers will always go to Ethereum Layer 1
 
 **Fee Structure**:
-- Network gas fees
-- Swap/bridge fees (if applicable)
-- diBoaS fee: 0.9%
+  - **diBoaS fee**: 0.9% of fiat transaction amount
+  - **Network fee**: Based on detected network, comes from Market Data Provider (NO minimums applied):
+    - BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003% (mockup service for now)
+  - **Provider fee**: comes from 3rd party DEX, Swap and Bridging providers
+    - 0.8% for supported networks (mockup service for now)
+    - $0 for invalid addresses
 
-### 2.5 Buy Assets
-**Purpose**: Purchase cryptocurrency assets
+### 3.5 Buy Assets ✅
+**Purpose**: Purchase cryptocurrency assets with fiat or diBoaS wallet balance
+**Provider**: Market Data Provider + 3rd party payment service provider and 3rd party DEX, Swap and Bridging providers
 
-**Supported Assets**:
-- USDC, BTC, ETH, SOL, SUI
+**Payment Methods**:
+  - **External On-Ramp**: Credit/Debit Card, Bank Account, Apple Pay, Google Pay, PayPal
+    - Availability depends on 3rd party Provider geo-location allowance 
+  - **Internal On-Chain**: diBoaS Wallet (using available balance)
+  
+**Money Flow**:
+  - **External On-Ramp**:
+    - From = selected payment method (transaction amount)
+    - To = diBoaS wallet Invested Balance (transaction amount - fees)
+  - **Internal On-Chain**:
+    - From = diBoaS Wallet Available Balance (transaction amount)
+    - To = diBoaS wallet Invested Balance (transaction amount - fees)
+
+**Balance Impact**:
+  - **Buy On-Ramp** (external payment methods):
+    - Available Balance = current (no change)
+    - Invested Balance = current + (transaction amount - fees)
+  - **Buy On-Chain** (diBoaS wallet):
+    - Available Balance = current - transaction amount
+    - Invested Balance = current + (transaction amount - fees)
 
 **Technical Details**:
-- **Chain**: Asset-specific (BTC purchases use BTC chain, etc.)
-- **Source**: User's diBoaS wallet balance
-- **Storage**: Asset stored in corresponding chain wallet
-- **User Input**: Asset selection + fiat amount
+  - **Chain - Network Detection**: Based on selected asset's native network
+  - **Assets**: BTC, ETH, SOL, SUI native network
+  - **Minimum**: $10
+  - **Validation**: Requires payment method selection + only for On-Chain it needs sufficient available balance
+  - **KYC**: only for Buy On-Ramp and handle by 3rd party payment providers
+  - **Balance Check**: Only for diBoaS Wallet payments (uses available balance)
+  - **User Input**: Asset selection + fiat amount + payment method
+  - **Warning**: Irreversible operation warning displayed
+  - **Asset Storage**: Added to invested balance and asset tracking, stored on one of the 4 wallets created according to the correct chain
+  - **Ethereum Specific Case**: For now just supporting ETH layer 1
 
 **Fee Structure**:
-- Network gas fees
-- Swap/bridge fees (if applicable)
-- diBoaS fee: 0.09%
+  - **diBoaS fee**: 0.09% of fiat transaction amount
+  - **Network fee**: Based on selected asset comes from Market Data Provider (NO minimums):
+    - BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003% (mockup service for now)
+  - **Payment fee**: For external payments, varies by method (same as Add transaction)
+  - **DEX fee**: only for On-Chain transactions, comes from DEX, Swap, Bridge provider
+    - 1% (mockup service for now)
 
-### 2.6 Sell Assets
-**Purpose**: Convert cryptocurrency to USDC
+### 3.6 Sell Assets ✅
+**Purpose**: Convert cryptocurrency assets to USDC
+**Provider**: Market Data Provider + 3rd party DEX, Swap and Bridging providers
+
+**Payment Methods**:
+  - diBoaS Wallet (automatically selected, no user selection needed)
+
+**Money Flow**:
+    - From = diBoaS wallet Invested Balance (transaction amount)
+    - To = diBoaS wallet Available Balance (transaction amount - fees)
+
+**Balance Impact**:
+- Available Balance = current + (transaction amount - fees)
+- Invested Balance = current - transaction amount
 
 **Technical Details**:
-- **Output**: Always USDC on Solana chain
-- **Gas Calculation**: Total asset - gas fees = sellable amount
-- **Auto-processing**: Asset sale + bridge/swap to USDC/Solana
-- **User Input**: Asset selection + amount to sell
-- **Display**: USD value preview
+- **Chain - Network Detection**: Based on selected asset's native network
+- **Assets**:
+  - Selling = BTC, ETH, SOL, SUI native network
+  - Receiving USDC on Solana network
+  - **Minimum**: $10
+  - **Validation**: Requires asset selection for all assets with Invested Balance > 0
+  - **KYC**: not applicable
+  - **Balance Check**: Cannot sell more than invested amount on Invested Balance for that specific selected asset
+  - **User Input**: Asset selection + FIAT amount to sell (USD value, not token quantity)
+  - **Payment Method**: Automatically set to diBoaS Wallet (hidden from UI)
+  - **Amount Validation**: Input amount represents USD value of asset to sell, validated against invested USD amount
+  - **Ethereum Specific Case**: For now just supporting ETH layer 1
 
 **Fee Structure**:
-- Network gas fees
-- Swap/bridge fees (if applicable)
-- diBoaS fee: 0.09%
+  - **diBoaS fee**: 0.09% of fiat transaction amount
+  - **Network fee**: Based on asset being sold, comes from Market Data Provider (NO minimums):
+    - BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003% (mockup service for now)
+  - **DEX fee**: comes from the 3rd party DEX, Swap and Bridging Provider
+    - 1% for all Sell transactions (mockup service for now)
 
-### 2.7 Invest
-**Purpose**: Purchase tokenized investment products
+### 3.7 Receive/Request ❌
+**Status**: REMOVED - Future feature
+**Reason**: Temporarily removed from UI, will be revisited later
 
-**Investment Categories**:
-- Tokenized Gold
-- Tokenized Stocks  
-- Tokenized Real Estate
+### 3.8 Invest ⏸️
+**Status**: NOT YET IMPLEMENTED
+**Plan**: Future implementation for tokenized assets (Gold, Stocks, Real Estate) and DeFi Strategies
 
-**Technical Details**:
-- **Chain**: Solana
-- **Providers**: 3rd party investment asset providers
-- **Auto-processing**: Background swapping/bridging to Solana
-- **User Input**: Category + specific asset + fiat amount
+## 4. Fee Calculation System
 
-**Fee Structure**:
-- Network gas fees
-- Swap/bridge fees (if applicable)
-- Investment provider fees
-- diBoaS fee: 0.09%
+### 4.1 Network Fees
+**Source** - it comes from 3rd parties, sometimes from Market Data Provider other times from Payment Providers
+**NO MINIMUM FEES APPLIED** - Users pay exactly the amount retrieved from the 3rd party providers.
+**Mockup Service For Now**
+  - **BTC**: 9% of transaction amount
+  - **ETH**: 0.5% of transaction amount
+  - **SOL**: 0.001% of transaction amount
+  - **SUI**: 0.003% of transaction amount
 
-## 3. Security Features
+### 4.2 diBoaS Fees
+**0.09%** for: Add, Send, Buy, Sell
+**0.9%** for: Withdraw, Transfer
 
-### 3.1 Two-Factor Authentication (2FA)
-- **Scope**: Transaction verification
-- **Provider**: 3rd party 2FA service
-- **Status**: Optional (user-enabled)
+### 4.3 Payment Provider Fees
+**On/Off-Ramp (Add/Withdraw)**: Comes from 3rd Party Payment providers
+**Mockup Service For Now**
+  - Apple Pay: Add 0.5%, Withdraw 1%
+  - Credit Card/Bank: Add 1%, Withdraw 2%
+  - Google Pay: Add 0.5%, Withdraw 1%
+  - PayPal: Add 3%, Withdraw 4%
 
-## 4. Technical Requirements
+**DEX Fees (Buy/Sell)**: Comes from 3rd Party Payment providers
+**Mockup Service For Now**
+  - 1% DEX fee for all Buy/Sell transactions
+  - Additional Payment Provider Fees if using external payment methods for Buy
 
-### 4.1 Multi-Chain Abstraction
-- Unified balance display across 4 chains
-- Background swap/bridge operations
-- Automatic chain selection based on transaction type
+### 4.4 Fee Display Structure
+**Buy Transactions**:
+  - **Payment Fee**: Only for external payment methods
+  - **DEX Fee**: only when buying using diBoaS wallet
+  - **Network Fee**: Based on selected asset's chain
 
-### 4.2 Third-Party Integrations
-- Authentication providers
-- Wallet creation service
-- On/off-ramp providers
-- DEX/swap services
-- Bridge services
-- Investment asset providers
-- 2FA service
+**Sell Transactions**:
+  - **DEX Fee**: 1% applied to all assets (uses diBoaS Wallet automatically)
+  - **Network Fee**: Based on asset being sold
+  - **Payment Method**: Automatically uses diBoaS Wallet (hidden from user interface)
 
-### 4.3 User Experience
-- Simplified technical complexity
-- Clear fee breakdowns before transaction confirmation
-- Real-time USD value displays
-- Irreversible transaction warnings
+**Other Transactions**:
+  - **Provider Fee**: Combined provider costs
+  - **Network Fee**: Based on transaction chain
 
-## 5. Implementation Phases
+### 4.5 Real-time Fee Calculation
+**Total**: Always Transaction Amount - All Fees (consistent across all transactions)
+**Real-time**: Fees calculate when transaction amount + required fields are filled or changed
+**Breakdown**: Expandable details showing each fee component
+**Cache**: Fees cached by transaction parameters including recipient address
 
-### Phase 1: Core Infrastructure
-- Authentication system
-- Wallet creation and management
-- Basic UI/UX framework
+## 5. Transaction Validation
 
-### Phase 2: Transaction Simulation
-- Mock implementations of all transaction types
-- Fee calculation engine
-- Transaction confirmation flows
+### 5.1 Button State Management
+Transaction button is disabled until ALL required fields are filled or changed:
+- **Add**: Transaction Amount + Payment Method
+- **Withdraw**: Transaction Amount + Payment Method + Sufficient Available Balance
+- **Send**: Transaction Amount + Recipient + Sufficient Available Balance
+- **Transfer**: Transaction Amount + Valid Address + Sufficient Available Balance
+- **Buy On-Ramp**: Transaction Amount + Asset + External Payment Method
+- **Buy On-Chain**: Transaction Amount + Asset + diBoaS Wallet + Sufficient Available Balance
+- **Sell**: Transaction Amount + Asset + Sufficient Invested Balance (payment method auto-selected)
 
-### Phase 3: Third-Party Integration
-- Real provider integrations
-- KYC flow implementation
-- Live transaction processing
+### 5.2 Balance Validation Logic
+**Available Balance**: USDC only, used for spending transactions, buying assets and DeFi Inevstments
+**Invested Balance**: All non-USDC assets, used for selling transactions and DeFi Strategies
+**Strict Enforcement**: 
+  - Withdraw, Send, Transfer cannot exceed available balance
+  - Buy On-Chain cannot exceed available balance
+  - Sell cannot exceed invested balance for specific asset
+**Error Messages**: Clear feedback when limits exceeded
+**Real-time**: Validation updates as user types
 
-### Phase 4: Advanced Features
-- Investment products
-- 2FA implementation
-- Performance optimization
+### 5.3 Address Validation (Transfer)
+**Strict Format Checking**: Only accepts specified formats
+**Supported Networks**: BTC, ETH layer 1, SOL, SUI (Arbitrum and Base will be added in the future)
+**Invalid Handling**: Shows "Invalid Chain" for unsupported addresses
+**Error Messages**: Lists supported networks in error feedback
 
-## 6. Development Considerations
+## 6. User Experience Features
 
-### 6.1 Security
-- Non-custodial wallet implementation
-- Secure key management
-- Transaction signing protocols
+### 6.1 Transaction Progress
+**Progressive Loading**: Similar to signup flow with step-by-step progress
+**Minimum Display Time**: 3 seconds to show progress properly
+**Success Summary**: Shows transaction details and updated balance
+  - It needs to wait for the On-Chain Success confirmation
+**Not Yet Summary**: Shows after 3 seconds if there is no success or error yet
+  - It mentiones the Transaction is on going and the funds will be deposited as soon as it succeeds
+  - Then it goes back to the dash board after 3 seconds
+  - For now, use a mockup to simulate this response taking 2 seconds for all except when dealing with BTC that will take 5 sec
+**Error Handling**: Clear error messages with retry options
+  - It needs to wait for the On-Chain Error confirmation
 
-### 6.2 Compliance
-- KYC/AML through third parties
-- Regulatory compliance per jurisdiction
-- Transaction reporting capabilities
+### 6.2 Irreversible Transaction Warnings
+**Send Transactions**: Warning about accuracy of recipient information
+**Transfer Transactions**: Warning about external wallet address accuracy
+**UI Treatment**: Amber warning boxes with alert icons
 
-### 6.3 Scalability
-- Multi-chain architecture
-- Efficient swap/bridge routing
-- Gas optimization strategies
+### 6.3 Real-time Updates
+**Fee Calculation**: Updates when transaction amount or payment method changes
+**Network Detection**: Transfer fees update when address changes
+**Balance Display**: Shows available vs invested amounts
+**Validation**: Real-time form validation with error states
+
+### 6.4 UI Improvements
+- **Input Styling**: Removed browser default arrows from number inputs
+- **Amount Buttons**: Quick select buttons (25%, 50%, 75%, Max) for applicable transactions
+- **Single-Click Flow**: Streamlined transaction execution
+- **Payment Method Ordering**: diBoaS Wallet listed first when applicable
+
+## 7. Technical Implementation
+
+### 7.1 Multi-Chain Architecture
+**Unified Balance**: Single view across BTC, ETH Layer 1, SOL, SUI wallets
+**Background Operations**: Swap/bridge operations hidden from user
+**Chain Selection**: Automatic based on transaction type and target
+
+### 7.2 Fee Calculation Engine
+**Real-time**: Calculates fees as user inputs data
+**Caching**: Prevents duplicate calculations for same parameters
+**Network Detection**: Dynamic fee calculation based on detected networks
+**No Minimums**: Exact percentage calculations without artificial floors
+**Separate Fee Types**: Payment fees and DEX fees calculated separately
+**UI Treatment**:: show fees with 3 decimals rounding the last number.
+  - For fees with many decimals use 0.0numberdecimalsFIRSTTWONUMBERS_AFTER_0
+
+### 7.3 Balance Management System
+**Centralized DataManager**: Single source of truth for balance state
+**Event-driven Updates**: Real-time balance updates across components
+**Proper Financial Flow**: Strict separation between available and invested funds
+**Asset Tracking**: Individual asset amounts and FIAT values
+
+### 7.4 Validation System
+**Comprehensive**: Checks all required fields for each transaction type
+**Balance Aware**: Understands available vs invested fund restrictions
+**Address Format**: Strict validation of external wallet addresses
+**User Feedback**: Clear error messages and disabled states
+
+## 8. Security Features
+
+### 8.1 Two-Factor Authentication (2FA)
+**Scope**: Transaction verification for large amounts
+**Provider**: 3rd party 2FA service
+**Status**: Optional (user-enabled)
+**Triggers**: High-value transactions (>$100 for withdraw/transfer/send)
+
+### 8.2 Transaction Security
+**Non-custodial**: User maintains control of private keys
+**Irreversible Warnings**: Clear warnings for external transfers
+**Balance Protection**: Cannot access invested funds for spending transactions
+**Address Validation**: Prevents transfers to unsupported networks
+
+## 9. On-Chain Connection and Transaction Status
+
+### 9.1 Funds and On-Chain Transaction Status
+**Scope**: On-Chain Transaction Status validation before transfering funds
+  - **diBoaS fees**: Only deposit diBoaS fees when the transaction returns Success from On-Chain Transaction status
+    - **diBoaS deposit account**: it will be a wallet address on Solana network to receive the fees
+  - **user's funds**: Only update the Available Balance or Invested Balance as well as the asset list or DeFi Investments after the On-Chain success message
+  - **On-Chain transaction link** add the transaction link into the transaction history together with the transaction data, not only for successful transactions, but also for failed transactions
+    - For failed transaction do NOT change the funds o the Available Balance or Invested Balance and add an information that the funds were not changed in the transaction history with the data of the failed transaction
+  - **P.S.:** For now there should be a mockup service simulating this On-Chain answer
+    - taking 2 seconds for all transactions and assets except for BTC this should take 5 seconds to send the successful message
 
 
+## 9. Development Status
 
-# Another way to introduce the transactions
+### 9.1 Completed Features ✅
+- Add/Deposit with all payment methods and proper balance updates
+- Withdraw with available balance validation
+- Send with P2P functionality using available balance
+- Transfer with network detection and available balance checks
+- Buy with On-Ramp vs On-Chain logic and proper balance handling
+- Sell with invested balance validation and proper proceeds handling
+- Comprehensive fee calculations with separate payment/DEX fees
+- Transaction progress screens with realistic timing
+- Form validation with balance-aware restrictions
+- Real-time fee updates and caching
 
-## A) Sign up and Sign in
-They will be done via a main provider plus a 2nd one used as failover. The provider will allow OAuth (Google, X and Apple), Email and Web3 options (linking Metamask and Phantom wallet to start with).
+### 9.2 Recent Fixes ✅
+- Fixed "fees is not defined" error for Buy transactions with external payments
+- Corrected balance update logic for all transaction types
+- Implemented proper financial flow: Available (USDC) vs Invested (assets)
+- Fixed fee display structure with separate Payment and DEX fees
+- Updated validation logic to match balance definitions
+- **Sell Transaction UX Improvements**:
+  - Fixed FIAT vs token value confusion (now uses USD invested amounts)
+  - Removed unnecessary payment method selection (auto-selects diBoaS Wallet)
+  - Updated balance display to show "Invested in [ASSET]: $X.XX"
+  - Streamlined user interface for sell transactions
 
-## B) Sign up and wallet creation
-During the sign up process, another 3rd party provider will be responsible for creating 4 Non-Custodial wallets (BTC, ETH L2, SOL and SUI) behind the scenes. For the end user it will just be 1 wallet, called diBoaS wallet. The diBoaS wallet will be simplifying technnical details from 4 different wallets and chains with a one single view for balances and even transactions.
+### 9.3 Removed Features ❌
+- Receive/Request (temporarily removed, future feature)
 
-## C) Transactions
-Starting with a minimum of $10 users will be able to Deposit/Add, Send, Receive/Request, Transfer, Buy, Sell, Withdraw or Invest
+### 9.4 Future Implementation ⏸️
+- Invest (tokenized assets)
+- Advanced 2FA integration
+- Real third-party provider integration
+- KYC/AML compliance flows
 
-### C.1. Deposit/Add
-depositing or adding money is an On-Ramp transaction (converting fiat into crypto) where users can bring money via Bank account, Credit Card, Apple Pay, Google Pay or PayPal. This will always use Solana chain adding a small amount in SOL to cover future gas fees and the rest in USDC. The On-ramp will be done via a 3rd party integration. For now we just need to simulate the steps. Also any KYC will be managed by the On-Ramp 3rd party provider. The users will pay the network gas fee, the On-Ramp provider fees and diBoaS fee that in this case is 0.09%. Those fees have to be clearly shown to the user before he confirms the transaction
+## 10. Integration Points
 
-### C.2. Withdraw
-withdrawing money is an Off-Ramp transaction (converting crypto into fiat) where users can their diBoaS wallet balance into Bank account, Credit Card, Apple Pay, Google Pay or PayPal. This will always use Solana chain converting USDC to USD or Euro or the currency from the user geo-location. The Off-ramp will be done via a 3rd party integration. For now we just need to simulate the steps. Also any KYC will be managed by the Off-Ramp 3rd party provider. The users will pay the network gas fee, the Off-Ramp provider fees and diBoaS fee that in this case is 0.9%. Those fees have to be clearly shown to the user before he confirms the transaction
+### 10.1 Current Simulation
+All transactions currently use mock implementations that:
+- Calculate realistic fees with proper separation
+- Update demo balance data with correct financial flow
+- Show proper progress flows with minimum display times
+- Validate user inputs with balance-aware restrictions
 
-### C.3 Send or Receive/Request
-sending or receiving/requesting money is a fully On-Chain transactions. These transactions will always use Solana chain letting a small amount of SOL to cover future gas fees and the rest is sent or received in USDC. If any swap or bridging is nedded this will happen in the background, completely transparent to the user. The platform will check if there is a need to Swap or Bridge assets from the 4 user's wallet into the Solana. For now we just need to simulate the steps. No KYC necessary. The users will just add the diBoaS user name from the user they want to send or receive/request money, the value and that is it. The users will pay the network gas fee, and any Swap or Bridging fees from the 3rd party providers, if that is the case, and diBoaS fee that in this case is 0.09%. Those fees have to be clearly shown to the user before he confirms the transaction
+### 10.2 Future Integration
+- Real payment provider APIs (On/Off-ramp)
+- DEX integration for asset swapping
+- Bridge services for cross-chain operations
+- KYC/AML service integration
+- Real-time price feeds for assets
 
-### C.4. Transfer
-transfering money is a fully On-Chain transaction. However different from sending or receiving/requesting it transfer money from diBoaS wallet to an external wallet. These transactions will use the chain related to the wallet address the transfer is going. If the wallet address the money is going is a Solana, then the platform will use Solana, if it is Ethereum address then the platform will use Ethereum and so on. Again the money will be sent in USDC. If any swap or bridging is nedded this will happen in the background, completely transparent to the user. The platform will check if there is a need to Swap or Bridge assets from the 4 user's wallet into the address to receiver the funds chain. For now we just need to simulate the steps. No KYC necessary. The users will just add the external wallet address, the value and a clear warning saying the operation can not be reverted. The users will pay the network gas fee, and any Swap or Bridging fees from the 3rd party providers, if that is the case, and diBoaS fee that in this case is 0.9%. Those fees have to be clearly shown to the user before he confirms the transaction
+## 11. Example of Chain and wallet addresses
 
-### C.5. Buy
-buying assets is fully On-Chain transactions. This transactions will use the chain depending on the asset the user is buying. If the user wants to buy BTC, then the funds will come from the user's diBoaS wallet and the BTC wallet behind the scenes. Then, after purchasing the asset, it will go into the diBoaS user wallet BTC wallet behind the scenes, keeping the asset as it is in the right chain. The platform will check if there is a need to Swap or Bridge assets from the 4 user's wallet into the wallet that is needed for the buying to happen. For now we just need to simulate the steps. No KYC necessary. The users will just select the asset to buy from the options (USDC, BTC, ETH, SOL and SUI) add the value in fiat he wants to buy and that is it. The users will pay the network gas fee, and any Swap or Bridging fees from the 3rd party providers, if that is the case, and diBoaS fee that in this case is 0.09%. Those fees have to be clearly shown to the user before he confirms the transaction
+### Accepted Chains and Wallet Addresses
 
-### C.6. Sell
-selling assets is fully On-Chain transactions. This transactions will always sell and bridge or swap the sold asset into USDC on Solana chain. If the user wants to sell BTC, then the funds will come from the user's diBoaS wallet and the BTC wallet behind the scenes selling all the BTC. Important to remember that the BTC sold has to take into consideration the Total BTC into the users wallet minus the BTC needed to pay for the gas fee. Then, after selling the asset, it will make a briding and swaping to USDC into Solana chain and deposit this value into the user's diBoaS wallet, going into the Solana wallet behind the scenes. The platform will check if there is a need to Swap or Bridge assets from the 4 user's wallet into the wallet that will receive the money after selling the asset. For now we just need to simulate the steps. No KYC necessary. The users will just select the asset to sell from the assets he has inside his wallet add the amount he wants to sell. A value in USD will be shown of how much the user will receive after selling. The users will pay the network gas fee, and any Swap or Bridging fees from the 3rd party providers, if that is the case, and diBoaS fee that in this case is 0.09%. Those fees have to be clearly shown to the user before he confirms the transaction.
+### Bitcoin (BTC)  
+-- Address Types: Legacy (starts with 1), SegWit (starts with 3), or Bech32 (starts with bc1).  
+-- Example:  
+--- Legacy: `1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa`  
+--- Bech32: `bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq`  
+-- Details: Bitcoin addresses are typically 26-35 characters long, derived from public keys using Base58Check (Legacy/SegWit) or Bech32 encoding. They're case-sensitive and include a checksum to prevent errors.
 
-### C.7. Invest
-investing is a fully On-Chain transaction. This transactions will use Solana chain and help the user to purchase Tokenized Gold, Tokenized Stocks and tokenized Real State options. All available via 3rd party providers on Solana chain. The platform will check if there is a need to Swap or Bridge assets from the 4 user's wallet into the Solana wallet that is needed for the investing to happen. For now we just need to simulate the steps. No KYC necessary. The users will just select the category of investiment, the asset the value in fiat he wants to invest and that is it. The users will pay the network gas fee, and any Swap or Bridging fees from the 3rd party providers and Investment Asset Providers, if that is the case, and diBoaS fee that in this case is 0.09%. Those fees have to be clearly shown to the user before he confirms the transaction
+### Ethereum (ETH)
+-- Address Format: Starts with `0x`, followed by 40 hexadecimal characters.  
+-- Example: `0x71C7656EC7ab88b098defB751B7401B5f6d8976F`  
+-- Details: Ethereum addresses are derived from the public key, always 42 characters long (including `0x`). They're used across Ethereum-compatible chains like Polygon or Arbitrum. Case-insensitive for hex characters.
 
-### Fee Calculation Structure
-All transactions will always have the following fees: network chain fee + diBoaS fee + payment provider fee (for On/Off-Ramp transaction) + On-Chain providers fees (swap, bridging, DeFi...)
+### Arbitrum (ARB) - Near Future
+-- Address Format: Ethereum-compatible, starts with `0x`, 42 characters.  
+-- Example: `0x6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5`  
+-- Details: Arbitrum, an Ethereum Layer 2, uses Ethereum's address format due to EVM compatibility.[](https://www.ledger.com/academy/topics/blockchain/what-is-a-crypto-wallet-address)
 
-#### diBoaS Fee Structure
-- **0.09%** for all transactions except Transfer and Withdraw  
-- **0.9%** for Transfer and Withdraw transactions
+### Base (BASE) - Near Future
+-- Address Format: Ethereum-compatible, starts with 0x, 42 characters.  
+-- Example: 0x5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4  
+-- Details: Base, an Ethereum Layer 2 developed by Coinbase, uses Ethereum's address format due to its EVM compatibility. This allows seamless use of the same wallet addresses as Ethereum mainnet and other EVM-compatible chains, with transactions and balances specific to the Base network.
 
-#### Payment Provider Fees (On/Off-Ramp)
-On/Off-Ramp transaction fees depend on the payment method selected:
-- **Apple Pay**: On-Ramp (Deposit/Add) 0.5%, Off-Ramp (Withdraw) 1%
-- **Credit Card/Bank**: On-Ramp 1%, Off-Ramp 2%
-- **PayPal**: On-Ramp 0.8%, Off-Ramp 1.5%
-- **Google Pay**: On-Ramp 0.6%, Off-Ramp 1.2%
+### Solana (SOL)  
+-- Address Format: Base58-encoded, 32-44 characters, no specific prefix.  
+-- Example: `5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2NFD`  
+-- Details: Solana addresses are derived from Ed25519 public keys, making them compact and unique to the chain. They avoid certain characters (e.g., 0, O, I, l) to prevent confusion.
 
-#### On-Chain Provider Fees
-For On-Chain providers, fees include swap, bridging and specific DeFi platform fees:
-- **Swap fees**: 0.1-0.3% depending on liquidity
-- **Bridge fees**: $2-10 + 0.05% depending on chains
-- **DeFi platform fees**: Variable by protocol
+### Sui (SUI)
+-- Address Format: Starts with 0x, followed by 64 hexadecimal characters (32 bytes), totaling 66 characters.  
+-- Example: 0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2  
+-- Details: Sui addresses are derived from cryptographic hashes or public keys in its Move-based blockchain, distinct from Ethereum despite the 0x prefix. They are 32-byte identifiers, case-insensitive for hexadecimal characters, and designed for Sui's object-oriented architecture, ensuring uniqueness and compatibility with its ecosystem.
 
-## 8. User Experience Flow Requirements
+### Invalid Chains or wallet addresses.
+- Any other chain not listed inside the accepted chain list is invalid and may cause lost of funds. Some cases can be identified and blocked by the platform as Invalid Chain and Addresses such as:
 
-### 8.1 Transaction Page Initial State
-1. **Transaction Type**: Selected from previous page (Add, Send, Invest) should open as selected by default
-2. **Payment Method**: No selection by default - user must choose
-3. **Fees**: Display $0 by default until payment method is selected
+### Tether (USDT)  
+-- Address Format: Depends on the blockchain (e.g., TRON).  
+--- On TRON: Starts with `T`, followed by 33 Base58 characters.  
+-- Examples:  
+--- TRON-based: `T9yD14Nj9j7xAB4dbGeiX9h8unkKLxmGkn`  
+-- Details: USDT operates on multiple chains, so the address format matches the host blockchain's standard.
 
-### 8.2 Fee Calculation Behavior
-1. **Real-time Updates**: Fees update immediately when user selects transaction type + payment method
-2. **Fee Display**: Total fee with expandable "See Details" link
-3. **Detailed Breakdown**: Shows Payment Provider fees + Network fees + diBoaS fee
-4. **Transaction Total**: Amount - All Fees = Total received/sent
+### BNB (Binance Coin)  
+-- Address Format: On Binance Chain, uses a unique format starting with `bnb`.  
+-- Examples:  
+--- Binance Chain: `bnb1grpf0955h0ykzq3ar5nmum7y6srnml6urqyn6`  
+-- Details: Binance Chain uses a distinct Bech32-like format
 
-### 8.3 Transaction Confirmation Flow
-1. **Provider Connection**: Connect with proper 3rd party provider (On/Off-Ramp or On-Chain)
-2. **Parameter Passing**: Transaction type, amount, payment method, chain selection
-3. **Execution**: Process transaction and update user account balance
-4. **Progress Display**: Show progress messages during execution (similar to signup flow)
-5. **Result**: Success message with updated balance OR error message with failure reason
+### XRP (Ripple)  
+-- Address Format: Starts with `r`, followed by 25-35 Base58 characters.  
+-- Example: `r3KMH8y4q49bF2hK7r4f7aT8j9j8k6k7j9`  
+-- Details: XRP addresses include a checksum and are case-sensitive. They often include a destination tag (a separate number) for specific transactions.
 
-### 8.4 Progress States
-- **Connecting**: "Connecting to payment provider..."
-- **Processing**: "Processing your transaction..."  
-- **Confirming**: "Confirming on blockchain..."
-- **Success**: "Transaction completed! Balance updated."
-- **Error**: "Transaction failed: [specific reason]"
+### Cardano (ADA)  
+-- Address Format: Shelley addresses start with `addr1`, Bech32-encoded, ~100 characters.  
+-- Example: `addr1q9ld4z3v5v9k0v6k0v6k0v6k0v6k0v6k0v6k0v6k0v6k0v6k0v6k0`  
+-- Details: Cardano uses long addresses to support staking and delegation features, with Bech32 encoding for error
 
-## diBoaS single wallet Balance view
-The diBoaS wallet seen by users will always show a combined balance from all the 4 behind the scenes wallet (BTC, ETH L2, SOL and SUI)
-After all transactions are complete and the behind the scenes wallets are updated the diBoaS single view wallet balance is updated showing the up to date information to the user
+### TRON (TRX)  
+-- Address Format: Starts with `T`, 34 Base58 characters.  
+-- Example: `TQ5pHn7H9Vz3kB7h8t8t8t8t8t8t8t8t8t`  
+-- Details: Similar to Bitcoin's Base58Check but unique to TRON's blockchain, used for TRX and TRC-20 tokens like USDT.
 
-## 2 FA
-The user can enable 2FA for transactions. This will also be managed by a 3rd party providers.
+### Avalanche (AVAX)  
+-- Address Format: X-Chain uses `X-avax...`.  
+-- Examples:  
+--- X-Chain: `X-avax1qr4k3m9n4k3m9n4k3m9n4k3m9n4k3m9n4k3`  
+-- Details: X-Chain uses a custom format for native transactions.
+
+### Polkadot (DOT)  
+-- Address Format: Starts with `1`, 47-48 characters, SS58-encoded (Polkadot-specific).  
+-- Example: `1FRMM8PEiWXYax7rpS5iK3v7r1m9m2b3c4d5e6f7g8h9i0j1k2`  
+-- Details: Polkadot uses the SS58 format, which supports multiple networks in its ecosystem (e.g., Kusama starts with `2`). Addresses are derived from public keys and include a network identifier.
+
+### Bitcoin Cash (BCH)  
+-- Address Format: Legacy starts with `1` or `3`; CashAddr starts with `bitcoincash:q` or `p`, ~34 characters.  
+-- Example: `bitcoincash:qpzry9x8gf2tvdw0s3jn54khce6mua7lcw0v3f8k9`  
+-- Details: Bitcoin Cash forked from Bitcoin, so legacy addresses resemble Bitcoin's. The CashAddr format is unique, using Bech32-like encoding for clarity and error detection.
+
+### NEAR Protocol (NEAR)  
+-- Address Format: Implicit (hex, 64 characters) or named (e.g., `username.near`).  
+-- Example:  
+--- Hex: `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2`  
+--- Named: `example.near`  
+-- Details: NEAR supports human-readable accounts or cryptographic addresses. Named addresses are tied to the NEAR account system, while implicit addresses are raw public keys.
+
+### Aptos (APT)  
+-- Address Format: Starts with `0x`, 64 characters (32 bytes in hex).  
+-- Example: `0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef`  
+-- Details: Aptos uses a 32-byte address format, similar to Ethereum but longer, derived from public keys for its Move-based blockchain.
+
+### Hedera (HBAR)  
+-- Address Format: Numeric format like `0.0.123456` (shard.realm.account).  
+-- Example: `0.0.987654`  
+-- Details: Hedera's unique account ID format reflects its hashgraph structure, with shard, realm, and account numbers. Not derived from public keys like most chains.
+
+### Cronos (CRO)  
+-- Address Format: Starts with `cro`, Bech32-encoded, ~44 characters.  
+-- Example: `cro1y3z9x8gf2tvdw0s3jn54khce6mua7lcw0v3f8k9`  
+-- Details: Cronos, built by Crypto.com, uses a Cosmos-compatible Bech32 format. Addresses are unique to its chain but follow Cosmos SDK conventions.
+
+### Stellar (XLM)  
+-- Address Format: Starts with `G`, 56 characters, Base32-encoded.  
+-- Example: `GA7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6`  
+-- Details: Stellar public keys (addresses) use StrKey encoding, starting with `G` for accounts. They include a checksum for error detection.
+
+### Cosmos (ATOM)  
+-- Address Format: Starts with `cosmos`, Bech32-encoded, ~44 characters.  
+-- Example: `cosmos1x2y3z4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0`  
+-- Details: Cosmos uses Bech32 addresses, common across its ecosystem (e.g., Osmosis, Terra). The prefix indicates the chain, and addresses are derived from public keys.
+
+### Dogecoin (DOGE)  
+-- Address Format: Starts with `D`, 34 characters, Base58-encoded.  
+-- Example: `D7aB8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5`  
+-- Details: Dogecoin addresses are similar to Bitcoin's legacy format, using Base58Check. They're compatible with some Bitcoin forks due to shared origins.
+
+### Litecoin (LTC)  
+-- Address Format: Starts with `L`, `M`, or `ltc1` (SegWit), 26-35 characters.  
+-- Example: `L9aB8C7D6E5F4A3B2C1D0E9F8A7B6C5D4E3F2A1`  
+-- Details: Litecoin addresses resemble Bitcoin's, with legacy (L/M) or Bech32 (ltc1) formats. They use Base58Check or Bech32 encoding.
+
+### Monero (XMR)  
+-- Address Format: Starts with `4` or `8`, 95 characters, Base58-encoded.  
+-- Example: `4AdUndXHHZ6cfufTMvppY6JwXNf2k6W7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3`  
+-- Details: Monero's long addresses include a public spend key, public view key, and checksum, designed for privacy-focused transactions.
+
+### Tezos (XTZ)  
+-- Address Format: Starts with `tz1`, `tz2`, or `tz3`, 36 characters, Base58Check.  
+-- Example: `tz1Y2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f`  
+-- Details: Tezos addresses vary by key type (tz1 for Ed25519, tz2 for Secp256k1, tz3 for P256). They include a checksum for validation.
+
+### Algorand (ALGO)  
+-- Address Format: 58 characters, Base32-encoded, no specific prefix.  
+-- Example: `Y2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0`  
+-- Details: Algorand addresses are derived from public keys, using a checksum to ensure accuracy. They're used for both accounts and assets.
+
+### Filecoin (FIL)  
+-- Address Format: Starts with `f1` (secp256k1) or `f3` (BLS), ~40 characters.  
+-- Example: `f1y2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a`  
+-- Details: Filecoin's addresses reflect its dual key types, with prefixes indicating the cryptographic algorithm used.
+
+### Kusama (KSM)  
+-- Address Format: Starts with `H` (or other letters for other networks), 47-48 characters, SS58-encoded.  
+-- Example: `H2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4`  
+-- Details: Kusama, Polkadot's sister chain, uses SS58 encoding with a different prefix (e.g., `H` for Kusama). Addresses are interoperable with -Polkadot's format.
