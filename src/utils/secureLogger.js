@@ -310,4 +310,3 @@ class SecureLogger {
 const logger = new SecureLogger()
 
 export default logger
-export { AUDIT_EVENTS, LOG_LEVELS }

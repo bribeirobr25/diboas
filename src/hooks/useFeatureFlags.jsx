@@ -269,8 +269,5 @@ export function useFeatureFlagAnalytics() {
   }
 }
 
-// Export commonly used feature flags as constants
-export { FEATURE_FLAGS }
-
-// Export feature flag manager for advanced usage
-export { featureFlagManager }
+// Note: FEATURE_FLAGS and featureFlagManager are imported from ../config/featureFlags.js
+// They should be imported directly from the config file to avoid duplication

@@ -203,8 +203,8 @@ export default function LandingPage() {
               { icon: <ArrowRight className="w-8 h-8" />, label: 'Transfer', color: 'bg-cyan-500' },
               { icon: <CreditCard className="w-8 h-8" />, label: 'Withdraw', color: 'bg-red-500' },
               { icon: <PieChart className="w-8 h-8" />, label: 'Invest', color: 'bg-indigo-500' }
-            ].map((action, index) => (
-              <Card key={index} className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all cursor-pointer">
+            ].map((action) => (
+              <Card key={action.label} className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all cursor-pointer">
                 <CardContent className="p-6 text-center">
                   <div className={`w-16 h-16 ${action.color} rounded-full mx-auto mb-4 flex items-center justify-center`}>
                     {action.icon}
@@ -232,7 +232,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full mx-auto mb-6 flex items-center justify-center">
+                <div className="feature-icon blue-gradient">
                   <Zap className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -246,7 +246,7 @@ export default function LandingPage() {
             
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mx-auto mb-6 flex items-center justify-center">
+                <div className="feature-icon purple-gradient">
                   <Globe className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -260,7 +260,7 @@ export default function LandingPage() {
             
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full mx-auto mb-6 flex items-center justify-center">
+                <div className="feature-icon green-gradient">
                   <BookOpen className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
@@ -274,7 +274,7 @@ export default function LandingPage() {
             
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-400 rounded-full mx-auto mb-6 flex items-center justify-center">
+                <div className="feature-icon orange-gradient">
                   <Smartphone className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">

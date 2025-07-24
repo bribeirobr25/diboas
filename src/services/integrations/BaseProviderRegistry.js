@@ -1,232 +1,424 @@
 /**
- * Base Provider Registry
- * Common functionality for all provider registries
+ * Base Provider Registry for diBoaS Integration System
+ * Provides common functionality for all provider registries
+ * Ensures consistent abstraction layer across all integrations
  */
 
+import secureLogger from '../../utils/secureLogger.js'
+import { checkGeneralRateLimit } from '../../utils/advancedRateLimiter.js'
+
+/**
+ * Provider Health Status
+ */
+export const PROVIDER_STATUS = {
+  HEALTHY: 'healthy',
+  DEGRADED: 'degraded',
+  UNHEALTHY: 'unhealthy',
+  OFFLINE: 'offline'
+}
+
+/**
+ * Base Provider Registry Class
+ * All integration registries should extend this class
+ */
 export class BaseProviderRegistry {
-  constructor(registryType) {
+  constructor(registryType, options = {}) {
     this.registryType = registryType
     this.providers = new Map()
-    this.healthStatus = new Map()
+    this.providerConfigs = new Map()
     this.providerStats = new Map()
-    this.fallbackOrder = []
-    this.logger = {
-      info: (msg, data) => console.log(`[${this.registryType.toUpperCase()}]`, msg, data || ''),
-      warn: (msg, data) => console.warn(`[${this.registryType.toUpperCase()}]`, msg, data || ''),
-      error: (msg, error) => console.error(`[${this.registryType.toUpperCase()}]`, msg, error)
+    this.fallbackChain = []
+    
+    // Configuration options - optimized for better performance
+    this.options = {
+      healthCheckInterval: options.healthCheckInterval || 300000, // 5 minutes - reduced frequency
+      maxRetries: options.maxRetries || 1, // Reduced retries to minimize API calls
+      retryDelay: options.retryDelay || 2000, // Increased delay between retries
+      healthThreshold: options.healthThreshold || 0.8,
+      ...options
     }
-  }
-
-  /**
-   * Register a provider
-   */
-  register(providerId, provider, options = {}) {
-    if (this.providers.has(providerId)) {
-      throw new Error(`Provider ${providerId} is already registered`)
-    }
-
-    this.providers.set(providerId, provider)
-    this.healthStatus.set(providerId, { healthy: true, lastCheck: new Date() })
-    this.providerStats.set(providerId, {
-      totalRequests: 0,
-      successfulRequests: 0,
-      failedRequests: 0,
-      averageResponseTime: 0,
-      lastUsed: null
+    
+    // Start health monitoring
+    this.startHealthMonitoring()
+    
+    secureLogger.audit('PROVIDER_REGISTRY_INITIALIZED', {
+      registryType: this.registryType,
+      timestamp: new Date().toISOString()
     })
-
-    // Add to fallback order if specified
-    if (options.fallbackPriority !== undefined) {
-      this.setFallbackPriority(providerId, options.fallbackPriority)
-    } else {
-      this.fallbackOrder.push(providerId)
-    }
-
-    this.logger.info(`Provider registered: ${providerId}`)
   }
 
   /**
-   * Unregister a provider
+   * Register a provider with the registry
    */
-  unregister(providerId) {
-    if (!this.providers.has(providerId)) {
-      throw new Error(`Provider ${providerId} is not registered`)
-    }
-
-    this.providers.delete(providerId)
-    this.healthStatus.delete(providerId)
-    this.providerStats.delete(providerId)
+  async registerProvider(providerId, provider, config = {}) {
+    // Validate provider interface
+    this.validateProviderInterface(provider)
     
-    // Remove from fallback order
-    this.fallbackOrder = this.fallbackOrder.filter(id => id !== providerId)
-
-    this.logger.info(`Provider unregistered: ${providerId}`)
-  }
-
-  /**
-   * Get a specific provider
-   */
-  getProvider(providerId) {
-    const provider = this.providers.get(providerId)
-    if (!provider) {
-      throw new Error(`Provider ${providerId} not found`)
-    }
-    return provider
-  }
-
-  /**
-   * Get all registered providers
-   */
-  getAllProviders() {
-    return Array.from(this.providers.entries())
-  }
-
-  /**
-   * Get healthy providers in fallback order
-   */
-  getHealthyProviders() {
-    return this.fallbackOrder
-      .filter(providerId => this.isProviderHealthy(providerId))
-      .map(providerId => ({
-        id: providerId,
-        provider: this.providers.get(providerId)
-      }))
-  }
-
-  /**
-   * Set fallback priority for a provider
-   */
-  setFallbackPriority(providerId, priority) {
-    if (!this.providers.has(providerId)) {
-      throw new Error(`Provider ${providerId} not found`)
-    }
-
-    // Remove from current position
-    this.fallbackOrder = this.fallbackOrder.filter(id => id !== providerId)
+    // Store provider and config
+    this.providers.set(providerId, provider)
+    this.providerConfigs.set(providerId, {
+      priority: config.priority || 1,
+      weight: config.weight || 1,
+      enabled: config.enabled !== false,
+      environments: config.environments || ['development', 'staging', 'production'],
+      features: config.features || [],
+      rateLimit: config.rateLimit || 100,
+      timeout: config.timeout || 5000,
+      retries: config.retries || 2,
+      healthCheck: config.healthCheck || true,
+      ...config
+    })
     
-    // Insert at new position
-    this.fallbackOrder.splice(priority, 0, providerId)
+    // Initialize stats
+    this.providerStats.set(providerId, {
+      successCount: 0,
+      failureCount: 0,
+      totalRequests: 0,
+      averageLatency: 0,
+      lastSuccess: null,
+      lastFailure: null,
+      status: PROVIDER_STATUS.HEALTHY,
+      uptime: 100
+    })
+    
+    // Add to fallback chain based on priority
+    this.updateFallbackChain()
+    
+    secureLogger.audit('PROVIDER_REGISTERED', {
+      registryType: this.registryType,
+      providerId,
+      priority: this.providerConfigs.get(providerId).priority,
+      features: this.providerConfigs.get(providerId).features
+    })
+    
+    // Run initial health check
+    if (config.healthCheck !== false) {
+      await this.checkProviderHealth(providerId)
+    }
+    
+    return true
   }
 
   /**
-   * Execute operation with automatic fallback
+   * Get the best available provider for a request
    */
-  async executeWithFallback(operation, operationData, options = {}) {
-    const healthyProviders = this.getHealthyProviders()
+  getBestProvider(requirements = {}) {
+    const {
+      feature = null,
+      environment = process.env.NODE_ENV || 'development',
+      excludeProviders = [],
+      forceProvider = null
+    } = requirements
     
-    if (healthyProviders.length === 0) {
-      throw new Error(`No healthy providers available for ${this.registryType}`)
+    // Force specific provider if requested
+    if (forceProvider && this.providers.has(forceProvider)) {
+      const config = this.providerConfigs.get(forceProvider)
+      if (config.enabled && this.isProviderHealthy(forceProvider)) {
+        return forceProvider
+      }
     }
+    
+    // Filter providers based on requirements
+    const availableProviders = this.fallbackChain.filter(providerId => {
+      const config = this.providerConfigs.get(providerId)
+      const stats = this.providerStats.get(providerId)
+      
+      return (
+        !excludeProviders.includes(providerId) &&
+        config.enabled &&
+        config.environments.includes(environment) &&
+        (feature === null || config.features.includes(feature)) &&
+        stats.status !== PROVIDER_STATUS.OFFLINE &&
+        this.isProviderHealthy(providerId)
+      )
+    })
+    
+    if (availableProviders.length === 0) {
+      throw new Error(`No available providers for ${this.registryType} integration`)
+    }
+    
+    // Return best available provider (highest priority, best health)
+    return availableProviders[0]
+  }
 
-    const maxRetries = options.maxRetries || healthyProviders.length
-    const errors = []
-
-    for (let i = 0; i < Math.min(maxRetries, healthyProviders.length); i++) {
-      const { id: providerId, provider } = healthyProviders[i]
-      const startTime = Date.now()
-
+  /**
+   * Execute request with automatic failover
+   */
+  async executeWithFailover(operation, requirements = {}) {
+    const maxAttempts = requirements.maxAttempts || this.options.maxRetries
+    let lastError = null
+    const attemptedProviders = new Set()
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        this.logger.info(`Attempting ${operation} with provider: ${providerId}`)
+        // Get best available provider
+        const providerId = this.getBestProvider({
+          ...requirements,
+          excludeProviders: Array.from(attemptedProviders)
+        })
         
-        // Update stats
-        this.incrementProviderStat(providerId, 'totalRequests')
+        attemptedProviders.add(providerId)
         
-        // Execute the operation
-        let result
-        if (typeof provider[operation] === 'function') {
-          result = await provider[operation](operationData, options)
-        } else {
-          throw new Error(`Operation ${operation} not supported by provider ${providerId}`)
+        const startTime = Date.now()
+        
+        // Check rate limiting
+        const rateLimitResult = checkGeneralRateLimit(`${this.registryType}-${providerId}`, {
+          operation: operation.name || 'generic',
+          providerId
+        })
+        
+        if (!rateLimitResult.allowed) {
+          throw new Error(`Rate limit exceeded for provider ${providerId}`)
         }
-
-        // Track success
-        const duration = Date.now() - startTime
-        this.updateProviderStats(providerId, true, duration)
+        
+        // Execute operation with provider
+        const provider = this.providers.get(providerId)
+        const result = await operation(provider, providerId)
+        
+        // Record success
+        const latency = Date.now() - startTime
+        await this.recordExecution(providerId, operation.name || 'generic', { latency, success: true })
         
         return {
           success: true,
-          result,
-          provider: providerId,
-          duration,
-          attempt: i + 1
-        }
-
-      } catch (error) {
-        const duration = Date.now() - startTime
-        this.updateProviderStats(providerId, false, duration)
-        
-        errors.push({
           providerId,
-          error: error.message,
-          duration,
-          attempt: i + 1
-        })
-
-        this.logger.warn(`Provider ${providerId} failed for ${operation}`, error.message)
-
-        // Mark provider as potentially unhealthy if it fails
-        this.checkProviderHealth(providerId, false)
-
-        // Continue to next provider
-        continue
+          result,
+          latency,
+          attempts: attempt + 1
+        }
+        
+      } catch (error) {
+        lastError = error
+        
+        // Record failure if we have a provider
+        const providerId = Array.from(attemptedProviders).slice(-1)[0]
+        if (providerId) {
+          await this.recordFailure(providerId, operation.name || 'generic', error)
+        }
+        
+        // Wait before retry
+        if (attempt < maxAttempts - 1) {
+          await new Promise(resolve => setTimeout(resolve, this.options.retryDelay * (attempt + 1)))
+        }
       }
     }
-
+    
     // All providers failed
-    const error = new Error(`All ${this.registryType} providers failed`)
-    error.attempts = errors
-    throw error
+    secureLogger.audit('ALL_PROVIDERS_FAILED', {
+      registryType: this.registryType,
+      operation: operation.name || 'generic',
+      attempts: maxAttempts,
+      error: lastError?.message
+    })
+    
+    throw new Error(`All providers failed for ${this.registryType} integration: ${lastError?.message}`)
+  }
+
+  /**
+   * Record successful execution
+   */
+  async recordExecution(providerId, operation, metadata = {}) {
+    const stats = this.providerStats.get(providerId)
+    if (!stats) return
+    
+    stats.successCount++
+    stats.totalRequests++
+    stats.lastSuccess = new Date().toISOString()
+    
+    // Update average latency
+    if (metadata.latency) {
+      stats.averageLatency = (stats.averageLatency + metadata.latency) / 2
+    }
+    
+    // Update provider health
+    this.updateProviderHealth(providerId)
+    
+    secureLogger.audit('PROVIDER_EXECUTION_SUCCESS', {
+      registryType: this.registryType,
+      providerId,
+      operation,
+      latency: metadata.latency
+    })
+  }
+
+  /**
+   * Record failed execution
+   */
+  async recordFailure(providerId, operation, error) {
+    const stats = this.providerStats.get(providerId)
+    if (!stats) return
+    
+    stats.failureCount++
+    stats.totalRequests++
+    stats.lastFailure = new Date().toISOString()
+    
+    // Update provider health
+    this.updateProviderHealth(providerId)
+    
+    secureLogger.audit('PROVIDER_EXECUTION_FAILURE', {
+      registryType: this.registryType,
+      providerId,
+      operation,
+      error: error.message
+    })
   }
 
   /**
    * Check if provider is healthy
    */
   isProviderHealthy(providerId) {
-    const status = this.healthStatus.get(providerId)
-    return status ? status.healthy : false
+    const stats = this.providerStats.get(providerId)
+    if (!stats) return false
+    
+    const successRate = stats.totalRequests > 0 
+      ? stats.successCount / stats.totalRequests 
+      : 1
+      
+    return stats.status !== PROVIDER_STATUS.OFFLINE && 
+           successRate >= this.options.healthThreshold
   }
 
   /**
    * Update provider health status
    */
-  checkProviderHealth(providerId, isHealthy) {
-    const currentStatus = this.healthStatus.get(providerId)
-    if (currentStatus) {
-      currentStatus.healthy = isHealthy
-      currentStatus.lastCheck = new Date()
-      
-      if (!isHealthy) {
-        this.logger.warn(`Provider ${providerId} marked as unhealthy`)
-      }
-    }
-  }
-
-  /**
-   * Update provider statistics
-   */
-  updateProviderStats(providerId, success, duration) {
+  updateProviderHealth(providerId) {
     const stats = this.providerStats.get(providerId)
     if (!stats) return
-
-    if (success) {
-      stats.successfulRequests++
+    
+    const successRate = stats.totalRequests > 0 
+      ? stats.successCount / stats.totalRequests 
+      : 1
+      
+    stats.uptime = successRate * 100
+    
+    if (successRate >= 0.95) {
+      stats.status = PROVIDER_STATUS.HEALTHY
+    } else if (successRate >= 0.8) {
+      stats.status = PROVIDER_STATUS.DEGRADED
+    } else if (successRate >= 0.5) {
+      stats.status = PROVIDER_STATUS.UNHEALTHY
     } else {
-      stats.failedRequests++
+      stats.status = PROVIDER_STATUS.OFFLINE
     }
-
-    // Update average response time
-    const totalRequests = stats.successfulRequests + stats.failedRequests
-    stats.averageResponseTime = ((stats.averageResponseTime * (totalRequests - 1)) + duration) / totalRequests
-    stats.lastUsed = new Date()
   }
 
   /**
-   * Increment a provider statistic
+   * Run health check on specific provider
    */
-  incrementProviderStat(providerId, statName) {
-    const stats = this.providerStats.get(providerId)
-    if (stats && stats.hasOwnProperty(statName)) {
-      stats[statName]++
+  async checkProviderHealth(providerId) {
+    const provider = this.providers.get(providerId)
+    const config = this.providerConfigs.get(providerId)
+    
+    if (!provider || !config.healthCheck) return
+    
+    try {
+      // Use provider's health check method if available
+      if (typeof provider.healthCheck === 'function') {
+        const result = await Promise.race([
+          provider.healthCheck(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Health check timeout')), config.timeout)
+          )
+        ])
+        
+        if (result.healthy !== false) {
+          await this.recordExecution(providerId, 'healthCheck', {})
+        } else {
+          await this.recordFailure(providerId, 'healthCheck', new Error('Health check failed'))
+        }
+      }
+    } catch (error) {
+      await this.recordFailure(providerId, 'healthCheck', error)
+    }
+  }
+
+  /**
+   * Start health monitoring for all providers
+   */
+  startHealthMonitoring() {
+    // Clear existing interval if any to prevent duplicates
+    this.stopHealthMonitoring()
+    
+    this.healthMonitoringInterval = setInterval(async () => {
+      for (const providerId of this.providers.keys()) {
+        await this.checkProviderHealth(providerId)
+      }
+    }, this.options.healthCheckInterval)
+  }
+
+  /**
+   * Stop health monitoring and clean up interval
+   */
+  stopHealthMonitoring() {
+    if (this.healthMonitoringInterval) {
+      clearInterval(this.healthMonitoringInterval)
+      this.healthMonitoringInterval = null
+    }
+  }
+
+  /**
+   * Destroy the registry and clean up all resources
+   */
+  destroy() {
+    this.stopHealthMonitoring()
+    this.providers.clear()
+    this.providerConfigs.clear()
+    this.fallbackChain = []
+    this.healthChecker.providers.clear()
+  }
+
+  /**
+   * Update fallback chain based on provider priorities
+   */
+  updateFallbackChain() {
+    const providers = Array.from(this.providerConfigs.entries())
+      .filter(([_, config]) => config.enabled)
+      .sort(([aId, aConfig], [bId, bConfig]) => {
+        // Sort by priority (higher first), then by weight (higher first)
+        if (aConfig.priority !== bConfig.priority) {
+          return bConfig.priority - aConfig.priority
+        }
+        return bConfig.weight - aConfig.weight
+      })
+      .map(([providerId, _]) => providerId)
+    
+    this.fallbackChain = providers
+  }
+
+  /**
+   * Validate provider interface (to be overridden by subclasses)
+   */
+  validateProviderInterface(provider) {
+    // Base validation - subclasses should override for specific requirements
+    if (!provider || typeof provider !== 'object') {
+      throw new Error('Provider must be an object')
+    }
+  }
+
+  /**
+   * Get registry health status
+   */
+  getHealthStatus() {
+    const providerStatuses = Array.from(this.providerStats.entries()).map(([providerId, stats]) => ({
+      providerId,
+      status: stats.status,
+      successRate: stats.totalRequests > 0 ? (stats.successCount / stats.totalRequests) : 1,
+      averageLatency: stats.averageLatency,
+      uptime: stats.uptime,
+      lastSuccess: stats.lastSuccess,
+      lastFailure: stats.lastFailure
+    }))
+    
+    const healthyProviders = providerStatuses.filter(p => p.status === PROVIDER_STATUS.HEALTHY).length
+    const totalProviders = providerStatuses.length
+    
+    return {
+      registryType: this.registryType,
+      overallHealth: totalProviders > 0 ? (healthyProviders / totalProviders) * 100 : 0,
+      totalProviders,
+      healthyProviders,
+      providers: providerStatuses,
+      fallbackChain: this.fallbackChain
     }
   }
 
@@ -234,117 +426,48 @@ export class BaseProviderRegistry {
    * Get provider statistics
    */
   getProviderStats(providerId) {
-    return this.providerStats.get(providerId) || null
-  }
-
-  /**
-   * Get all provider statistics
-   */
-  getAllStats() {
-    const stats = {
-      registryType: this.registryType,
-      totalProviders: this.providers.size,
-      healthyProviders: this.getHealthyProviders().length,
-      fallbackOrder: [...this.fallbackOrder],
-      providers: {}
+    if (providerId) {
+      return this.providerStats.get(providerId)
     }
-
-    for (const [providerId, providerStats] of this.providerStats) {
-      stats.providers[providerId] = {
-        ...providerStats,
-        healthy: this.isProviderHealthy(providerId),
-        successRate: providerStats.totalRequests > 0 
-          ? (providerStats.successfulRequests / providerStats.totalRequests * 100).toFixed(2)
-          : '0.00'
-      }
-    }
-
-    return stats
-  }
-
-  /**
-   * Get provider last used timestamp
-   */
-  getProviderLastUsed(providerId) {
-    const stats = this.providerStats.get(providerId)
-    return stats ? stats.lastUsed : null
-  }
-
-  /**
-   * Perform health check on all providers
-   */
-  async performHealthCheck() {
-    const healthPromises = Array.from(this.providers.entries()).map(async ([providerId, provider]) => {
-      try {
-        // Call provider's health check method if available
-        if (typeof provider.healthCheck === 'function') {
-          const isHealthy = await provider.healthCheck()
-          this.checkProviderHealth(providerId, isHealthy)
-        } else {
-          // If no health check method, assume healthy
-          this.checkProviderHealth(providerId, true)
-        }
-      } catch (error) {
-        this.logger.error(`Health check failed for provider ${providerId}`, error)
-        this.checkProviderHealth(providerId, false)
-      }
-    })
-
-    await Promise.allSettled(healthPromises)
     
-    const healthyCount = this.getHealthyProviders().length
-    this.logger.info(`Health check completed: ${healthyCount}/${this.providers.size} providers healthy`)
+    return Array.from(this.providerStats.entries()).reduce((stats, [id, providerStats]) => {
+      stats[id] = providerStats
+      return stats
+    }, {})
   }
 
   /**
-   * Reset provider statistics
+   * Enable/disable provider
    */
-  resetProviderStats(providerId) {
-    if (this.providerStats.has(providerId)) {
-      this.providerStats.set(providerId, {
-        totalRequests: 0,
-        successfulRequests: 0,
-        failedRequests: 0,
-        averageResponseTime: 0,
-        lastUsed: null
+  setProviderEnabled(providerId, enabled) {
+    const config = this.providerConfigs.get(providerId)
+    if (config) {
+      config.enabled = enabled
+      this.updateFallbackChain()
+      
+      secureLogger.audit('PROVIDER_ENABLED_CHANGED', {
+        registryType: this.registryType,
+        providerId,
+        enabled
       })
-      this.logger.info(`Reset statistics for provider: ${providerId}`)
     }
   }
 
   /**
-   * Reset all statistics
+   * Update provider configuration
    */
-  resetAllStats() {
-    for (const providerId of this.providers.keys()) {
-      this.resetProviderStats(providerId)
+  updateProviderConfig(providerId, newConfig) {
+    const currentConfig = this.providerConfigs.get(providerId)
+    if (currentConfig) {
+      this.providerConfigs.set(providerId, { ...currentConfig, ...newConfig })
+      this.updateFallbackChain()
+      
+      secureLogger.audit('PROVIDER_CONFIG_UPDATED', {
+        registryType: this.registryType,
+        providerId,
+        changes: Object.keys(newConfig)
+      })
     }
-    this.logger.info('Reset all provider statistics')
-  }
-
-  /**
-   * Shutdown the registry
-   */
-  async shutdown() {
-    // Shutdown all providers if they support it
-    const shutdownPromises = Array.from(this.providers.entries()).map(async ([providerId, provider]) => {
-      try {
-        if (typeof provider.shutdown === 'function') {
-          await provider.shutdown()
-        }
-      } catch (error) {
-        this.logger.error(`Shutdown failed for provider ${providerId}`, error)
-      }
-    })
-
-    await Promise.allSettled(shutdownPromises)
-    
-    this.providers.clear()
-    this.healthStatus.clear()
-    this.providerStats.clear()
-    this.fallbackOrder = []
-    
-    this.logger.info(`${this.registryType} registry shutdown completed`)
   }
 }
 

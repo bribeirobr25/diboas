@@ -5,82 +5,17 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import TransactionEngine from '../services/transactions/TransactionEngine.js'
 import { defaultFeeCalculator } from '../utils/feeCalculations.js'
 import { useAuth } from './useIntegrations.jsx'
 import { dataManager } from '../services/DataManager.js'
+import { getTransactionEngine, getWalletManager } from './transactions/transactionSingletons.js'
 
-let transactionEngineInstance = null
-let walletManagerInstance = null
-
-/**
- * Get singleton instances
- */
-async function getTransactionEngine() {
-  if (!transactionEngineInstance) {
-    transactionEngineInstance = new TransactionEngine()
-    await transactionEngineInstance.initialize()
-  }
-  return transactionEngineInstance
-}
-
-function getWalletManager() {
-  if (!walletManagerInstance) {
-    walletManagerInstance = new MultiWalletManager()
-  }
-  return walletManagerInstance
-}
+// Main transaction hook moved to ./transactions/useTransactions.js
 
 /**
- * Main transaction hook
+ * Wallet balance management hook - now uses centralized DataManager
  */
-export const useTransactions = () => {
-  const { user } = useAuth()
-  const [transactionEngine, setTransactionEngine] = useState(null)
-  const [walletManager, setWalletManager] = useState(null)
-  const [isInitialized, setIsInitialized] = useState(false)
-  const [error, setError] = useState(null)
-  const initializationRef = useRef(null)
-
-  // Initialize transaction system
-  useEffect(() => {
-    if (initializationRef.current) return
-
-    initializationRef.current = Promise.all([
-      getTransactionEngine(),
-      Promise.resolve(getWalletManager())
-    ])
-      .then(([engine, wallet]) => {
-        setTransactionEngine(engine)
-        setWalletManager(wallet)
-        setIsInitialized(true)
-        setError(null)
-      })
-      .catch(err => {
-        setError(err)
-        setIsInitialized(false)
-      })
-
-    return () => {
-      if (initializationRef.current) {
-        initializationRef.current = null
-      }
-    }
-  }, [])
-
-  return {
-    transactionEngine,
-    walletManager,
-    isInitialized,
-    error,
-    user
-  }
-}
-
-/**
- * Wallet management hook - now uses centralized DataManager
- */
-export const useWallet = () => {
+export const useWalletBalance = () => {
   const { user } = useAuth()
   const [balance, setBalance] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -532,7 +467,7 @@ export const useTransactionFlow = () => {
   const { processTransaction } = useTransactionProcessor()
   const { calculateFees } = useFeeCalculator()
   const { validateTransaction } = useTransactionValidation()
-  const { checkSufficientBalance } = useWallet()
+  const { checkSufficientBalance } = useWalletBalance()
   const [flowState, setFlowState] = useState('idle') // idle, validating, calculating, confirming, processing, pending, completed, error
   const [flowData, setFlowData] = useState(null)
   const [flowError, setFlowError] = useState(null)
@@ -745,8 +680,7 @@ export const useTransactionTwoFA = () => {
 }
 
 export default {
-  useTransactions,
-  useWallet,
+  useWalletBalance,
   useTransactionProcessor,
   useFeeCalculator,
   useTransactionValidation,

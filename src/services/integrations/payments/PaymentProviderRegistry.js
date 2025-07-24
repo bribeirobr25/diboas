@@ -365,12 +365,120 @@ export class PaymentProviderRegistry extends BaseProviderRegistry {
       evaluableCondition = evaluableCondition.replace(regex, JSON.stringify(value))
     }
 
-    // Simple evaluation (in production, use a safer expression evaluator)
+    // SECURITY: Safe expression evaluation without code injection
     try {
-      return Function(`"use strict"; return (${evaluableCondition})`)()
-    } catch {
+      return this.safeEvaluateExpression(evaluableCondition, context)
+    } catch (error) {
+      console.warn('Payment routing condition evaluation failed:', error.message)
       return false
     }
+  }
+
+  /**
+   * Safely evaluate routing expressions without code injection risks
+   * Only allows basic comparison operations and arithmetic
+   * NEVER use Function() constructor or eval() for user input
+   */
+  safeEvaluateExpression(expression, context = {}) {
+    // Strip whitespace and validate expression
+    const cleanExpression = expression.trim()
+    
+    // Reject dangerous patterns that could indicate code injection
+    const dangerousPatterns = [
+      /function\s*\(/i,
+      /\(\s*\)\s*=>/,
+      /eval\s*\(/i,
+      /Function\s*\(/i,
+      /constructor/i,
+      /prototype/i,
+      /__proto__/i,
+      /import\s*\(/i,
+      /require\s*\(/i,
+      /process\s*\./i,
+      /global\s*\./i,
+      /window\s*\./i,
+      /document\s*\./i
+    ]
+    
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(cleanExpression)) {
+        throw new Error('Expression contains potentially dangerous patterns')
+      }
+    }
+    
+    // Only allow safe comparison expressions
+    const safeExpressionPattern = /^[\w\s\d\.\+\-\*\/\(\)\<\>\=\!\&\|\s"']+$/
+    if (!safeExpressionPattern.test(cleanExpression)) {
+      throw new Error('Expression contains invalid characters')
+    }
+    
+    // Parse and evaluate safe expressions manually
+    return this.parseComparisonExpression(cleanExpression, context)
+  }
+
+  /**
+   * Parse basic comparison expressions safely
+   * Supports: ==, !=, >, <, >=, <=, &&, ||
+   */
+  parseComparisonExpression(expression, context) {
+    // Handle simple boolean values
+    if (expression === 'true') return true
+    if (expression === 'false') return false
+    
+    // Handle simple comparisons
+    const comparisonOperators = ['<=', '>=', '==', '!=', '<', '>']
+    
+    for (const operator of comparisonOperators) {
+      if (expression.includes(operator)) {
+        const [left, right] = expression.split(operator).map(s => s.trim())
+        const leftValue = this.evaluateValue(left, context)
+        const rightValue = this.evaluateValue(right, context)
+        
+        switch (operator) {
+          case '==': return leftValue == rightValue
+          case '!=': return leftValue != rightValue
+          case '>': return Number(leftValue) > Number(rightValue)
+          case '<': return Number(leftValue) < Number(rightValue)
+          case '>=': return Number(leftValue) >= Number(rightValue)
+          case '<=': return Number(leftValue) <= Number(rightValue)
+          default: return false
+        }
+      }
+    }
+    
+    // Handle logical operators
+    if (expression.includes('&&')) {
+      const parts = expression.split('&&').map(s => s.trim())
+      return parts.every(part => this.parseComparisonExpression(part, context))
+    }
+    
+    if (expression.includes('||')) {
+      const parts = expression.split('||').map(s => s.trim())
+      return parts.some(part => this.parseComparisonExpression(part, context))
+    }
+    
+    // Handle single values
+    return this.evaluateValue(expression, context)
+  }
+
+  /**
+   * Safely evaluate individual values from context
+   */
+  evaluateValue(value, context) {
+    const cleanValue = value.trim().replace(/['"]/g, '')
+    
+    // Check if it's a number
+    if (/^\d+(\.\d+)?$/.test(cleanValue)) {
+      return Number(cleanValue)
+    }
+    
+    // Check if it's a context variable
+    if (context.hasOwnProperty(cleanValue)) {
+      return context[cleanValue]
+    }
+    
+    // Return as string
+    return cleanValue
   }
 
   /**

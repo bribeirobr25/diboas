@@ -22,59 +22,57 @@ import {
   Globe
 } from 'lucide-react'
 import { Input } from '@/components/ui/input.jsx'
-import { useNavigate } from 'react-router-dom'
 import PageHeader from './shared/PageHeader.jsx'
 import { NAVIGATION_PATHS } from '../utils/navigationHelpers.js'
-import { useWallet } from '../hooks/useTransactions.jsx'
+import { useWalletBalance } from '../hooks/useTransactions.jsx'
+import { useSafeDataManager, useDataManagerSubscription } from '../hooks/useDataManagerSubscription.js'
 
 export default function AccountView() {
-  const navigate = useNavigate()
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [filterType, setFilterType] = useState('all')
   
   // Get real wallet balance
-  const { balance, getBalance, isLoading: balanceLoading } = useWallet()
+  const { balance, getBalance } = useWalletBalance()
   
   // Refresh balance when component mounts
   useEffect(() => {
     getBalance(true) // Force refresh
   }, [])
   
-  // Get transaction history from localStorage
+  // Get transaction history from DataManager (same as AppDashboard)
+  const { getTransactions: safeGetTransactions } = useSafeDataManager()
+  
   const getTransactionHistory = useCallback(() => {
-    const userId = 'demo_user_12345' // Demo user ID
-    const historyKey = `diboas_transaction_history_${userId}`
-    const history = JSON.parse(localStorage.getItem(historyKey) || '[]')
-    return history
-  }, [])
+    const allTransactions = safeGetTransactions()
+    console.log('📖 AccountView: Getting transaction history from DataManager:', allTransactions.length, 'transactions')
+    return allTransactions // Get all transactions for account view
+  }, [safeGetTransactions])
   
   const [transactionHistory, setTransactionHistory] = useState([])
   
+  // Load initial transaction history
   useEffect(() => {
-    setTransactionHistory(getTransactionHistory())
-    
-    // Listen for storage changes to refresh transaction history
-    const handleStorageChange = (e) => {
-      if (e.key && e.key.includes('diboas_transaction_history_')) {
-        setTransactionHistory(getTransactionHistory())
-        getBalance(true) // Also refresh balance
-      }
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    
-    // Also listen for custom events (for same-tab updates)
-    const handleTransactionUpdate = () => {
+    try {
       setTransactionHistory(getTransactionHistory())
-      getBalance(true)
+    } catch (error) {
+      console.warn('Failed to load transaction history:', error)
+      setTransactionHistory([])
     }
-    
-    window.addEventListener('diboas-transaction-completed', handleTransactionUpdate)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('diboas-transaction-completed', handleTransactionUpdate)
-    }
+  }, [getTransactionHistory])
+  
+  // Use DataManager subscriptions (same as AppDashboard)
+  useDataManagerSubscription('transaction:added', (transaction) => {
+    console.log('🔔 AccountView: DataManager transaction added event received:', transaction)
+    const newHistory = getTransactionHistory()
+    setTransactionHistory(newHistory)
+    getBalance(true)
+  }, [getTransactionHistory, getBalance])
+  
+  useDataManagerSubscription('transaction:completed', ({ transaction }) => {
+    console.log('🔔 AccountView: DataManager transaction completed event received:', transaction)
+    const newHistory = getTransactionHistory()
+    setTransactionHistory(newHistory)
+    getBalance(true)
   }, [getTransactionHistory, getBalance])
 
   // Convert transaction history to display format

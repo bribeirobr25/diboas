@@ -1,22 +1,44 @@
 /**
  * Money Value Object - Shared across all financial domains
  * Ensures consistent money handling across Traditional Finance, Crypto, and DeFi
+ * Uses decimal.js for precise financial arithmetic - NO FLOATING POINT ERRORS
  */
+
+import Decimal from 'decimal.js'
+
+// Configure Decimal.js for financial precision
+Decimal.set({
+  precision: 28,          // 28 significant digits
+  rounding: Decimal.ROUND_HALF_UP,  // Standard financial rounding
+  toExpNeg: -18,         // Support for very small crypto amounts
+  toExpPos: 18,          // Support for very large amounts
+  maxE: 9e15,            // Maximum exponent
+  minE: -9e15,           // Minimum exponent
+  modulo: Decimal.ROUND_DOWN  // For division remainders
+})
 
 export class Money {
   constructor(amount, currency) {
     this.validateAmount(amount)
     this.validateCurrency(currency)
     
-    this._amount = this.normalizeAmount(amount)
+    // Store as Decimal for precise arithmetic
+    this._amount = new Decimal(amount)
     this._currency = currency.toUpperCase()
+    
+    // Normalize to proper precision for the currency
+    this._amount = this.normalizeToDecimalPlaces(this._amount)
     
     // Make immutable
     Object.freeze(this)
   }
 
   get amount() {
-    return this._amount
+    return this._amount.toNumber() // Convert back to number for compatibility
+  }
+
+  get amountDecimal() {
+    return this._amount // Direct access to Decimal for precise calculations
   }
 
   get currency() {
@@ -24,82 +46,103 @@ export class Money {
   }
 
   /**
-   * Add money of same currency
+   * Add money of same currency - PRECISE arithmetic with decimal.js
    */
   add(other) {
     this.ensureSameCurrency(other)
-    return new Money(this._amount + other._amount, this._currency)
+    const result = this._amount.plus(other._amount)
+    return new Money(result.toString(), this._currency)
   }
 
   /**
-   * Subtract money of same currency
+   * Subtract money of same currency - PRECISE arithmetic with decimal.js
    */
   subtract(other) {
     this.ensureSameCurrency(other)
-    const result = this._amount - other._amount
-    if (result < 0 && this.isTraditionalCurrency()) {
+    const result = this._amount.minus(other._amount)
+    if (result.lessThan(0) && this.isTraditionalCurrency()) {
       throw new Error('Insufficient funds for traditional currency')
     }
-    return new Money(result, this._currency)
+    return new Money(result.toString(), this._currency)
   }
 
   /**
-   * Multiply by a factor
+   * Multiply by a factor - PRECISE arithmetic with decimal.js
    */
   multiply(factor) {
-    if (typeof factor !== 'number' || factor < 0) {
+    const decimalFactor = new Decimal(factor)
+    if (decimalFactor.lessThan(0)) {
       throw new Error('Factor must be a non-negative number')
     }
-    return new Money(this._amount * factor, this._currency)
+    const result = this._amount.times(decimalFactor)
+    return new Money(result.toString(), this._currency)
   }
 
   /**
-   * Divide by a factor
+   * Divide by a factor - PRECISE arithmetic with decimal.js
    */
   divide(factor) {
-    if (typeof factor !== 'number' || factor <= 0) {
+    const decimalFactor = new Decimal(factor)
+    if (decimalFactor.lessThanOrEqualTo(0)) {
       throw new Error('Factor must be a positive number')
     }
-    return new Money(this._amount / factor, this._currency)
+    const result = this._amount.dividedBy(decimalFactor)
+    return new Money(result.toString(), this._currency)
   }
 
   /**
-   * Check if amount is positive
+   * Check if amount is positive - PRECISE comparison with decimal.js
    */
   isPositive() {
-    return this._amount > 0
+    return this._amount.greaterThan(0)
   }
 
   /**
-   * Check if amount is zero
+   * Check if amount is zero - PRECISE comparison with decimal.js
    */
   isZero() {
-    return this._amount === 0
+    return this._amount.equals(0)
   }
 
   /**
-   * Compare with another Money object
+   * Compare with another Money object - PRECISE comparison with decimal.js
    */
   equals(other) {
     return other instanceof Money && 
-           this._amount === other._amount && 
+           this._amount.equals(other._amount) && 
            this._currency === other._currency
   }
 
   /**
-   * Check if this amount is greater than another
+   * Check if this amount is greater than another - PRECISE comparison with decimal.js
    */
   greaterThan(other) {
     this.ensureSameCurrency(other)
-    return this._amount > other._amount
+    return this._amount.greaterThan(other._amount)
   }
 
   /**
-   * Check if this amount is less than another
+   * Check if this amount is less than another - PRECISE comparison with decimal.js
    */
   lessThan(other) {
     this.ensureSameCurrency(other)
-    return this._amount < other._amount
+    return this._amount.lessThan(other._amount)
+  }
+
+  /**
+   * Check if this amount is greater than or equal to another
+   */
+  greaterThanOrEqualTo(other) {
+    this.ensureSameCurrency(other)
+    return this._amount.greaterThanOrEqualTo(other._amount)
+  }
+
+  /**
+   * Check if this amount is less than or equal to another
+   */
+  lessThanOrEqualTo(other) {
+    this.ensureSameCurrency(other)
+    return this._amount.lessThanOrEqualTo(other._amount)
   }
 
   /**
@@ -113,7 +156,7 @@ export class Money {
   }
 
   /**
-   * Convert to different currency (would integrate with exchange rates)
+   * Convert to different currency (would integrate with exchange rates) - PRECISE with decimal.js
    */
   async convertTo(targetCurrency, exchangeRateService) {
     if (this._currency === targetCurrency) {
@@ -121,7 +164,9 @@ export class Money {
     }
     
     const rate = await exchangeRateService.getRate(this._currency, targetCurrency)
-    return new Money(this._amount * rate, targetCurrency)
+    const rateDecimal = new Decimal(rate)
+    const convertedAmount = this._amount.times(rateDecimal)
+    return new Money(convertedAmount.toString(), targetCurrency)
   }
 
   /**
@@ -161,23 +206,28 @@ export class Money {
    */
   
   validateAmount(amount) {
-    if (typeof amount !== 'number' || isNaN(amount)) {
-      throw new Error('Amount must be a valid number')
+    // Accept number, string, or Decimal
+    let decimalAmount
+    try {
+      decimalAmount = new Decimal(amount)
+    } catch (error) {
+      throw new Error('Amount must be a valid number, string, or Decimal')
     }
-    if (!isFinite(amount)) {
+    
+    if (!decimalAmount.isFinite()) {
       throw new Error('Amount must be finite')
     }
     
     // SECURITY: Prevent extremely large numbers that could cause overflow
-    const MAX_SAFE_AMOUNT = Number.MAX_SAFE_INTEGER / 1000000 // Leave room for calculations
-    if (Math.abs(amount) > MAX_SAFE_AMOUNT) {
-      throw new Error(`Amount exceeds maximum safe value: ${MAX_SAFE_AMOUNT}`)
+    const MAX_SAFE_AMOUNT = new Decimal('1e15') // 1 quadrillion max
+    if (decimalAmount.abs().greaterThan(MAX_SAFE_AMOUNT)) {
+      throw new Error(`Amount exceeds maximum safe value: ${MAX_SAFE_AMOUNT.toString()}`)
     }
     
     // SECURITY: Prevent precision attacks with tiny amounts
-    const MIN_AMOUNT = 1e-18 // Smallest meaningful amount (18 decimals for ETH)
-    if (amount !== 0 && Math.abs(amount) < MIN_AMOUNT) {
-      throw new Error(`Amount too small: minimum ${MIN_AMOUNT}`)
+    const MIN_AMOUNT = new Decimal('1e-18') // Smallest meaningful amount (18 decimals for ETH)
+    if (!decimalAmount.equals(0) && decimalAmount.abs().lessThan(MIN_AMOUNT)) {
+      throw new Error(`Amount too small: minimum ${MIN_AMOUNT.toString()}`)
     }
   }
 
@@ -203,10 +253,10 @@ export class Money {
     }
   }
 
-  normalizeAmount(amount) {
-    // Round to appropriate precision to avoid floating point issues
+  normalizeToDecimalPlaces(decimalAmount) {
+    // Round to appropriate precision for the currency using decimal.js
     const precision = this.getPrecisionForCurrency(this._currency)
-    return Math.round(amount * Math.pow(10, precision)) / Math.pow(10, precision)
+    return decimalAmount.toDecimalPlaces(precision, Decimal.ROUND_HALF_UP)
   }
 
   getPrecisionForCurrency(currency) {
@@ -241,11 +291,11 @@ export class Money {
   }
 
   /**
-   * Serialization for persistence
+   * Serialization for persistence - Store as string to preserve precision
    */
   toJSON() {
     return {
-      amount: this._amount,
+      amount: this._amount.toString(), // Store as string to preserve full precision
       currency: this._currency
     }
   }
@@ -279,30 +329,30 @@ export class Money {
    */
   
   /**
-   * Check if amount meets minimum transfer requirements
+   * Check if amount meets minimum transfer requirements - PRECISE with decimal.js
    */
   meetsMinimumTransfer() {
     if (this.isTraditionalCurrency()) {
-      return this._amount >= 1.00 // $1 minimum for traditional transfers
+      return this._amount.greaterThanOrEqualTo(new Decimal('1.00')) // $1 minimum for traditional transfers
     }
     if (this._currency === 'BTC') {
-      return this._amount >= 0.00001 // 1,000 satoshis minimum
+      return this._amount.greaterThanOrEqualTo(new Decimal('0.00001')) // 1,000 satoshis minimum
     }
     if (this._currency === 'ETH') {
-      return this._amount >= 0.001 // 0.001 ETH minimum
+      return this._amount.greaterThanOrEqualTo(new Decimal('0.001')) // 0.001 ETH minimum
     }
-    return this._amount > 0
+    return this._amount.greaterThan(0)
   }
 
   /**
-   * Check if amount requires additional verification
+   * Check if amount requires additional verification - PRECISE with decimal.js
    */
   requiresAdditionalVerification() {
     if (this.isTraditionalCurrency()) {
-      return this._amount >= 10000 // $10k+ requires additional KYC
+      return this._amount.greaterThanOrEqualTo(new Decimal('10000')) // $10k+ requires additional KYC
     }
     if (this.isCryptoCurrency()) {
-      return this._amount >= 50000 // Crypto equivalent threshold
+      return this._amount.greaterThanOrEqualTo(new Decimal('50000')) // Crypto equivalent threshold
     }
     return false
   }

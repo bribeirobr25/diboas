@@ -98,17 +98,46 @@ export const isCleanState = () => {
 }
 
 /**
+ * Development helper to clear corrupted localStorage
+ */
+function clearCorruptedData() {
+  const keys = Object.keys(localStorage)
+  const diboasKeys = keys.filter(key => key.startsWith('diboas_'))
+  let clearedCount = 0
+  
+  diboasKeys.forEach(key => {
+    try {
+      const stored = localStorage.getItem(key)
+      if (stored && !stored.startsWith('{') && !stored.startsWith('[') && !stored.startsWith('"')) {
+        console.warn(`🧹 Clearing corrupted key: ${key} = ${stored.substring(0, 20)}...`)
+        localStorage.removeItem(key)
+        clearedCount++
+      }
+    } catch (error) {
+      console.warn(`🧹 Clearing invalid key: ${key}`)
+      localStorage.removeItem(key)
+      clearedCount++
+    }
+  })
+  
+  console.log(`✅ Cleared ${clearedCount} corrupted localStorage entries`)
+  return clearedCount
+}
+
+/**
  * Development helper to reset data from browser console
  */
 if (typeof window !== 'undefined') {
   window.resetDiBoaSData = resetToCleanState
   window.checkCleanState = isCleanState
   window.addDemoData = addDemoData
+  window.clearCorruptedData = clearCorruptedData
   
   console.log('🛠️ Development helpers available:')
   console.log('- window.resetDiBoaSData() - Reset to clean state')
   console.log('- window.checkCleanState() - Check if data is clean')
   console.log('- window.addDemoData() - Add demo data (currently empty)')
+  console.log('- window.clearCorruptedData() - Clear corrupted localStorage entries')
 }
 
 export default {

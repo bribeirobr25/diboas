@@ -4,8 +4,24 @@
  * Prevents accidental cross-environment API calls
  */
 
-import { getApiConfig, getCredentials, getEnvironmentConfig, validateEnvironment } from '../config/environments.js'
+import { getApiConfig, getEnvironmentConfig, validateEnvironment } from '../config/environments.js'
 import { isFeatureEnabled } from '../config/featureFlags.js'
+import { credentialManager, CREDENTIAL_TYPES } from '../utils/secureCredentialManager.js'
+import { checkGeneralRateLimit } from '../utils/advancedRateLimiter.js'
+
+/**
+ * API Error class for standardized error handling
+ */
+class ApiError extends Error {
+  constructor(type, message, statusCode = null, details = {}) {
+    super(message)
+    this.name = 'ApiError'
+    this.type = type
+    this.statusCode = statusCode
+    this.details = details
+    this.timestamp = new Date().toISOString()
+  }
+}
 
 /**
  * API Client class with environment-specific configuration
@@ -14,7 +30,7 @@ class ApiClient {
   constructor() {
     this.envConfig = getEnvironmentConfig()
     this.apiConfig = getApiConfig()
-    this.credentials = getCredentials()
+    this.apiKey = null // Will be loaded securely
     
     // Validate environment on initialization
     const validation = validateEnvironment()
@@ -25,14 +41,16 @@ class ApiClient {
       }
     }
     
-    // Configure base request settings
+    // Initialize secure credentials
+    this.initializeCredentials()
+    
+    // Configure base request settings (without credentials initially)
     this.baseRequestConfig = {
       headers: {
         'Content-Type': 'application/json',
         'X-API-Version': '1.0',
         'X-Client-Version': import.meta.env.VITE_APP_VERSION || '1.0.0',
-        'X-Environment': this.envConfig.name,
-        'Authorization': `Bearer ${this.credentials.apiKey}`
+        'X-Environment': this.envConfig.name
       },
       timeout: this.envConfig.apiTimeout,
       retries: this.envConfig.retryAttempts
@@ -47,18 +65,66 @@ class ApiClient {
   }
 
   /**
+   * Initialize secure credentials
+   */
+  async initializeCredentials() {
+    try {
+      this.apiKey = await credentialManager.getCredential(
+        CREDENTIAL_TYPES.API_KEY, 
+        this.envConfig.environment
+      )
+    } catch (error) {
+      console.warn('Failed to initialize secure credentials:', error.message)
+      // SECURITY: Never use hardcoded fallback credentials
+      if (this.envConfig.environment === 'development') {
+        throw new Error('API credentials not configured. Please set VITE_API_KEY environment variable.')
+      } else {
+        throw new Error('Failed to initialize secure credentials. Check environment configuration.')
+      }
+    }
+  }
+
+  /**
+   * Get authorization header with secure credentials
+   */
+  async getAuthHeaders() {
+    if (!this.apiKey) {
+      await this.initializeCredentials()
+    }
+    
+    return {
+      'Authorization': `Bearer ${this.apiKey}`
+    }
+  }
+
+  /**
    * Generic request method with environment-specific behavior
    */
   async request(endpoint, options = {}) {
-    const url = this.buildUrl(endpoint)
-    const config = this.buildRequestConfig(options)
+    // Check rate limiting first
+    const userIdentifier = this.getUserIdentifier()
+    const rateLimitResult = checkGeneralRateLimit(userIdentifier, {
+      endpoint,
+      method: options.method || 'GET',
+      environment: this.envConfig.environment
+    })
     
-    // Log requests in development
+    if (!rateLimitResult.allowed) {
+      throw new ApiError('RATE_LIMITED', `Rate limit exceeded. Try again in ${Math.ceil(rateLimitResult.retryAfter / 1000)} seconds.`)
+    }
+    
+    const url = this.buildUrl(endpoint)
+    const config = await this.buildRequestConfig(options)
+    
+    // Log requests in development (without sensitive headers)
     if (this.envConfig.debugMode) {
+      const safeHeaders = { ...config.headers }
+      delete safeHeaders.Authorization // Don't log auth headers
+      
       console.debug(`API Request [${this.envConfig.name}]:`, {
         method: config.method || 'GET',
         url,
-        headers: config.headers,
+        headers: safeHeaders,
         body: config.body
       })
     }
@@ -72,6 +138,14 @@ class ApiClient {
   }
 
   /**
+   * Get user identifier for rate limiting
+   */
+  getUserIdentifier() {
+    // Use a combination of factors for identification
+    return 'api-client-' + (this.envConfig.environment || 'unknown')
+  }
+
+  /**
    * Build full URL from endpoint
    */
   buildUrl(endpoint) {
@@ -81,14 +155,18 @@ class ApiClient {
   }
 
   /**
-   * Build request configuration
+   * Build request configuration with secure credentials
    */
-  buildRequestConfig(options) {
+  async buildRequestConfig(options) {
+    // Get secure auth headers
+    const authHeaders = await this.getAuthHeaders()
+    
     const config = {
       ...this.baseRequestConfig,
       ...options,
       headers: {
         ...this.baseRequestConfig.headers,
+        ...authHeaders,
         ...options.headers
       }
     }
@@ -368,7 +446,7 @@ export const mockApiResponses = {
   [API_ENDPOINTS.AUTH.LOGIN]: {
     success: true,
     user: { id: '123', email: 'user@example.com' },
-    token: 'mock-jwt-token'
+    token: process.env.NODE_ENV === 'test' ? 'test-jwt-token' : 'SECURITY_WARNING_MOCK_TOKEN_SHOULD_NOT_BE_USED'
   },
   
   [API_ENDPOINTS.FINANCE.BALANCE]: {

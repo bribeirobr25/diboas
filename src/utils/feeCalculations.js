@@ -30,19 +30,19 @@ export const FEE_STRUCTURE = {
   PAYMENT_PROVIDER_FEES: {
     // On-Ramp (Add/Deposit) fees
     onramp: {
-      'apple_pay': 0.005,     // 0.5%
-      'credit_card': 0.01,    // 1%
-      'bank': 0.01,           // 1%
-      'paypal': 0.03,         // 3%
-      'google_pay': 0.005     // 0.5%
+      'apple_pay': 0.005,          // 0.5%
+      'credit_debit_card': 0.01,   // 1%
+      'bank_account': 0.01,        // 1%
+      'paypal': 0.03,              // 3%
+      'google_pay': 0.005          // 0.5%
     },
     // Off-Ramp (Withdraw) fees
     offramp: {
-      'apple_pay': 0.01,      // 1%
-      'credit_card': 0.02,    // 2%
-      'bank': 0.02,           // 2%
-      'paypal': 0.04,         // 4%
-      'google_pay': 0.01      // 1%
+      'apple_pay': 0.01,           // 1%
+      'credit_debit_card': 0.02,   // 2%
+      'bank_account': 0.02,        // 2%
+      'paypal': 0.04,              // 4%
+      'google_pay': 0.01           // 1%
     }
   },
 
@@ -57,7 +57,7 @@ export const FEE_STRUCTURE = {
   MINIMUM_FEES: {
     // Network fees have NO minimums - users pay exactly the calculated percentage
     network: 0, // No minimum for network fees
-    provider: 0.50, // Keep provider minimum (payment processor requirements)
+    provider: 0, // No minimum for provider fees - percentage-based calculation only
     diBoaS: 0.01     // Keep diBoaS minimum (business requirement)
   }
 }
@@ -106,7 +106,7 @@ export class FeeCalculator {
     fees.network = await this.calculateNetworkFees(type, numericAmount, fromChain, toChain, recipient, transactionData)
 
     // Calculate provider fees
-    fees.provider = await this.calculateProviderFees(type, numericAmount, paymentMethod, asset, fees)
+    fees.provider = await this.calculateProviderFees(type, numericAmount, paymentMethod, asset, fees, transactionData)
 
     // Calculate routing fees if cross-chain operation
     if (routingPlan?.needsRouting) {
@@ -119,8 +119,8 @@ export class FeeCalculator {
     // Build detailed breakdown
     fees.breakdown = this.buildFeeBreakdown(fees, type, numericAmount)
 
-    // Calculate totals
-    fees.total = fees.diBoaS + fees.network + fees.provider + fees.payment + fees.dex + fees.routing + fees.gas
+    // Calculate totals - fees.provider already includes payment/dex fees, don't double count
+    fees.total = fees.diBoaS + fees.network + fees.provider + fees.routing + fees.gas
     fees.effectiveRate = (fees.total / numericAmount) * 100
 
     // Generate display summary
@@ -228,12 +228,12 @@ export class FeeCalculator {
   /**
    * Calculate provider-specific fees with separation for payment/DEX fees
    */
-  async calculateProviderFees(type, amount, paymentMethod, asset, fees) {
+  async calculateProviderFees(type, amount, paymentMethod, asset, fees, transactionData) {
     let providerFee = 0
 
-    // Return 0 if no payment method selected (as per requirements)
-    if (!paymentMethod) {
-      return 0
+    // Return 0 if no payment method selected (except for transfer transactions)
+    if (!paymentMethod && type !== 'transfer') {
+        return 0
     }
 
     switch (type) {
@@ -258,16 +258,16 @@ export class FeeCalculator {
         // Buy transaction fees - DEX fee only for On-Chain, Payment fee only for On-Ramp
         if (paymentMethod === 'diboas_wallet') {
           // Buy On-Chain: uses diBoaS wallet, only DEX fee applies
-          fees.dex = amount * 0.01 // 1% DEX fee
+          fees.dex = amount * 0.01 // 1% DEX fee for display breakdown
           fees.payment = 0 // No payment method fee
-          providerFee = fees.dex
-        } else if (['apple_pay', 'credit_card', 'bank', 'paypal', 'google_pay'].includes(paymentMethod)) {
+          providerFee = fees.dex // This becomes fees.provider
+        } else if (['apple_pay', 'credit_debit_card', 'bank_account', 'paypal', 'google_pay'].includes(paymentMethod)) {
           // Buy On-Ramp: uses external payment methods, only payment fee applies
           const paymentRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.onramp[paymentMethod] || 0
           
-          fees.payment = amount * paymentRate // Payment method fee
+          fees.payment = amount * paymentRate // Payment method fee for display breakdown
           fees.dex = 0 // No DEX fee for On-Ramp transactions
-          providerFee = fees.payment
+          providerFee = fees.payment // This becomes fees.provider
         } else {
           // Default case
           fees.dex = 0
@@ -289,16 +289,24 @@ export class FeeCalculator {
         break
 
       case 'transfer':
-        // External transfer fees - 0.8% DEX/Bridge provider fee
-        providerFee = amount * 0.008 // 0.8% provider fee
+        // External transfer fees - 0.8% DEX/Bridge fee only for cross-chain transfers
+        const addressInfo = this.detectNetworkFromAddress(transactionData.recipient)
+        
+        if (addressInfo.isValid && addressInfo.network !== 'SOL') {
+          // Cross-chain transfer (non-Solana) - apply 0.8% DEX/Bridge fee
+          providerFee = amount * 0.008 // 0.8% DEX/Bridge fee
+        } else {
+          // Solana-to-Solana transfer or invalid address - no DEX fee
+          providerFee = 0
+        }
         break
 
       default:
         providerFee = 0
     }
 
-    const finalFee = Math.max(providerFee, providerFee > 0 ? FEE_STRUCTURE.MINIMUM_FEES.provider : 0)
-    return finalFee
+    // No minimum for provider fees - return calculated percentage-based amount
+    return providerFee
   }
 
   /**
@@ -330,21 +338,10 @@ export class FeeCalculator {
    * Calculate gas fees for smart contract interactions
    */
   async calculateGasFees(type, fromChain, toChain, asset) {
-    // Gas fees are typically included in network fees
-    // This method can be expanded for more granular gas estimation
-    let gasFee = 0
-
-    // Complex transactions may have additional gas costs
-    if (['buy', 'sell', 'invest'].includes(type)) {
-      gasFee = 2.0 // Additional smart contract interaction costs
-    }
-
-    // Cross-chain operations have higher gas requirements
-    if (fromChain !== toChain) {
-      gasFee += 3.0
-    }
-
-    return gasFee
+    // Gas fees are included in network fees as per diBoaS design
+    // The platform abstracts away gas complexity from users
+    // All gas costs are covered within the network fee structure
+    return 0
   }
 
   /**
@@ -557,7 +554,7 @@ export class FeeCalculator {
     // - Gas oracle services
 
     // Real-time enhancement disabled for accurate fee calculations
-    fees.total = fees.diBoaS + fees.network + fees.provider + fees.payment + fees.dex + fees.routing + fees.gas
+    fees.total = fees.diBoaS + fees.network + fees.provider + fees.routing + fees.gas
   }
 
   /**

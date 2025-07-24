@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
-import { Loader2, CheckCircle, DollarSign, ArrowRight, CreditCard, Wallet, Send, TrendingUp, TrendingDown, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { Loader2, CheckCircle, DollarSign, ArrowRight, CreditCard, Wallet, Send, TrendingUp, TrendingDown, ArrowDownLeft, ArrowUpRight, XCircle, Clock, Shield } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useTransactionProgress } from '../../hooks/useTransactionStatus.js'
+import { TRANSACTION_STATUS } from '../../services/transactions/TransactionStatusService.js'
 import diBoaSLogo from '../../assets/diboas-logo.png'
 
 // Transaction configurations - moved outside component to prevent re-creation
@@ -104,45 +106,101 @@ export default function TransactionProgressScreen({
   isError = false,
   errorMessage = '',
   fees = null,
-  result = null
+  result = null,
+  transactionId = null, // New prop for real-time status tracking
+  onConfirm,
+  onCancel,
+  flowState,
+  flowData,
+  flowError
 }) {
   const navigate = useNavigate()
   const [completedSteps, setCompletedSteps] = useState([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
 
+  // Use real-time transaction status if transactionId is provided
+  const {
+    status: realTimeStatus,
+    isLoading: statusLoading,
+    error: statusError,
+    progress: realTimeProgress,
+    progressText,
+    progressColor,
+    timeRemaining,
+    onChainHash,
+    confirmations,
+    requiredConfirmations
+  } = useTransactionProgress(transactionId)
+
+  // Determine if we should use real-time status
+  const useRealTimeStatus = transactionId && realTimeStatus
+  const finalIsCompleted = useRealTimeStatus ? realTimeStatus.status === TRANSACTION_STATUS.COMPLETED : isCompleted
+  const finalIsError = useRealTimeStatus ? 
+    (realTimeStatus.status === TRANSACTION_STATUS.FAILED || realTimeStatus.status === TRANSACTION_STATUS.TIMEOUT) : 
+    isError
+  const finalErrorMessage = useRealTimeStatus && statusError ? statusError : errorMessage
+
+  // Debug logging
+  console.log('TransactionProgressScreen Debug:', {
+    isCompleted,
+    useRealTimeStatus,
+    finalIsCompleted,
+    finalIsError,
+    transactionId,
+    realTimeStatus
+  })
+
+  // Additional debugging for completion detection
+  useEffect(() => {
+    console.log('TransactionProgressScreen: finalIsCompleted changed to', finalIsCompleted)
+  }, [finalIsCompleted])
+
   // Get transaction configuration with dynamic 'from' and 'to' fields
   const getTransactionConfig = (type) => {
     const baseConfig = TRANSACTION_CONFIGS[type] || TRANSACTION_CONFIGS.add
     
+    // Helper function to format payment method names
+    const formatPaymentMethod = (method) => {
+      const methodMap = {
+        'credit_debit_card': 'Credit/Debit Card',
+        'bank_account': 'Bank Account',
+        'apple_pay': 'Apple Pay',
+        'google_pay': 'Google Pay',
+        'paypal': 'PayPal',
+        'diboas_wallet': 'diBoaS Wallet'
+      }
+      return methodMap[method] || method || 'Payment Method'
+    }
+    
     // Add dynamic from/to fields based on transaction type and data
     const fromToMap = {
       add: {
-        from: transactionData?.paymentMethod || 'Payment Method',
-        to: 'diBoaS Wallet'
+        from: formatPaymentMethod(transactionData?.paymentMethod),
+        to: 'diBoaS Wallet Available Balance'
       },
       withdraw: {
-        from: 'diBoaS Wallet',
-        to: transactionData?.paymentMethod || 'Payment Method'
+        from: 'diBoaS Wallet Available Balance',
+        to: formatPaymentMethod(transactionData?.paymentMethod)
       },
       send: {
-        from: 'Your Wallet',
-        to: transactionData?.recipient || 'Recipient'
+        from: 'diBoaS Wallet Available Balance',
+        to: transactionData?.recipient || 'Another diBoaS User'
       },
       receive: {
-        from: 'Sender',
-        to: 'Your Wallet'
+        from: 'Another diBoaS User',
+        to: 'diBoaS Wallet Available Balance'
       },
       transfer: {
-        from: 'diBoaS Wallet',
+        from: 'diBoaS Wallet Available Balance',
         to: 'External Wallet'
       },
       buy: {
-        from: 'USD Balance',
-        to: transactionData?.asset || 'Crypto/Assets'
+        from: transactionData?.paymentMethod === 'diboas_wallet' ? 'diBoaS Wallet Available Balance' : formatPaymentMethod(transactionData?.paymentMethod),
+        to: 'diBoaS Wallet Invested Balance'
       },
       sell: {
-        from: transactionData?.asset || 'Crypto/Assets',
-        to: 'USD Balance'
+        from: 'diBoaS Wallet Invested Balance',
+        to: 'diBoaS Wallet Available Balance'
       }
     }
 
@@ -163,9 +221,21 @@ export default function TransactionProgressScreen({
   const steps = useMemo(() => config.steps, [config.steps.length, transactionData?.type])
   const stepsLength = useMemo(() => steps.length, [steps.length])
 
-  // Simulate step progression
+  // Update steps based on real-time status
   useEffect(() => {
-    if (isCompleted || isError) return
+    if (useRealTimeStatus && realTimeStatus) {
+      const progress = realTimeProgress / 100
+      const newStepIndex = Math.floor(progress * (stepsLength - 1))
+      const newCompletedSteps = steps.slice(0, Math.max(0, newStepIndex))
+      
+      setCurrentStepIndex(newStepIndex)
+      setCompletedSteps(newCompletedSteps)
+    }
+  }, [useRealTimeStatus, realTimeStatus, realTimeProgress, steps, stepsLength])
+
+  // Simulate step progression (only when not using real-time status)
+  useEffect(() => {
+    if (useRealTimeStatus || finalIsCompleted || finalIsError) return
 
     const interval = setInterval(() => {
       setCurrentStepIndex(prev => {
@@ -178,17 +248,86 @@ export default function TransactionProgressScreen({
     }, 1500) // Progress every 1.5 seconds
 
     return () => clearInterval(interval)
-  }, [isCompleted, isError, stepsLength, steps])
+  }, [useRealTimeStatus, finalIsCompleted, finalIsError, stepsLength, steps])
 
   // Handle completion
   useEffect(() => {
-    if (isCompleted) {
+    if (finalIsCompleted) {
       setCompletedSteps(steps)
       setCurrentStepIndex(stepsLength - 1)
     }
-  }, [isCompleted, steps, stepsLength])
+  }, [finalIsCompleted, steps, stepsLength])
 
-  if (isCompleted) {
+  // Handle confirming state
+  if (flowState === 'confirming') {
+    return (
+      <div className="main-layout center-content" style={{padding: '1rem'}}>
+        <Card className="main-card" style={{width: '100%', maxWidth: '32rem'}}>
+          <CardContent className="p-8 text-center">
+            <div className="mb-6">
+              <img src={diBoaSLogo} alt="diBoaS Logo" className="h-12 w-auto mx-auto mb-4" />
+            </div>
+            
+            {/* Confirmation Icon */}
+            <div className={`w-16 h-16 rounded-full ${config.bgColor} flex items-center justify-center mx-auto mb-6`}>
+              <Shield className={`w-8 h-8 ${config.color}`} />
+            </div>
+            
+            {/* Confirmation Message */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Confirm {config.name}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Please review and confirm your transaction details.
+            </p>
+            
+            {/* Transaction Summary */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Amount:</span>
+                <span className="font-medium">${transactionData?.amount}</span>
+              </div>
+              {fees && (
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600">Total Fees:</span>
+                  <span className="font-medium">${fees.total?.toFixed(2) || '0.00'}</span>
+                </div>
+              )}
+              <div className="border-t pt-2 mt-2">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-gray-600">From:</span>
+                  <span className="font-medium text-sm">{config.from}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">To:</span>
+                  <span className="font-medium text-sm">{config.to}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Confirmation Buttons */}
+            <div className="space-y-3">
+              <Button 
+                className="w-full diboas-button"
+                onClick={onConfirm}
+              >
+                Confirm Transaction
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full"
+                onClick={onCancel}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (finalIsCompleted) {
     return (
       <div className="main-layout center-content" style={{padding: '1rem'}}>
         <Card className="main-card" style={{width: '100%', maxWidth: '32rem'}}>
@@ -235,6 +374,14 @@ export default function TransactionProgressScreen({
                   <span className="font-medium">{config.to}</span>
                 </div>
                 
+                {/* Transaction Hash */}
+                {onChainHash && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Transaction Hash:</span>
+                    <span className="font-mono text-xs truncate max-w-32">{onChainHash}</span>
+                  </div>
+                )}
+                
                 {fees && (
                   <>
                     <div className="border-t pt-2">
@@ -270,7 +417,7 @@ export default function TransactionProgressScreen({
     )
   }
 
-  if (isError) {
+  if (finalIsError) {
     return (
       <div className="main-layout center-content" style={{padding: '1rem'}}>
         <Card className="main-card" style={{width: '100%', maxWidth: '32rem'}}>
@@ -281,16 +428,36 @@ export default function TransactionProgressScreen({
             
             {/* Error Icon */}
             <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
-              <DollarSign className="w-8 h-8 text-red-600" />
+              {useRealTimeStatus && realTimeStatus?.status === TRANSACTION_STATUS.TIMEOUT ? (
+                <Clock className="w-8 h-8 text-red-600" />
+              ) : (
+                <XCircle className="w-8 h-8 text-red-600" />
+              )}
             </div>
             
             {/* Error Message */}
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Transaction Failed
+              {useRealTimeStatus && realTimeStatus?.status === TRANSACTION_STATUS.TIMEOUT ? 
+                'Transaction Timed Out' : 
+                'Transaction Failed'
+              }
             </h2>
             <p className="text-gray-600 mb-6">
-              {errorMessage || 'Something went wrong. Please try again.'}
+              {finalErrorMessage || 
+               (useRealTimeStatus && realTimeStatus?.status === TRANSACTION_STATUS.TIMEOUT ? 
+                'The transaction took too long to complete. Please try again.' :
+                'Something went wrong. Please try again.'
+               )
+              }
             </p>
+            
+            {/* Transaction Hash (if available) */}
+            {onChainHash && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-2">Transaction Hash:</p>
+                <p className="font-mono text-xs break-all">{onChainHash}</p>
+              </div>
+            )}
             
             {/* Action Buttons */}
             <div className="space-y-3">
@@ -360,12 +527,42 @@ export default function TransactionProgressScreen({
             <div className="flex items-center justify-center mb-4">
               <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
               <span className="font-medium text-gray-900">
-                {steps[currentStepIndex] || currentStep}
+                {useRealTimeStatus ? progressText : (steps[currentStepIndex] || currentStep)}
               </span>
             </div>
+            
+            {/* Real-time progress info */}
+            {useRealTimeStatus && (
+              <div className="mb-2">
+                {timeRemaining && (
+                  <p className="text-sm text-gray-600">
+                    Estimated time remaining: {timeRemaining}
+                  </p>
+                )}
+                {confirmations > 0 && (
+                  <p className="text-sm text-gray-600">
+                    Confirmations: {confirmations}/{requiredConfirmations}
+                  </p>
+                )}
+              </div>
+            )}
+            
             <p className="text-sm text-gray-600">
               Please wait while we process your {config.name.toLowerCase()}...
             </p>
+            
+            {/* Real-time progress bar */}
+            {useRealTimeStatus && (
+              <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    progressColor === 'green' ? 'bg-green-500' :
+                    progressColor === 'red' ? 'bg-red-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${realTimeProgress}%` }}
+                ></div>
+              </div>
+            )}
           </div>
           
           {/* Progress Steps */}

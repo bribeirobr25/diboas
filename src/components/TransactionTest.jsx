@@ -6,10 +6,10 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
-import { useWallet, useTransactionProcessor, useFeeCalculator } from '../hooks/useTransactions.jsx'
+import { useWalletBalance, useTransactionProcessor, useFeeCalculator } from '../hooks/useTransactions.jsx'
 
 const TransactionTest = () => {
-  const { balance, getBalance, isLoading: walletLoading } = useWallet()
+  const { balance, getBalance, isLoading: walletLoading } = useWalletBalance()
   const { processTransaction, isProcessing } = useTransactionProcessor()
   const { calculateFees, fees } = useFeeCalculator()
   const [testResults, setTestResults] = useState([])

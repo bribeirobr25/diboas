@@ -1,8 +1,8 @@
-# diBoaS - OneFi Platform Mockup
+# diBoaS - OneFi Platform
 
 ## Overview
 
-diBoaS is a comprehensive FinTech web platform mockup that unifies Traditional Finance with Decentralized Finance (DeFi) through an innovative "OneFi" approach. The platform is designed with a user-centric, minimalist, and mobile-first philosophy to make finance as easy as buying coffee.
+diBoaS is a comprehensive FinTech web platform that unifies Traditional Finance with Decentralized Finance (DeFi) through an innovative "OneFi" approach. The platform is designed with a user-centric, minimalist, and mobile-first philosophy to make finance as easy as buying coffee.
 
 ## Platform Concept
 
@@ -40,125 +40,164 @@ diBoaS bridges the gap between traditional financial services and decentralized 
 ## Features
 
 ### Core Transactions (1-Click)
-- **Deposit** - Add funds to your account
-- **Buy** - Purchase assets and investments
-- **Sell** - Liquidate holdings
-- **Send** - Transfer to other users
-- **Transfer** - Move between accounts
-- **Withdraw** - Cash out to bank
-- **Invest** - Access investment opportunities
+- **Add** - Add funds to your account via various payment methods
+- **Buy** - Purchase cryptocurrency and tokenized assets  
+- **Sell** - Liquidate holdings back to available balance
+- **Send** - Transfer funds to other diBoaS users
+- **Transfer** - Send to external wallet addresses
+- **Withdraw** - Cash out to bank account or payment method
 
 ### Educational System
 The platform features friendly mascots for gamified financial education:
 
 1. **Financial Basics Mascot** - Teaches fundamental personal finance concepts
-2. **Investment Guide Mascot** - Explains investment strategies and risk management
+2. **Investment Guide Mascot** - Explains investment strategies and risk management  
 3. **Crypto & DeFi Mascot** - Demystifies blockchain and decentralized finance
 
 ### Unified Finance Interface
-- **Traditional Finance Tab**: Banking, cards, investments, loans
-- **DeFi Tab**: Crypto wallets, staking, yield farming, cross-chain transactions
+- **Traditional Finance**: Banking, cards, investments, loans
+- **DeFi Integration**: Crypto wallets, staking, yield farming, cross-chain transactions
 - Seamless switching between traditional and decentralized finance
 
 ## Technical Implementation
 
 ### Technology Stack
-- **Frontend**: React with Vite
+- **Frontend**: React 19 with Vite
 - **Styling**: Tailwind CSS with custom diBoaS theme
-- **Components**: shadcn/ui component library
+- **Components**: shadcn/ui component library  
 - **Icons**: Lucide React icons
 - **Animations**: Framer Motion (available)
+- **State Management**: Centralized DataManager pattern
+- **Transaction Engine**: Multi-chain abstraction layer
+
+### Architecture
+- **Multi-Chain Support**: BTC, ETH Layer 1, SOL, SUI
+- **Real-time Fee Calculation**: Dynamic fee calculation with caching
+- **Balance Management**: Segregated Available vs Invested balances
+- **Transaction Validation**: Comprehensive validation system
+- **Progress Tracking**: Step-by-step transaction progress
 
 ### Mobile-First Design
 - Responsive design optimized for mobile devices
-- Touch-friendly interactions
+- Touch-friendly interactions  
 - Progressive enhancement for desktop
 - Accessible navigation and controls
 
-### Custom Styling
-- Custom CSS variables for brand colors
-- Gradient backgrounds and hover effects
-- Glass-morphism design elements
-- Smooth transitions and micro-interactions
+### Custom Styling System
+The codebase uses a semantic CSS class naming system for maintainability:
+
+#### Layout Components
+- `.main-layout` - Main page wrapper
+- `.content-container` - Centered content wrapper
+- `.page-header` - Sticky header component
+- `.hero-section` - Landing page hero
+
+#### Card Components  
+- `.main-card` - Standard content card
+- `.balance-card` - Balance display card with gradient
+- `.feature-card` - Feature highlight card
+- `.transaction-card` - Transaction list items
+
+#### Button System
+- `.primary-button` - Primary action buttons
+- `.secondary-button` - Secondary action buttons  
+- `.cta-button` - Call-to-action buttons
+- `.transaction-action-button` - Transaction type selectors
+- `.quick-action-button` - Dashboard quick actions
+
+#### Input System
+- `.main-input` - Standard form inputs
+- `.amount-input` - Large amount entry fields
+- `.search-input` - Search form inputs
+
+#### Navigation
+- `.main-navigation` - Header navigation
+- `.nav-links` - Navigation link container
+- `.nav-link` - Individual navigation items
 
 ## File Structure
 
 ```
 diboas/
 ├── src/
+│   ├── components/
+│   │   ├── ui/                    # shadcn/ui components
+│   │   ├── shared/                # Shared components
+│   │   │   ├── PageHeader.jsx
+│   │   │   ├── TransactionProgressScreen.jsx
+│   │   │   ├── LoadingScreen.jsx
+│   │   │   └── ErrorBoundary.jsx
+│   │   ├── LandingPage.jsx        # Marketing landing page
+│   │   ├── AppDashboard.jsx       # Main app dashboard
+│   │   ├── TransactionPage.jsx    # Transaction interface
+│   │   ├── AccountView.jsx        # Account management
+│   │   ├── TransactionHistory.jsx # Transaction history
+│   │   └── AuthPage.jsx           # Authentication
+│   ├── hooks/
+│   │   ├── useTransactions.jsx    # Transaction system hooks
+│   │   ├── useIntegrations.jsx    # Integration management
+│   │   └── useFeatureFlags.jsx    # Feature flag system
+│   ├── services/
+│   │   ├── DataManager.js         # Centralized state management
+│   │   ├── transactions/
+│   │   │   ├── TransactionEngine.js
+│   │   │   └── MultiWalletManager.js
+│   │   └── integrations/
+│   ├── utils/
+│   │   ├── feeCalculations.js     # Fee calculation engine
+│   │   ├── navigationHelpers.js   # Navigation utilities
+│   │   └── security.js            # Security utilities
 │   ├── assets/
 │   │   ├── diboas-logo.png
 │   │   ├── mascot-financial-basics.png
 │   │   ├── mascot-investment-guide.png
 │   │   └── mascot-crypto-defi.png
-│   ├── components/
-│   │   └── ui/ (shadcn/ui components)
-│   ├── App.jsx (Main application component)
-│   ├── App.css (Custom styles and brand theme)
-│   └── main.jsx (Entry point)
+│   ├── App.jsx                    # Main application component
+│   ├── App.css                    # Custom styles and brand theme
+│   └── main.jsx                   # Entry point
+├── docs/
+│   └── TRANSACTIONS.md            # Transaction system documentation
 ├── public/
 ├── index.html
 └── package.json
 ```
 
-## Key Sections
+## Transaction System
 
-### 1. Hero Section
-- Compelling value proposition
-- Clear call-to-action buttons
-- Brand introduction with OneFi concept
+### Balance Structure
+- **Total Balance**: Available Balance + Invested Balance
+- **Available Balance**: USDC only (liquid funds for spending)
+- **Invested Balance**: All non-USDC assets (BTC, ETH, SOL, SUI, etc.)
 
-### 2. Statistics Dashboard
-- Global FinTech user statistics
-- Crypto adoption metrics
-- Platform efficiency metrics (3-click maximum)
+### Transaction Types
+1. **Add/Deposit** - On-ramp from fiat to crypto
+2. **Withdraw** - Off-ramp from crypto to fiat
+3. **Send** - P2P transfers between diBoaS users
+4. **Transfer** - External wallet transfers
+5. **Buy** - Purchase cryptocurrency assets
+6. **Sell** - Convert crypto assets to USDC
 
-### 3. Transaction Showcase
-- Visual representation of 1-click transactions
-- Interactive cards for each transaction type
-- Gradient background emphasizing simplicity
+### Fee Structure
+- **diBoaS Fees**: 0.09% (most transactions), 0.9% (withdraw/transfer)
+- **Network Fees**: Variable by chain (BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003%)
+- **Provider Fees**: Variable by payment method (On-ramp/Off-ramp providers)
+- **DEX Fees**: 1% for buy/sell transactions
 
-### 4. Feature Highlights
-- 1-Click Transactions
-- Unified Finance approach
-- Educational Mascots
-- Mobile-First Design
+### Validation System
+- **Minimum Amounts**: $5 (Send), $10 (others)
+- **Balance Validation**: Strict separation of available vs invested funds
+- **Address Validation**: Support for BTC, ETH, SOL, SUI address formats
+- **Real-time Validation**: Form validation with immediate feedback
 
-### 5. Platform Demo
-- Tabbed interface showing Traditional Finance vs DeFi
-- Real-world examples of account balances and portfolios
-- Interactive switching between finance types
+## Development
 
-### 6. Educational Section
-- Three mascot-driven learning paths
-- Gamified approach to financial education
-- Progressive learning from basics to advanced concepts
-
-### 7. Call-to-Action
-- Strong conversion-focused messaging
-- Multiple engagement options
-- Brand gradient background
-
-### 8. Footer
-- Comprehensive navigation
-- Brand reinforcement
-- Contact and support information
-
-## Design Inspirations
-
-The mockup draws inspiration from leading FinTech platforms:
-- **Nubank** - Mobile-first approach and clean interface
-- **Wise** - Transparent pricing and clear communication
-- **Credit Karma** - Goal-oriented design and user empowerment
-- **Chime** - Simplified banking experience
-
-## Development Commands
+### Getting Started
 
 ```bash
 # Install dependencies
 npm install
 
-# Start development server
+# Start development server  
 npm run dev
 
 # Build for production
@@ -168,30 +207,46 @@ npm run build
 npm run preview
 ```
 
-## Browser Testing
+### Code Standards
 
-The platform has been tested and optimized for:
+The codebase follows these naming conventions for maintainability:
+
+#### CSS Classes
+- Use semantic names: `.balance-card` instead of utility chains
+- Component-specific: `.transaction-action-button`
+- State-aware: `.active`, `.disabled`, `.loading`
+
+#### JavaScript Functions
+- Descriptive action names: `handleTransactionSubmit()`, `calculateNetworkFees()`
+- Consistent prefixes: `get-`, `set-`, `handle-`, `validate-`
+- Clear return types: `isTransactionValid()`, `hasInsufficientBalance()`
+
+#### Variables
+- Descriptive names: `availableBalance`, `selectedPaymentMethod`, `transactionType`
+- Consistent patterns: `isLoading`, `hasError`, `canProceed`
+- Clear data types: `numericAmount`, `stringValue`, `booleanFlag`
+
+#### Constants
+- SCREAMING_SNAKE_CASE: `NAVIGATION_PATHS`, `FEE_RATES`, `MINIMUM_AMOUNTS`
+- Grouped by domain: `TRANSACTION_TYPES`, `PAYMENT_METHODS`, `SUPPORTED_CHAINS`
+
+### Testing
+
+The platform supports comprehensive testing scenarios:
+
+- **Balance Updates**: All transaction types properly update available vs invested balances
+- **Fee Calculations**: Real-time fee calculation with provider simulation
+- **Validation Logic**: Form validation with balance and format checking
+- **Transaction Flow**: End-to-end transaction processing with progress tracking
+- **Error Handling**: Graceful error states with user-friendly messages
+
+### Browser Compatibility
+
+Tested and optimized for:
 - Modern web browsers (Chrome, Firefox, Safari, Edge)
 - Mobile devices (responsive design)
 - Touch interactions
 - Accessibility standards
-
-## Future Enhancements
-
-### Phase 1 - MVP
-- User authentication system
-- Basic transaction simulation
-- Educational content management
-
-### Phase 2 - Integration
-- Real banking API integration
-- Crypto wallet connectivity
-- DeFi protocol integration
-
-### Phase 3 - Advanced Features
-- AI-powered financial advice
-- Advanced analytics dashboard
-- Social features and community
 
 ## Brand Message
 
@@ -199,11 +254,49 @@ The platform has been tested and optimized for:
 
 The platform embodies this philosophy by making complex financial operations feel effortless and stress-free, living up to its promise of making finance as easy as buying coffee.
 
-## Contact & Support
+## Documentation
 
-For questions about this mockup or the diBoaS concept, please refer to the platform's built-in contact sections or the comprehensive footer navigation.
+- [Transaction System Documentation](./docs/TRANSACTIONS.md) - Comprehensive transaction implementation guide
+- [API Documentation] - Integration endpoints and data formats  
+- [Component Library] - UI component usage and examples
+- [Deployment Guide] - Production deployment instructions
+
+## Future Roadmap
+
+### Phase 1 - Current (MVP)
+✅ Core transaction functionality  
+✅ Real-time fee calculations
+✅ Multi-chain wallet abstraction
+✅ Balance management system
+✅ Form validation and error handling
+
+### Phase 2 - Integration
+🔄 Real banking API integration
+🔄 Live crypto price feeds
+🔄 KYC/AML compliance flows
+🔄 2FA authentication system
+
+### Phase 3 - Advanced Features  
+📋 Investment products (tokenized assets)
+📋 AI-powered financial advice
+📋 Social features and community
+📋 Advanced analytics dashboard
+
+### Phase 4 - Scale
+📋 Multi-language support
+📋 Regulatory compliance (global)
+📋 Enterprise solutions
+📋 API marketplace
+
+## Support & Contributing
+
+For questions, issues, or contributions:
+
+1. Check existing documentation
+2. Review the transaction system guide
+3. Follow established code patterns
+4. Maintain semantic naming conventions
 
 ---
 
-*This is a design mockup created to demonstrate the OneFi concept and user-centric approach to unified finance.*
-
+*diBoaS Platform - Making finance as easy as buying coffee ☕*

@@ -60,25 +60,117 @@ const ChartStyle = ({
     return null
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-.map(([key, itemConfig]) => {
-const color =
-  itemConfig.theme?.[theme] ||
-  itemConfig.color
-return color ? `  --color-${key}: ${color};` : null
-})
-.join("\n")}
+  // Generate CSS custom properties safely using React refs and useEffect
+  React.useEffect(() => {
+    const chartElement = document.querySelector(`[data-chart="${id}"]`)
+    if (!chartElement) return
+
+    // Clear existing custom properties safely
+    colorConfig.forEach(([key]) => {
+      const safeKey = key.replace(/[^a-zA-Z0-9-_]/g, '')
+      if (safeKey === key) {
+        chartElement.style.removeProperty(`--color-${safeKey}`)
+      }
+    })
+
+    // Apply theme-specific colors safely
+    Object.entries(THEMES).forEach(([theme, prefix]) => {
+      const shouldApply = theme === 'light' || 
+        (theme === 'dark' && document.documentElement.classList.contains('dark'))
+      
+      if (shouldApply) {
+        colorConfig.forEach(([key, itemConfig]) => {
+          const color = itemConfig.theme?.[theme] || itemConfig.color
+          if (color && isValidColor(color)) {
+            // Additional security: escape the key to prevent CSS injection through property names
+            const safeKey = key.replace(/[^a-zA-Z0-9-_]/g, '')
+            if (safeKey === key) { // Only proceed if key didn't need escaping
+              chartElement.style.setProperty(`--color-${safeKey}`, color)
+            }
+          }
+        })
+      }
+    })
+
+    // Cleanup on unmount with same security checks
+    return () => {
+      if (chartElement) {
+        colorConfig.forEach(([key]) => {
+          const safeKey = key.replace(/[^a-zA-Z0-9-_]/g, '')
+          if (safeKey === key) {
+            chartElement.style.removeProperty(`--color-${safeKey}`)
+          }
+        })
+      }
+    }
+  }, [id, config, colorConfig])
+
+  return null // No style element needed - using CSS custom properties directly
 }
-`)
-          .join("\n"),
-      }} />
-  );
+
+/**
+ * Validate color values to prevent CSS injection attacks
+ * This function provides comprehensive protection against XSS and CSS injection
+ */
+function isValidColor(color) {
+  if (typeof color !== 'string') return false
+  
+  const trimmedColor = color.trim()
+  
+  // Reject empty strings and extremely long values (DoS protection)
+  if (!trimmedColor || trimmedColor.length > 50) return false
+  
+  // Reject dangerous keywords and patterns that could enable CSS injection
+  const dangerousPatterns = [
+    /javascript:/i,
+    /expression\(/i,
+    /url\(/i,
+    /import/i,
+    /@import/i,
+    /binding/i,
+    /behavior/i,
+    /vbscript:/i,
+    /data:/i,
+    /\\/,  // Backslashes can be used for escaping
+    /[<>]/,  // HTML tags
+    /[{}]/,  // CSS braces outside of valid contexts
+    /;/,     // Semicolons could terminate CSS and inject new properties
+  ]
+  
+  // Check for dangerous patterns
+  if (dangerousPatterns.some(pattern => pattern.test(trimmedColor))) {
+    return false
+  }
+  
+  // Strict validation for allowed color formats
+  const validColorPatterns = [
+    // Hex colors: #RGB, #RRGGBB, #RRGGBBAA
+    /^#[0-9A-Fa-f]{3}$/,
+    /^#[0-9A-Fa-f]{6}$/,
+    /^#[0-9A-Fa-f]{8}$/,
+    
+    // RGB/RGBA with strict number validation
+    /^rgb\(\s*([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\s*,\s*([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\s*,\s*([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\s*\)$/,
+    /^rgba\(\s*([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\s*,\s*([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\s*,\s*([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\s*,\s*(0|1|0\.[0-9]+)\s*\)$/,
+    
+    // HSL/HSLA with strict number validation
+    /^hsl\(\s*(3[0-5][0-9]|[12][0-9][0-9]|[1-9]?[0-9])\s*,\s*(100|[1-9]?[0-9])%\s*,\s*(100|[1-9]?[0-9])%\s*\)$/,
+    /^hsla\(\s*(3[0-5][0-9]|[12][0-9][0-9]|[1-9]?[0-9])\s*,\s*(100|[1-9]?[0-9])%\s*,\s*(100|[1-9]?[0-9])%\s*,\s*(0|1|0\.[0-9]+)\s*\)$/,
+  ]
+  
+  // CSS named colors (whitelist approach for maximum security)
+  const allowedNamedColors = [
+    'transparent', 'currentColor', 'inherit', 'initial', 'unset',
+    'black', 'white', 'red', 'green', 'blue', 'yellow', 'cyan', 'magenta',
+    'gray', 'grey', 'darkred', 'darkgreen', 'darkblue', 'orange', 'purple',
+    'brown', 'pink', 'lime', 'navy', 'teal', 'silver', 'maroon', 'olive'
+  ]
+  
+  // Check if it matches any valid pattern or is an allowed named color
+  const isValidPattern = validColorPatterns.some(pattern => pattern.test(trimmedColor))
+  const isValidNamedColor = allowedNamedColors.includes(trimmedColor.toLowerCase())
+  
+  return isValidPattern || isValidNamedColor
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip

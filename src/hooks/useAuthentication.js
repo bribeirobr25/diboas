@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { checkAuthRateLimit, checkPasswordRateLimit } from '../utils/advancedRateLimiter.js'
 
 /**
  * Authentication error types for user-friendly messages
@@ -12,6 +13,8 @@ const AUTH_ERRORS = {
   PROVIDER_ERROR: 'provider_error',
   WALLET_ERROR: 'wallet_error',
   TIMEOUT: 'timeout',
+  RATE_LIMITED: 'rate_limited',
+  BLOCKED: 'blocked',
   UNKNOWN: 'unknown'
 }
 
@@ -54,6 +57,16 @@ const ERROR_MESSAGES = {
     message: 'The request is taking longer than expected. Please try again.',
     action: 'Try Again'
   },
+  [AUTH_ERRORS.RATE_LIMITED]: {
+    title: 'Too Many Attempts',
+    message: 'Too many authentication attempts. Please wait before trying again.',
+    action: 'Wait and Retry'
+  },
+  [AUTH_ERRORS.BLOCKED]: {
+    title: 'Account Temporarily Blocked',
+    message: 'Your account has been temporarily blocked for security reasons. Please contact support.',
+    action: 'Contact Support'
+  },
   [AUTH_ERRORS.UNKNOWN]: {
     title: 'Unexpected Error',
     message: 'Something went wrong. Please try again or contact support if the problem persists.',
@@ -81,6 +94,23 @@ export function useAuthentication() {
     setIsProcessingAuth(true)
     
     try {
+      // Check rate limiting first
+      const userIdentifier = email || 'anonymous'
+      const rateLimitResult = checkAuthRateLimit(userIdentifier, {
+        operation: isRegistering ? 'signup' : 'signin',
+        email: email,
+        userAgent: navigator.userAgent
+      })
+      
+      if (!rateLimitResult.allowed) {
+        if (rateLimitResult.reason === 'BLOCKED') {
+          throw new AuthError(AUTH_ERRORS.BLOCKED)
+        } else {
+          throw new AuthError(AUTH_ERRORS.RATE_LIMITED, 
+            `Please wait ${Math.ceil(rateLimitResult.retryAfter / 1000)} seconds before trying again.`)
+        }
+      }
+      
       // Input validation
       const validationError = validateEmailPassword(email, password, isRegistering)
       if (validationError) {

@@ -176,11 +176,13 @@ export default function AuthPage() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="Enter your email"
                   value={userEmail}
                   onChange={(e) => setUserEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   className="mt-1"
                 />
               </div>
@@ -189,11 +191,13 @@ export default function AuthPage() {
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder="Enter your password"
                   value={userPassword}
                   onChange={(e) => setUserPassword(e.target.value)}
                   required
+                  autoComplete={isRegistering ? "new-password" : "current-password"}
                   className="mt-1"
                 />
               </div>

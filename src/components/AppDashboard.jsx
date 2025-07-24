@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback, memo, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
+import { LoadingSpinner } from '@/components/ui/loading-spinner.jsx'
+import { SkeletonBalance, SkeletonTransaction } from '@/components/ui/skeleton.jsx'
 import { 
   ArrowUpRight,
   ArrowDownLeft,
@@ -22,16 +24,17 @@ import {
   Star
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import MarketIndicators from './MarketIndicators.jsx'
+import SimpleMarketIndicators from './SimpleMarketIndicators.jsx'
 import PageHeader from './shared/PageHeader.jsx'
 import { QUICK_ACTIONS, createTransactionNavigator } from '../utils/navigationHelpers.js'
-import { useWallet } from '../hooks/useTransactions.jsx'
+import { useWalletBalance } from '../hooks/useTransactions.jsx'
+import { useDataManagerSubscription, useSafeDataManager } from '../hooks/useDataManagerSubscription.js'
 
 // PERFORMANCE: Memoized transaction item component
 const TransactionItem = memo(({ transaction, onNavigate }) => (
   <div 
     key={transaction.id}
-    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+    className="transaction-card"
     onClick={() => onNavigate(transaction.type)}
   >
     <div className="flex items-center space-x-3">
@@ -68,56 +71,107 @@ export default function AppDashboard() {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
   
   // Get real wallet balance
-  const { balance, getBalance, isLoading: balanceLoading } = useWallet()
+  const { balance, getBalance, isLoading: balanceLoading } = useWalletBalance()
   
   // Refresh balance when component mounts and periodically
   useEffect(() => {
     getBalance(true) // Force refresh
-  }, [])
+  }, [getBalance])
   
-  // Get transaction history from localStorage
+  // MEMORY SAFE: Use safe DataManager access
+  const { getTransactions: safeGetTransactions } = useSafeDataManager()
+  
+  // PERFORMANCE: Memoized transaction history getter
   const getTransactionHistory = useCallback(() => {
-    const userId = 'demo_user_12345' // Demo user ID
-    const historyKey = `diboas_transaction_history_${userId}`
-    const history = JSON.parse(localStorage.getItem(historyKey) || '[]')
-    return history.slice(0, 5) // Get last 5 transactions
-  }, [])
+    const allTransactions = safeGetTransactions()
+    console.log('📖 Getting transaction history from DataManager:', allTransactions.length, 'transactions')
+    return allTransactions.slice(0, 5) // Get last 5 transactions
+  }, [safeGetTransactions])
   
   const [transactionHistory, setTransactionHistory] = useState([])
+  const [transactionsLoading, setTransactionsLoading] = useState(true)
+  
+  // PERFORMANCE: Debounced transaction update to prevent rapid re-renders
+  const debouncedTransactionUpdate = useCallback(() => {
+    const timeoutId = setTimeout(() => {
+      const newHistory = getTransactionHistory()
+      console.log('📚 Updated transaction history (debounced):', newHistory)
+      setTransactionHistory(newHistory)
+      getBalance(true)
+    }, 100) // 100ms debounce
+    
+    return () => clearTimeout(timeoutId)
+  }, [getTransactionHistory, getBalance])
+  
+  // MEMORY SAFE: Use safe DataManager subscriptions
+  useDataManagerSubscription('transaction:added', (transaction) => {
+    console.log('🔔 DataManager transaction added event received:', transaction)
+    debouncedTransactionUpdate()
+  }, [debouncedTransactionUpdate])
+  
+  useDataManagerSubscription('transaction:completed', ({ transaction }) => {
+    console.log('🔔 DataManager transaction completed event received:', transaction)
+    debouncedTransactionUpdate()
+  }, [debouncedTransactionUpdate])
   
   useEffect(() => {
-    setTransactionHistory(getTransactionHistory())
+    // Set initial transaction history with loading state
+    setTransactionsLoading(true)
+    const history = getTransactionHistory()
+    setTransactionHistory(history)
+    setTransactionsLoading(false)
     
-    // Listen for storage changes to refresh transaction history
-    const handleStorageChange = (e) => {
-      if (e.key && e.key.includes('diboas_transaction_history_')) {
-        setTransactionHistory(getTransactionHistory())
-        getBalance(true) // Also refresh balance
-      }
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    
-    // Also listen for custom events (for same-tab updates)
-    const handleTransactionUpdate = () => {
-      setTransactionHistory(getTransactionHistory())
-      getBalance(true)
+    // Also listen for custom events (for backward compatibility)
+    const handleTransactionUpdate = (event) => {
+      console.log('🔔 Custom transaction completed event received:', event.detail)
+      debouncedTransactionUpdate()
     }
     
     window.addEventListener('diboas-transaction-completed', handleTransactionUpdate)
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('diboas-transaction-completed', handleTransactionUpdate)
     }
-  }, [getTransactionHistory, getBalance])
+  }, [getTransactionHistory, debouncedTransactionUpdate])
   
   // PERFORMANCE: Memoized navigation function
   const navigateToTransaction = useMemo(() => createTransactionNavigator(navigate), [navigate])
   
-  // PERFORMANCE: Memoized toggle function
-  const toggleBalanceVisibility = useCallback(() => {
-    setIsBalanceVisible(prev => !prev)
+  // Balance visibility toggle - using inline handler for better performance
+
+  // PERFORMANCE: Memoized transaction helper functions
+  const getTransactionIcon = useCallback((type) => {
+    switch (type) {
+      case 'add':
+        return <ArrowDownLeft className="w-4 h-4 text-green-600" />
+      case 'send':
+        return <Send className="w-4 h-4 text-blue-600" />
+      case 'withdraw':
+        return <ArrowUpRight className="w-4 h-4 text-red-600" />
+      case 'buy':
+        return <TrendingUp className="w-4 h-4 text-purple-600" />
+      case 'sell':
+        return <TrendingDown className="w-4 h-4 text-orange-600" />
+      default:
+        return <DollarSign className="w-4 h-4 text-gray-600" />
+    }
+  }, [])
+  
+  const getAmountDisplay = useCallback((type, amount, netAmount) => {
+    const sign = ['add', 'receive'].includes(type) ? '+' : '-'
+    const displayAmount = ['add', 'receive'].includes(type) ? (netAmount || amount) : amount
+    return `${sign}$${parseFloat(displayAmount).toFixed(2)}`
+  }, [])
+  
+  const getTimeAgo = useCallback((timestamp) => {
+    const now = new Date()
+    const txTime = new Date(timestamp)
+    const diffMinutes = Math.floor((now - txTime) / (1000 * 60))
+    
+    if (diffMinutes < 1) return 'Just now'
+    if (diffMinutes < 60) return `${diffMinutes}m ago`
+    if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`
+    return `${Math.floor(diffMinutes / 1440)}d ago`
   }, [])
 
   // PERFORMANCE: Convert transaction history to display format
@@ -133,68 +187,61 @@ export default function AppDashboard() {
       }]
     }
     
-    return transactionHistory.map(tx => {
-      const getTransactionIcon = (type) => {
-        switch (type) {
-          case 'add':
-            return <ArrowDownLeft className="w-4 h-4 text-green-600" />
-          case 'send':
-            return <Send className="w-4 h-4 text-blue-600" />
-          case 'withdraw':
-            return <ArrowUpRight className="w-4 h-4 text-red-600" />
-          case 'buy':
-            return <TrendingUp className="w-4 h-4 text-purple-600" />
-          case 'sell':
-            return <TrendingDown className="w-4 h-4 text-orange-600" />
-          default:
-            return <DollarSign className="w-4 h-4 text-gray-600" />
-        }
-      }
-      
-      const getAmountDisplay = (type, amount, netAmount) => {
-        const sign = ['add', 'receive'].includes(type) ? '+' : '-'
-        // For incoming transactions, show net amount (after fees)
-        // For outgoing transactions, show original amount (before fees)
-        const displayAmount = ['add', 'receive'].includes(type) ? (netAmount || amount) : amount
-        return `${sign}$${parseFloat(displayAmount).toFixed(2)}`
-      }
-      
-      const getTimeAgo = (timestamp) => {
-        const now = new Date()
-        const txTime = new Date(timestamp)
-        const diffMinutes = Math.floor((now - txTime) / (1000 * 60))
-        
-        if (diffMinutes < 1) return 'Just now'
-        if (diffMinutes < 60) return `${diffMinutes}m ago`
-        if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`
-        return `${Math.floor(diffMinutes / 1440)}d ago`
-      }
-      
-      return {
-        id: tx.id,
-        type: ['add', 'receive'].includes(tx.type) ? 'received' : 'sent',
-        description: tx.description,
-        amount: getAmountDisplay(tx.type, tx.amount, tx.netAmount),
-        time: getTimeAgo(tx.timestamp),
-        icon: getTransactionIcon(tx.type)
-      }
-    })
-  }, [transactionHistory])
+    return transactionHistory.map(tx => ({
+      id: tx.id,
+      type: ['add', 'receive'].includes(tx.type) ? 'received' : 'sent',
+      description: tx.description,
+      amount: getAmountDisplay(tx.type, tx.amount, tx.netAmount),
+      time: getTimeAgo(tx.timestamp),
+      icon: getTransactionIcon(tx.type)
+    }))
+  }, [transactionHistory, getTransactionIcon, getAmountDisplay, getTimeAgo])
 
-  // PERFORMANCE: Memoize portfolio data
-  const userPortfolioData = useMemo(() => [
-    { name: 'Traditional', value: 65, amount: '$26,430.75', color: 'bg-blue-500' },
-    { name: 'Crypto', value: 25, amount: '$10,175.50', color: 'bg-purple-500' },
-    { name: 'DeFi', value: 10, amount: '$4,070.25', color: 'bg-green-500' }
-  ], [])
+  // PERFORMANCE: Memoize portfolio data based on real balance
+  const userPortfolioData = useMemo(() => {
+    const available = balance?.availableForSpending || 0
+    const invested = balance?.investedAmount || 0
+    const total = available + invested
+    
+    if (total === 0) {
+      return [
+        { name: 'Traditional', value: 0, amount: '$0.00', color: 'bg-blue-500' },
+        { name: 'Crypto', value: 0, amount: '$0.00', color: 'bg-purple-500' },
+        { name: 'DeFi', value: 0, amount: '$0.00', color: 'bg-green-500' }
+      ]
+    }
+    
+    const availablePercent = Math.round((available / total) * 100)
+    const investedPercent = Math.round((invested / total) * 100)
+    
+    return [
+      { 
+        name: 'Available', 
+        value: availablePercent, 
+        amount: `$${available.toFixed(2)}`, 
+        color: 'bg-green-500' 
+      },
+      { 
+        name: 'Invested', 
+        value: investedPercent, 
+        amount: `$${invested.toFixed(2)}`, 
+        color: 'bg-blue-500' 
+      },
+      { 
+        name: 'Reserved', 
+        value: 100 - availablePercent - investedPercent, 
+        amount: '$0.00', 
+        color: 'bg-gray-500' 
+      }
+    ]
+  }, [balance])
 
-  // PERFORMANCE: Memoize total balance calculation
+  // PERFORMANCE: Memoize total balance calculation (unused but kept for future use)
+  // eslint-disable-next-line no-unused-vars
   const totalBalance = useMemo(() => {
-    return userPortfolioData.reduce((total, item) => {
-      const amount = parseFloat(item.amount.replace(/[$,]/g, ''))
-      return total + amount
-    }, 0)
-  }, [userPortfolioData])
+    if (!balance) return 0
+    return (balance.availableForSpending || 0) + (balance.investedAmount || 0)
+  }, [balance])
 
   return (
     <div className="main-layout">
@@ -206,7 +253,7 @@ export default function AppDashboard() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
             Good morning, John! 👋
           </h1>
-          <MarketIndicators />
+          <SimpleMarketIndicators />
         </div>
 
         {/* Balance Card */}
@@ -216,23 +263,32 @@ export default function AppDashboard() {
               <div>
                 <p className="text-blue-100 text-sm mb-1">Total Balance</p>
                 <div className="flex items-center">
-                  <h2 className="text-3xl font-bold mr-3">
-                    {isBalanceVisible ? 
-                      `$${balance?.totalUSD?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
-                      '••••••••'
-                    }
-                  </h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setIsBalanceVisible(!isBalanceVisible)
-                    }}
-                    className="text-white hover:bg-white/20"
-                  >
-                    {isBalanceVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </Button>
+                  {balanceLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <LoadingSpinner size="sm" variant="white" />
+                      <SkeletonBalance className="bg-white/20" />
+                    </div>
+                  ) : (
+                    <>
+                      <h2 className="text-3xl font-bold mr-3">
+                        {isBalanceVisible ? 
+                          `$${balance?.totalUSD?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
+                          '••••••••'
+                        }
+                      </h2>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setIsBalanceVisible(!isBalanceVisible)
+                        }}
+                        className="text-white hover:bg-white/20"
+                      >
+                        {isBalanceVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="text-right">
@@ -246,21 +302,29 @@ export default function AppDashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-blue-100 text-sm">Available</p>
-                <p className="text-xl font-semibold">
-                  {isBalanceVisible ? 
-                    `$${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
-                    '••••••••'
-                  }
-                </p>
+                {balanceLoading ? (
+                  <SkeletonBalance className="bg-white/20" />
+                ) : (
+                  <p className="text-xl font-semibold">
+                    {isBalanceVisible ? 
+                      `$${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
+                      '••••••••'
+                    }
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-blue-100 text-sm">Invested</p>
-                <p className="text-xl font-semibold">
-                  {isBalanceVisible ? 
-                    `$${(balance?.investedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
-                    '••••••••'
-                  }
-                </p>
+                {balanceLoading ? (
+                  <SkeletonBalance className="bg-white/20" />
+                ) : (
+                  <p className="text-xl font-semibold">
+                    {isBalanceVisible ? 
+                      `$${(balance?.investedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
+                      '••••••••'
+                    }
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -276,11 +340,11 @@ export default function AppDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid-3-cols">
-              {QUICK_ACTIONS.map((action, index) => {
+              {QUICK_ACTIONS.map((action) => {
                 const IconComponent = action.icon === 'Plus' ? Plus : action.icon === 'Send' ? Send : TrendingUp
                 return (
                   <Button
-                    key={index}
+                    key={action.type}
                     variant="outline"
                     className={`quick-action-button ${action.colorClass}`}
                     onClick={() => navigateToTransaction(action.type)}
@@ -308,8 +372,8 @@ export default function AppDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {userPortfolioData.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between">
+                  {userPortfolioData.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className={`w-4 h-4 rounded-full ${item.color}`}></div>
                         <span className="font-medium">{item.name}</span>
@@ -323,11 +387,11 @@ export default function AppDashboard() {
                 </div>
                 
                 <div className="mt-6 flex space-x-2">
-                  <Button className="flex-1 primary-button">
+                  <Button variant="default" className="flex-1">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Funds
                   </Button>
-                  <Button className="flex-1 secondary-button">
+                  <Button variant="secondary" className="flex-1">
                     <PieChart className="w-4 h-4 mr-2" />
                     Rebalance
                   </Button>
@@ -345,7 +409,11 @@ export default function AppDashboard() {
                       Your latest transactions
                     </CardDescription>
                   </div>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/account')}
+                  >
                     View All
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
@@ -353,24 +421,33 @@ export default function AppDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {userRecentTransactions.map((transaction) => (
-                    <div key={transaction.id} className="transaction-card">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-gray-100 rounded-full">
-                          {transaction.icon}
+                  {transactionsLoading ? (
+                    // Loading skeletons for transactions
+                    <>
+                      <SkeletonTransaction />
+                      <SkeletonTransaction />
+                      <SkeletonTransaction />
+                    </>
+                  ) : (
+                    userRecentTransactions.map((transaction) => (
+                      <div key={transaction.id} className="transaction-card">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gray-100 rounded-full">
+                            {transaction.icon}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{transaction.description}</p>
+                            <p className="text-xs text-gray-500">{transaction.time}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{transaction.description}</p>
-                          <p className="text-xs text-gray-500">{transaction.time}</p>
-                        </div>
+                        <p className={`font-semibold ${
+                          transaction.amount.startsWith('+') ? 'text-green-600' : 'text-gray-900'
+                        }`}>
+                          {transaction.amount}
+                        </p>
                       </div>
-                      <p className={`font-semibold ${
-                        transaction.amount.startsWith('+') ? 'text-green-600' : 'text-gray-900'
-                      }`}>
-                        {transaction.amount}
-                      </p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

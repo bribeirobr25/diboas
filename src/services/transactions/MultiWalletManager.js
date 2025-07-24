@@ -3,6 +3,8 @@
  * Manages 4 non-custodial wallets (BTC, ETH L2, SOL, SUI) as unified diBoaS wallet
  */
 
+import { safeGetJSON, safeSetJSON } from '../../utils/localStorageHelper.js'
+
 export class MultiWalletManager {
   constructor() {
     this.wallets = {
@@ -566,8 +568,12 @@ export class MultiWalletManager {
    * Add transaction to history
    */
   addTransactionToHistory(userId, transactionData) {
+    console.log('🔄 Adding transaction to history:', { userId, transactionData })
+    
     const historyKey = `diboas_transaction_history_${userId}`
-    const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]')
+    
+    let existingHistory = safeGetJSON(historyKey, [])
+    console.log('📚 Existing history length:', existingHistory.length)
     
     const transaction = {
       id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
@@ -590,8 +596,8 @@ export class MultiWalletManager {
       existingHistory.splice(100)
     }
     
-    localStorage.setItem(historyKey, JSON.stringify(existingHistory))
-    console.log('💾 Transaction added to history:', transaction)
+    const success = safeSetJSON(historyKey, existingHistory)
+    console.log('💾 Transaction save result:', { success, transaction, newHistoryLength: existingHistory.length })
     
     // Dispatch custom event for same-tab updates
     window.dispatchEvent(new CustomEvent('diboas-transaction-completed', {
