@@ -8,6 +8,15 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
     globals: true,
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/cypress/**',
+      '**/.{git,cache,output,temp}/**',
+      '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
+      '**/e2e/**',
+      '**/src/test/e2e/**'
+    ],
     coverage: {
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.{js,jsx}'],

@@ -43,7 +43,52 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 // Mock fetch for API calls
 global.fetch = vi.fn()
 
+// Mock localStorage - comprehensive implementation
+const localStorageMock = (() => {
+  let store = {}
+  
+  return {
+    getItem: vi.fn((key) => store[key] || null),
+    setItem: vi.fn((key, value) => {
+      store[key] = String(value)
+    }),
+    removeItem: vi.fn((key) => {
+      delete store[key]
+    }),
+    clear: vi.fn(() => {
+      store = {}
+    }),
+    length: 0,
+    key: vi.fn()
+  }
+})()
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+})
+
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+})
+
+// Mock window.history for test helpers that need it
+Object.defineProperty(window, 'history', {
+  value: {
+    pushState: vi.fn(),
+    replaceState: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    go: vi.fn(),
+    length: 1,
+    state: null
+  },
+  writable: true,
+})
+
 // Reset all mocks before each test
 beforeEach(() => {
   vi.clearAllMocks()
+  localStorageMock.clear()
 })

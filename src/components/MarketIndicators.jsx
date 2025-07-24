@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, memo } from 'react'
 import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react'
-import { useMarketData } from '../hooks/useMarketData.js'
+import useMarketData from '../hooks/useMarketData.js'
 
 const MarketIndicators = () => {
   const [currentDisplayIndex, setCurrentDisplayIndex] = useState(0)

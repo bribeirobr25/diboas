@@ -48,10 +48,12 @@ export const sanitize = {
    * SECURITY: Prevents decimal point manipulation and ensures valid financial format
    */
   amount: (input) => {
-    if (typeof input !== 'string') return ''
+    if (typeof input !== 'string' && typeof input !== 'number') return ''
     
-    // Remove all non-numeric and non-decimal characters
-    let sanitized = input.replace(/[^0-9.]/g, '')
+    const stringInput = String(input)
+    
+    // Remove all non-numeric and non-decimal characters except minus sign
+    let sanitized = stringInput.replace(/[^0-9.-]/g, '')
     
     // Handle multiple decimal points - keep only the first one
     const parts = sanitized.split('.')
@@ -59,10 +61,20 @@ export const sanitize = {
       sanitized = parts[0] + '.' + parts.slice(1).join('')
     }
     
+    // Handle negative numbers
+    const isNegative = sanitized.startsWith('-')
+    if (isNegative) {
+      sanitized = sanitized.substring(1)
+    }
+    
     // Remove leading zeros but preserve single zero before decimal
     sanitized = sanitized.replace(/^0+(?=\d)/, '')
     if (sanitized.startsWith('.')) {
       sanitized = '0' + sanitized
+    }
+    
+    if (sanitized === '') {
+      sanitized = '0'
     }
     
     // Limit to 2 decimal places for fiat, more for crypto (handle in Money class)
@@ -76,7 +88,8 @@ export const sanitize = {
       return ''
     }
     
-    return sanitized
+    // Add negative sign back if needed
+    return isNegative ? '-' + sanitized : sanitized
   },
 
   /**
@@ -108,8 +121,8 @@ export function validateEmail(email) {
     return { isValid: false, error: VALIDATION_ERRORS.TOO_LONG, message: 'Email is too long' }
   }
 
-  // Enhanced email regex with more strict validation
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+  // Enhanced email regex with more strict validation - must have TLD, no consecutive dots
+  const emailRegex = /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$/
   
   if (!emailRegex.test(sanitizedEmail)) {
     return { isValid: false, error: VALIDATION_ERRORS.INVALID_FORMAT, message: 'Please enter a valid email address' }
@@ -192,7 +205,7 @@ export function validatePassword(password, isRegistering = false) {
 export function validateAmount(amount, options = {}) {
   const { min = 0.01, max = 1000000, currency = 'USD' } = options
 
-  if (!amount || amount === '') {
+  if (amount === null || amount === undefined || amount === '') {
     return { isValid: false, error: VALIDATION_ERRORS.REQUIRED, message: 'Amount is required' }
   }
 

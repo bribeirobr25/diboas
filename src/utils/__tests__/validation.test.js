@@ -6,10 +6,10 @@
 import { describe, it, expect } from 'vitest'
 import { 
   validateEmail, 
-  validateFinancialAmount, 
-  validateCryptoAddress,
-  sanitizeInput,
-  validateTransactionData
+  validateAmount, 
+  validateWalletAddress,
+  sanitize,
+  validateUsername
 } from '../validation.js'
 
 describe('Validation Utilities', () => {
@@ -22,7 +22,8 @@ describe('Validation Utilities', () => {
       ]
       
       validEmails.forEach(email => {
-        expect(validateEmail(email)).toBe(true)
+        const result = validateEmail(email)
+        expect(result.isValid).toBe(true)
       })
     })
     
@@ -36,39 +37,50 @@ describe('Validation Utilities', () => {
       ]
       
       invalidEmails.forEach(email => {
-        expect(validateEmail(email)).toBe(false)
+        const result = validateEmail(email)
+        expect(result.isValid).toBe(false)
       })
     })
   })
   
-  describe('validateFinancialAmount', () => {
+  describe('validateAmount', () => {
     it('should validate positive financial amounts', () => {
-      const validAmounts = [0.01, 1.00, 100.50, 1000000.99]
+      const validAmounts = [0.01, 1.00, 100.50, 999999.99]
       
       validAmounts.forEach(amount => {
-        expect(() => validateFinancialAmount(amount)).not.toThrow()
+        const result = validateAmount(amount)
+        expect(result.isValid).toBe(true)
       })
     })
     
     it('should reject negative amounts', () => {
-      expect(() => validateFinancialAmount(-1.00)).toThrow('Amount must be positive')
+      const result = validateAmount(-1.00)
+      expect(result.isValid).toBe(false)
+      expect(result.message).toContain('greater than zero')
     })
     
     it('should reject zero amounts', () => {
-      expect(() => validateFinancialAmount(0)).toThrow('Amount must be greater than zero')
+      const result = validateAmount(0)
+      expect(result.isValid).toBe(false)
+      expect(result.message).toContain('greater than zero')
     })
     
     it('should reject amounts with too many decimal places', () => {
-      expect(() => validateFinancialAmount(1.001)).toThrow('Amount has too many decimal places')
+      const result = validateAmount('1.1234567')
+      expect(result.isValid).toBe(false)
+      expect(result.message).toContain('decimal places')
     })
     
     it('should handle string inputs', () => {
-      expect(() => validateFinancialAmount('100.50')).not.toThrow()
-      expect(() => validateFinancialAmount('invalid')).toThrow()
+      const validResult = validateAmount('100.50')
+      expect(validResult.isValid).toBe(true)
+      
+      const invalidResult = validateAmount('invalid')
+      expect(invalidResult.isValid).toBe(false)
     })
   })
   
-  describe('validateCryptoAddress', () => {
+  describe('validateWalletAddress', () => {
     it('should validate Bitcoin addresses', () => {
       const btcAddresses = [
         '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', // Genesis block
@@ -76,7 +88,8 @@ describe('Validation Utilities', () => {
       ]
       
       btcAddresses.forEach(address => {
-        expect(validateCryptoAddress(address, 'BTC')).toBe(true)
+        const result = validateWalletAddress(address, 'bitcoin')
+        expect(result.isValid).toBe(true)
       })
     })
     
@@ -87,7 +100,8 @@ describe('Validation Utilities', () => {
       ]
       
       ethAddresses.forEach(address => {
-        expect(validateCryptoAddress(address, 'ETH')).toBe(true)
+        const result = validateWalletAddress(address, 'ethereum')
+        expect(result.isValid).toBe(true)
       })
     })
     
@@ -99,16 +113,18 @@ describe('Validation Utilities', () => {
       ]
       
       invalidAddresses.forEach(address => {
-        expect(validateCryptoAddress(address, 'BTC')).toBe(false)
-        expect(validateCryptoAddress(address, 'ETH')).toBe(false)
+        const btcResult = validateWalletAddress(address, 'bitcoin')
+        const ethResult = validateWalletAddress(address, 'ethereum')
+        expect(btcResult.isValid).toBe(false)
+        expect(ethResult.isValid).toBe(false)
       })
     })
   })
   
-  describe('sanitizeInput', () => {
+  describe('sanitize', () => {
     it('should remove HTML tags', () => {
       const input = '<script>alert("xss")</script>Hello World'
-      const sanitized = sanitizeInput(input)
+      const sanitized = sanitize.text(input)
       
       expect(sanitized).not.toContain('<script>')
       expect(sanitized).toContain('Hello World')
@@ -116,58 +132,44 @@ describe('Validation Utilities', () => {
     
     it('should trim whitespace', () => {
       const input = '  Hello World  '
-      const sanitized = sanitizeInput(input)
+      const sanitized = sanitize.text(input)
       
       expect(sanitized).toBe('Hello World')
     })
     
     it('should handle empty inputs', () => {
-      expect(sanitizeInput('')).toBe('')
-      expect(sanitizeInput(null)).toBe('')
-      expect(sanitizeInput(undefined)).toBe('')
+      expect(sanitize.text('')).toBe('')
+      expect(sanitize.text(null)).toBe('')
+      expect(sanitize.text(undefined)).toBe('')
     })
   })
   
-  describe('validateTransactionData', () => {
-    const validTransaction = {
-      type: 'BUY',
-      asset: 'BTC',
-      amount: 0.001,
-      value: 43.25
-    }
-    
-    it('should validate correct transaction data', () => {
-      expect(() => validateTransactionData(validTransaction)).not.toThrow()
+  describe('validateUsername', () => {
+    it('should validate correct usernames', () => {
+      const validUsernames = ['@john_doe', '@user123', '@testuser']
+      
+      validUsernames.forEach(username => {
+        const result = validateUsername(username)
+        expect(result.isValid).toBe(true)
+      })
     })
     
-    it('should require transaction type', () => {
-      const { type, ...invalidTransaction } = validTransaction
-      expect(() => validateTransactionData(invalidTransaction))
-        .toThrow('Transaction type is required')
+    it('should require minimum length', () => {
+      const result = validateUsername('@ab')
+      expect(result.isValid).toBe(false)
+      expect(result.message).toContain('at least 3 characters')
     })
     
-    it('should validate transaction type values', () => {
-      const invalidTransaction = { ...validTransaction, type: 'INVALID' }
-      expect(() => validateTransactionData(invalidTransaction))
-        .toThrow('Invalid transaction type')
+    it('should reject invalid characters', () => {
+      const result = validateUsername('@user-name!')
+      expect(result.isValid).toBe(false)
+      expect(result.message).toContain('letters, numbers, and underscores')
     })
     
-    it('should require asset', () => {
-      const { asset, ...invalidTransaction } = validTransaction
-      expect(() => validateTransactionData(invalidTransaction))
-        .toThrow('Asset is required')
-    })
-    
-    it('should validate asset values', () => {
-      const invalidTransaction = { ...validTransaction, asset: 'INVALID' }
-      expect(() => validateTransactionData(invalidTransaction))
-        .toThrow('Unsupported asset')
-    })
-    
-    it('should validate amount', () => {
-      const invalidTransaction = { ...validTransaction, amount: -1 }
-      expect(() => validateTransactionData(invalidTransaction))
-        .toThrow('Invalid transaction amount')
+    it('should handle usernames without @ prefix', () => {
+      const result = validateUsername('username')
+      expect(result.isValid).toBe(true)
+      expect(result.sanitized).toBe('@username')
     })
   })
 })

@@ -361,8 +361,8 @@ export const useTransactionValidation = () => {
 
       // Minimum amount validation
       const minimumAmounts = {
-        'add': 10, 'withdraw': 10, 'send': 5,
-        'transfer': 10, 'buy': 10, 'sell': 10, 'invest': 10
+        'add': 10, 'withdraw': 5, 'send': 5,
+        'transfer': 5, 'buy': 10, 'sell': 5, 'invest': 10
       }
 
       if (numericAmount < minimumAmounts[type]) {

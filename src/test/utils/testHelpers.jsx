@@ -32,8 +32,10 @@ export const renderWithProviders = (ui, options = {}) => {
     getEnabledFeatures: vi.fn().mockReturnValue(featureFlags)
   }
 
-  // Set initial URL
-  window.history.pushState({}, 'Test page', route)
+  // Set initial URL (only if window.history exists)
+  if (typeof window !== 'undefined' && window.history) {
+    window.history.pushState({}, 'Test page', route)
+  }
 
   const Wrapper = ({ children }) => (
     <BrowserRouter>
