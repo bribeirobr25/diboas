@@ -20,7 +20,7 @@ export default function PageHeader({
     <header className="page-header">
       <div className="content-container">
         <div className="main-navigation">
-          <div className="flex items-center space-x-4">
+          <div className="header-navigation-section">
             {showBackButton && (
               <Button
                 variant="ghost"
@@ -37,7 +37,7 @@ export default function PageHeader({
           </div>
           
           {showUserActions && (
-            <div className="flex items-center space-x-4">
+            <div className="header-actions-section">
               <Button variant="ghost" size="sm" className="ghost-button">
                 <Bell className="w-5 h-5" />
               </Button>

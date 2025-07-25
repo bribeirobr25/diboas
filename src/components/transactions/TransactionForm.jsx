@@ -10,87 +10,87 @@ import DiBoaSUsernameInput from './DiBoaSUsernameInput.jsx'
 import WalletAddressInput from './WalletAddressInput.jsx'
 
 export default function TransactionForm({ 
-  transactionType,
-  isOnRamp,
-  isOffRamp,
-  recipientAddress,
-  setRecipientAddress,
-  amount,
-  setAmount,
-  selectedAsset,
-  setSelectedAsset,
-  selectedPaymentMethod,
-  setSelectedPaymentMethod,
-  assets,
-  buyPaymentMethods,
-  paymentMethods,
-  balance,
-  availableBalance,
-  validationErrors,
-  // showRecipientAddress,
-  // setShowRecipientAddress,
-  currentType
+  transactionType: currentTransactionType,
+  isOnRamp: isOnRampTransaction,
+  isOffRamp: isOffRampTransaction,
+  recipientAddress: recipientWalletAddress,
+  setRecipientAddress: setRecipientWalletAddress,
+  amount: transactionAmountInput,
+  setAmount: setTransactionAmountInput,
+  selectedAsset: selectedCryptocurrencyAsset,
+  setSelectedAsset: setSelectedCryptocurrencyAsset,
+  selectedPaymentMethod: chosenPaymentMethod,
+  setSelectedPaymentMethod: setChosenPaymentMethod,
+  assets: supportedCryptocurrencyAssets,
+  buyPaymentMethods: buyTransactionPaymentMethods,
+  paymentMethods: availablePaymentMethodOptions,
+  balance: currentWalletBalance,
+  availableBalance: userAvailableBalance,
+  validationErrors: transactionValidationErrors,
+  // showRecipientAddress: isRecipientAddressFieldVisible,
+  // setShowRecipientAddress: setIsRecipientAddressFieldVisible,
+  currentType: selectedTransactionTypeConfig
 }) {
 
   return (
     <div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center space-x-2">
-            {currentType?.icon}
-            <span>{currentType?.label}</span>
+          <CardTitle className="transaction-form-title">
+            {selectedTransactionTypeConfig?.icon}
+            <span>{selectedTransactionTypeConfig?.label}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           
           {/* Recipient Input - Different components for Send vs Transfer */}
-          {transactionType === 'send' && (
+          {currentTransactionType === 'send' && (
             <div>
               <Label htmlFor="recipient">diBoaS username</Label>
               <DiBoaSUsernameInput
-                value={recipientAddress}
-                onChange={setRecipientAddress}
-                validationErrors={validationErrors}
+                value={recipientWalletAddress}
+                onChange={setRecipientWalletAddress}
+                validationErrors={transactionValidationErrors}
               />
             </div>
           )}
 
           {/* Transfer Address Input - Wallet address input with autocomplete */}
-          {transactionType === 'transfer' && (
+          {currentTransactionType === 'transfer' && (
             <div>
               <Label htmlFor="recipient">To Address</Label>
               <WalletAddressInput
-                value={recipientAddress}
-                onChange={setRecipientAddress}
-                validationErrors={validationErrors}
+                value={recipientWalletAddress}
+                onChange={setRecipientWalletAddress}
+                validationErrors={transactionValidationErrors}
               />
             </div>
           )}
 
           {/* Asset Selection Grid - Show for Buy transactions */}
-          {transactionType === 'buy' && (
+          {currentTransactionType === 'buy' && (
             <div>
               <Label>Select Asset</Label>
-              <div className="asset-grid">
-                {assets.map((asset) => {
-                  const isSelected = selectedAsset === asset.id
+              <div className="crypto-asset-selection-grid">
+                {supportedCryptocurrencyAssets.map((availableCryptoAsset) => {
+                  const isAssetCurrentlySelected = selectedCryptocurrencyAsset === availableCryptoAsset.assetId
                   return (
                     <Button
-                      key={asset.id}
-                      variant={isSelected ? "default" : "outline"}
-                      className={`h-16 flex-col space-y-1 ${
-                        !isSelected ? `${asset.bgColor} ${asset.color} ${asset.borderColor} hover:scale-105` : ''
+                      key={availableCryptoAsset.assetId}
+                      variant={isAssetCurrentlySelected ? "default" : "outline"}
+                      className={`crypto-asset-selector ${
+                        !isAssetCurrentlySelected ? `${availableCryptoAsset.themeClasses.bgColor} ${availableCryptoAsset.themeClasses.textColor} ${availableCryptoAsset.themeClasses.borderColor} hover:scale-105` : ''
                       } transition-transform`}
-                      onClick={() => setSelectedAsset(asset.id)}
+                      onClick={() => setSelectedCryptocurrencyAsset(availableCryptoAsset.assetId)}
                     >
                       <div className="flex items-center space-x-2">
-                        <span className="text-lg">{asset.icon}</span>
+                        <span className="text-lg">{availableCryptoAsset.currencyIcon}</span>
                         <div className="text-left">
-                          <div className="font-medium text-xs">{asset.symbol}</div>
-                          <div className="text-xs opacity-75">{asset.price}</div>
+                          <div className="font-medium text-xs">{availableCryptoAsset.tickerSymbol}</div>
+                          <div className="text-xs opacity-75">{availableCryptoAsset.currentMarketPrice}</div>
                         </div>
                       </div>
-                      {isSelected && (
+                      {isAssetCurrentlySelected && (
                         <Badge variant="secondary" className="text-xs">
                           Selected
                         </Badge>
@@ -104,27 +104,27 @@ export default function TransactionForm({
 
           {/* Amount Input */}
           <AmountInput
-            amount={amount}
-            setAmount={setAmount}
-            transactionType={transactionType}
-            selectedAsset={selectedAsset}
-            setSelectedAsset={setSelectedAsset}
-            assets={assets}
-            balance={balance}
-            availableBalance={availableBalance}
-            validationErrors={validationErrors}
-            selectedPaymentMethod={selectedPaymentMethod}
+            amount={transactionAmountInput}
+            setAmount={setTransactionAmountInput}
+            transactionType={currentTransactionType}
+            selectedAsset={selectedCryptocurrencyAsset}
+            setSelectedAsset={setSelectedCryptocurrencyAsset}
+            assets={supportedCryptocurrencyAssets}
+            balance={currentWalletBalance}
+            availableBalance={userAvailableBalance}
+            validationErrors={transactionValidationErrors}
+            selectedPaymentMethod={chosenPaymentMethod}
           />
 
           {/* Payment Method Selection */}
           <PaymentMethodSelector
-            transactionType={transactionType}
-            isOnRamp={isOnRamp}
-            isOffRamp={isOffRamp}
-            selectedPaymentMethod={selectedPaymentMethod}
-            setSelectedPaymentMethod={setSelectedPaymentMethod}
-            buyPaymentMethods={buyPaymentMethods}
-            paymentMethods={paymentMethods}
+            transactionType={currentTransactionType}
+            isOnRamp={isOnRampTransaction}
+            isOffRamp={isOffRampTransaction}
+            selectedPaymentMethod={chosenPaymentMethod}
+            setSelectedPaymentMethod={setChosenPaymentMethod}
+            buyPaymentMethods={buyTransactionPaymentMethods}
+            paymentMethods={availablePaymentMethodOptions}
           />
 
         </CardContent>

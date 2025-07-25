@@ -72,34 +72,34 @@ class ErrorBoundary extends React.Component {
       const isDevelopment = typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development'
 
       return (
-        <div className="main-layout center-content" style={{ padding: '2rem', minHeight: '100vh' }}>
-          <Card className="w-full max-w-lg">
-            <CardHeader className="text-center">
-              <img src={diBoaSLogo} alt="diBoaS Logo" className="h-12 w-auto mx-auto mb-4" />
-              <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <CardTitle className="text-xl font-bold text-gray-900">
+        <div className="error-boundary-container">
+          <Card className="error-boundary-card">
+            <CardHeader className="error-boundary-header">
+              <img src={diBoaSLogo} alt="diBoaS Logo" className="error-boundary-logo" />
+              <AlertTriangle className="error-boundary-icon" />
+              <CardTitle className="error-boundary-title">
                 Oops! Something went wrong
               </CardTitle>
             </CardHeader>
             
-            <CardContent className="space-y-4">
-              <p className="text-gray-600 text-center">
+            <CardContent className="error-boundary-content">
+              <p className="error-boundary-message">
                 We encountered an unexpected error. Don't worry, your data is safe.
               </p>
 
               {isDevelopment && error && (
-                <div className="bg-red-50 border border-red-200 rounded p-3">
-                  <h4 className="font-medium text-red-800 mb-2">Development Error Details:</h4>
-                  <pre className="text-xs text-red-700 overflow-auto max-h-32">
+                <div className="development-error-panel">
+                  <h4 className="development-error-title">Development Error Details:</h4>
+                  <pre className="development-error-details">
                     {error.message}
                   </pre>
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <div className="error-boundary-actions">
                 <Button 
                   onClick={this.handleRetry}
-                  className="flex-1 primary-button"
+                  className="action-button-full primary-button"
                   disabled={this.state.retryCount >= 3}
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
@@ -109,7 +109,7 @@ class ErrorBoundary extends React.Component {
                 <Button 
                   onClick={this.handleGoHome}
                   variant="outline"
-                  className="flex-1"
+                  className="action-button-full"
                 >
                   <Home className="w-4 h-4 mr-2" />
                   Go Home

@@ -3,41 +3,41 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.j
 import { Button } from '@/components/ui/button.jsx'
 
 export default function TransactionSummary({ 
-  amount, 
-  transactionType,
-  selectedAsset,
-  assets,
-  fees,
-  currentType,
-  isOnRamp,
-  isOffRamp,
-  selectedPaymentMethod,
-  handleTransactionStart,
-  isTransactionValid,
-  getNetworkFeeRate,
-  getProviderFeeRate,
-  getPaymentMethodFeeRate,
-  // recipientAddress
+  amount: transactionAmountInput, 
+  transactionType: currentTransactionType,
+  selectedAsset: selectedCryptocurrencyAsset,
+  assets: supportedCryptocurrencyAssets,
+  fees: calculatedTransactionFees,
+  currentType: selectedTransactionTypeConfig,
+  isOnRamp: isOnRampTransaction,
+  isOffRamp: isOffRampTransaction,
+  selectedPaymentMethod: chosenPaymentMethod,
+  handleTransactionStart: handleTransactionStart,
+  isTransactionValid: isTransactionInputValid,
+  getNetworkFeeRate: calculateNetworkFeePercentage,
+  getProviderFeeRate: calculateProviderFeePercentage,
+  getPaymentMethodFeeRate: calculatePaymentMethodFeePercentage,
+  // recipientAddress: recipientWalletAddress
 }) {
-  const [showFeeDetails, setShowFeeDetails] = useState(false)
+  const [areFeeDetailsVisible, setAreFeeDetailsVisible] = useState(false)
 
-  const renderAssetQuantityEstimate = () => {
-    if (!(['buy', 'sell'].includes(transactionType) && amount && selectedAsset && selectedAsset !== 'USD')) {
+  const calculateAssetQuantityEstimate = () => {
+    if (!(['buy', 'sell'].includes(currentTransactionType) && transactionAmountInput && selectedCryptocurrencyAsset && selectedCryptocurrencyAsset !== 'USD')) {
       return null
     }
 
-    const assetData = assets.find(a => a.id === selectedAsset)
-    if (!assetData || !assetData.price) return null
+    const selectedAssetData = supportedCryptocurrencyAssets.find(cryptoAsset => cryptoAsset.assetId === selectedCryptocurrencyAsset)
+    if (!selectedAssetData || !selectedAssetData.currentMarketPrice) return null
     
-    const priceValue = parseFloat(assetData.price.replace(/[$,]/g, ''))
-    const amountValue = parseFloat(amount)
+    const marketPriceValue = parseFloat(selectedAssetData.currentMarketPrice.replace(/[$,]/g, ''))
+    const inputAmountValue = parseFloat(transactionAmountInput)
     
-    if (transactionType === 'buy' && priceValue > 0) {
-      const estimatedQuantity = amountValue / priceValue
-      return `≈ ${estimatedQuantity.toFixed(6)} ${assetData.symbol}`
-    } else if (transactionType === 'sell' && amountValue > 0) {
-      const estimatedFiat = amountValue * priceValue
-      return `≈ $${estimatedFiat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    if (currentTransactionType === 'buy' && marketPriceValue > 0) {
+      const estimatedCryptoQuantity = inputAmountValue / marketPriceValue
+      return `≈ ${estimatedCryptoQuantity.toFixed(6)} ${selectedAssetData.tickerSymbol}`
+    } else if (currentTransactionType === 'sell' && inputAmountValue > 0) {
+      const estimatedFiatValue = inputAmountValue * marketPriceValue
+      return `≈ $${estimatedFiatValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     }
     return null
   }
@@ -48,15 +48,15 @@ export default function TransactionSummary({
         <CardHeader>
           <CardTitle className="text-lg">Transaction Summary</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between">
+        <CardContent className="transaction-summary-content">
+          <div className="transaction-summary-row">
             <span>Amount</span>
             <div className="text-right">
-              <span className="font-medium">${amount || '0.00'}</span>
+              <span className="font-medium">${transactionAmountInput || '0.00'}</span>
               {/* Show estimated asset quantity for Buy/Sell transactions */}
-              {renderAssetQuantityEstimate() && (
+              {calculateAssetQuantityEstimate() && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {renderAssetQuantityEstimate()}
+                  {calculateAssetQuantityEstimate()}
                 </div>
               )}
             </div>
@@ -65,52 +65,52 @@ export default function TransactionSummary({
           <div className="border-t pt-4">
             <Button
               variant="ghost"
-              className="w-full justify-between p-0 h-auto"
-              onClick={() => setShowFeeDetails(!showFeeDetails)}
+              className="fee-details-toggle"
+              onClick={() => setAreFeeDetailsVisible(!areFeeDetailsVisible)}
             >
               <span>Fee Details</span>
-              <span className="font-medium">${(parseFloat(fees?.total) || 0).toFixed(2)}</span>
+              <span className="font-medium">${(parseFloat(calculatedTransactionFees?.total) || 0).toFixed(2)}</span>
             </Button>
             
-            {showFeeDetails && (
+            {areFeeDetailsVisible && (
               <div className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between text-gray-600">
-                  <span>diBoaS Fee ({isOffRamp || transactionType === 'transfer' ? '0.9%' : '0.09%'})</span>
-                  <span>${(parseFloat(fees?.diBoaS) || 0).toFixed(2)}</span>
+                <div className="fee-breakdown-row">
+                  <span>diBoaS Fee ({isOffRampTransaction || currentTransactionType === 'transfer' ? '0.9%' : '0.09%'})</span>
+                  <span>${(parseFloat(calculatedTransactionFees?.diBoaS) || 0).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Network Fee ({getNetworkFeeRate()})</span>
-                  <span>${(parseFloat(fees?.network) || 0).toFixed(2)}</span>
+                <div className="fee-breakdown-row">
+                  <span>Network Fee ({calculateNetworkFeePercentage()})</span>
+                  <span>${(parseFloat(calculatedTransactionFees?.network) || 0).toFixed(2)}</span>
                 </div>
                 {/* Provider Fee - for Add/Withdraw transactions, but NOT Send (P2P) */}
-                {(isOnRamp || isOffRamp) && transactionType !== 'send' && (
-                  <div className="flex justify-between text-gray-600">
-                    <span>Provider Fee ({getProviderFeeRate()})</span>
-                    <span>${(parseFloat(fees?.provider) || 0).toFixed(2)}</span>
+                {(isOnRampTransaction || isOffRampTransaction) && currentTransactionType !== 'send' && (
+                  <div className="fee-breakdown-row">
+                    <span>Provider Fee ({calculateProviderFeePercentage()})</span>
+                    <span>${(parseFloat(calculatedTransactionFees?.provider) || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {/* DEX Fee for Transfer transactions */}
-                {transactionType === 'transfer' && (
-                  <div className="flex justify-between text-gray-600">
-                    <span>DEX Fee ({getProviderFeeRate()})</span>
-                    <span>${(parseFloat(fees?.provider) || 0).toFixed(2)}</span>
+                {currentTransactionType === 'transfer' && (
+                  <div className="fee-breakdown-row">
+                    <span>DEX Fee ({calculateProviderFeePercentage()})</span>
+                    <span>${(parseFloat(calculatedTransactionFees?.provider) || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {/* Buy/Sell transaction specific fees */}
-                {['buy', 'sell'].includes(transactionType) && (
+                {['buy', 'sell'].includes(currentTransactionType) && (
                   <>
                     {/* Payment Fee - only for Buy with external payment methods */}
-                    {transactionType === 'buy' && selectedPaymentMethod !== 'diboas_wallet' && fees?.payment > 0 && (
-                      <div className="flex justify-between text-gray-600">
-                        <span>Payment Fee ({getPaymentMethodFeeRate()})</span>
-                        <span>${(parseFloat(fees?.payment) || 0).toFixed(2)}</span>
+                    {currentTransactionType === 'buy' && chosenPaymentMethod !== 'diboas_wallet' && calculatedTransactionFees?.payment > 0 && (
+                      <div className="fee-breakdown-row">
+                        <span>Payment Fee ({calculatePaymentMethodFeePercentage()})</span>
+                        <span>${(parseFloat(calculatedTransactionFees?.payment) || 0).toFixed(2)}</span>
                       </div>
                     )}
                     {/* DEX Fee - for Buy using diBoaS wallet and all Sell transactions */}
-                    {((transactionType === 'buy' && selectedPaymentMethod === 'diboas_wallet') || transactionType === 'sell') && fees?.dex > 0 && (
-                      <div className="flex justify-between text-gray-600">
+                    {((currentTransactionType === 'buy' && chosenPaymentMethod === 'diboas_wallet') || currentTransactionType === 'sell') && calculatedTransactionFees?.dex > 0 && (
+                      <div className="fee-breakdown-row">
                         <span>DEX Fee (1%)</span>
-                        <span>${(parseFloat(fees?.dex) || 0).toFixed(2)}</span>
+                        <span>${(parseFloat(calculatedTransactionFees?.dex) || 0).toFixed(2)}</span>
                       </div>
                     )}
                   </>
@@ -119,27 +119,27 @@ export default function TransactionSummary({
             )}
           </div>
           
-          <div className="border-t pt-4">
-            <div className="flex justify-between font-semibold text-lg">
+          <div className="transaction-total-section">
+            <div className="transaction-total-row">
               <span>Total</span>
-              <span>${amount && fees ? (() => {
-                const amountNum = parseFloat(amount) || 0;
-                const feesNum = parseFloat(fees.total) || 0;
-                const total = amountNum - feesNum;
-                console.log('TransactionSummary: amount=', amountNum, 'fees=', feesNum, 'net total=', total);
-                return total.toFixed(2);
-              })() : amount || '0.00'}</span>
+              <span>${transactionAmountInput && calculatedTransactionFees ? (() => {
+                const transactionAmountNumber = parseFloat(transactionAmountInput) || 0;
+                const totalFeesNumber = parseFloat(calculatedTransactionFees.total) || 0;
+                const netTransactionTotal = transactionAmountNumber - totalFeesNumber;
+                console.log('TransactionSummary: amount=', transactionAmountNumber, 'fees=', totalFeesNumber, 'net total=', netTransactionTotal);
+                return netTransactionTotal.toFixed(2);
+              })() : transactionAmountInput || '0.00'}</span>
             </div>
           </div>
           
-          <div className="pt-4">
+          <div className="transaction-action-section">
             <Button
               variant="cta"
-              className="w-full"
+              className="transaction-execute-button"
               onClick={handleTransactionStart}
-              disabled={!isTransactionValid}
+              disabled={!isTransactionInputValid}
             >
-              {`${currentType?.label} ${amount ? `$${amount}` : ''}`}
+              {`${selectedTransactionTypeConfig?.label} ${transactionAmountInput ? `$${transactionAmountInput}` : ''}`}
             </Button>
           </div>
           

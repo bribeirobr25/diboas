@@ -57,19 +57,19 @@ export default function ErrorAlert({
 
   return (
     <Card className={`border ${getErrorStyles()} ${className}`}>
-      <CardContent className="p-4">
-        <div className="flex items-start space-x-3">
-          <div className="flex-shrink-0 mt-0.5">
+      <CardContent className="error-alert-content">
+        <div className="error-alert-layout">
+          <div className="error-alert-icon-container">
             {getErrorIcon()}
           </div>
           
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className={`font-medium text-sm ${getTextColor()}`}>
+          <div className="error-alert-body">
+            <div className="error-alert-header">
+              <div className="error-alert-text-section">
+                <h3 className={`error-alert-title ${getTextColor()}`}>
                   {error.title}
                 </h3>
-                <p className={`text-sm mt-1 ${getTextColor()} opacity-90`}>
+                <p className={`error-alert-message ${getTextColor()}`}>
                   {error.message}
                 </p>
               </div>
@@ -79,7 +79,7 @@ export default function ErrorAlert({
                   variant="ghost"
                   size="sm"
                   onClick={onDismiss}
-                  className="p-1 h-auto -mt-1 -mr-1 hover:bg-transparent"
+                  className="error-alert-dismiss-button"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -87,12 +87,12 @@ export default function ErrorAlert({
             </div>
             
             {(onRetry && error.canRetry) && (
-              <div className="mt-3 flex space-x-2">
+              <div className="error-alert-actions">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={onRetry}
-                  className={`text-xs h-8 ${
+                  className={`error-alert-retry-button ${
                     error.type === 'timeout' 
                       ? 'border-orange-300 text-orange-700 hover:bg-orange-100' 
                       : error.type === 'weak_password'

@@ -178,7 +178,7 @@ export default function DiBoaSUsernameInput({
                 <>
                   {recentUsernames.length > 0 && (
                     <div className="p-2 border-b border-gray-100">
-                      <div className="flex items-center text-xs text-gray-500">
+                      <div className="dropdown-header">
                         <Clock className="w-3 h-3 mr-1" />
                         Recent
                       </div>
@@ -187,7 +187,7 @@ export default function DiBoaSUsernameInput({
                 </>
               ) : (
                 <div className="p-2 border-b border-gray-100">
-                  <div className="flex items-center text-xs text-gray-500">
+                  <div className="dropdown-header">
                     <User className="w-3 h-3 mr-1" />
                     Suggestions
                   </div>
@@ -199,7 +199,7 @@ export default function DiBoaSUsernameInput({
           {/* Loading state */}
           {isLoading && (
             <div className="p-4 text-center text-gray-500">
-              <div className="flex items-center justify-center">
+              <div className="loading-indicator">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
                 <span className="text-sm">Searching...</span>
               </div>
@@ -216,13 +216,13 @@ export default function DiBoaSUsernameInput({
               onClick={() => handleSuggestionSelect(suggestion.username)}
               onMouseEnter={() => setHighlightedIndex(index)}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
+              <div className="flex-row-between">
+                <div className="username-display-container">
                   <span className="text-gray-400 mr-1">@</span>
                   <span className="font-medium">{suggestion.username}</span>
                 </div>
                 {suggestion.isRecent && (
-                  <div className="flex items-center text-xs text-gray-400">
+                  <div className="recent-indicator">
                     <Clock className="w-3 h-3 mr-1" />
                     <span>Recent</span>
                   </div>
@@ -243,7 +243,7 @@ export default function DiBoaSUsernameInput({
 
       {/* Validation Error */}
       {validationErrors?.recipient && (
-        <p className="text-sm text-red-600 mt-1">
+        <p className="validation-error-text">
           {validationErrors.recipient.message}
         </p>
       )}

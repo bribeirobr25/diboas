@@ -155,31 +155,31 @@ export default function TransactionStatusCard({
 
   if (compact) {
     return (
-      <div className={`flex items-center space-x-3 p-3 rounded-lg ${statusDisplay.bgColor} transition-all duration-200`}>
-        <div className={`flex items-center justify-center w-8 h-8 rounded-full bg-white ${statusDisplay.color}`}>
+      <div className={`transaction-status-compact ${statusDisplay.bgColor}`}>
+        <div className={`status-indicator-icon bg-white ${statusDisplay.color}`}>
           {statusDisplay.icon}
         </div>
         
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <p className="font-medium text-gray-900 truncate">
+        <div className="transaction-status-details">
+          <div className="status-header-row">
+            <p className="transaction-summary-text">
               {transactionData.type || 'Transaction'} • ${transactionData.amount || '0.00'}
             </p>
             <button
               onClick={onClose}
-              className="ml-2 text-gray-400 hover:text-gray-600"
+              className="close-button-small"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <span className={`text-sm font-medium ${statusDisplay.color}`}>
+          <div className="status-progress-row">
+            <span className={`status-text ${statusDisplay.color}`}>
               {statusDisplay.text}
             </span>
             
             {status?.progress !== undefined && (
-              <div className="flex-1 bg-white rounded-full h-1 max-w-16">
+              <div className="compact-progress-track">
                 <div
                   className={`h-1 rounded-full transition-all duration-300 ${
                     statusDisplay.color.includes('green') ? 'bg-green-500' :
@@ -191,7 +191,7 @@ export default function TransactionStatusCard({
             )}
             
             {status?.estimatedTimeRemaining && status.estimatedTimeRemaining > 0 && (
-              <span className="text-xs text-gray-500">
+              <span className="time-remaining-text">
                 ~{Math.ceil(status.estimatedTimeRemaining)}s
               </span>
             )}
@@ -202,42 +202,42 @@ export default function TransactionStatusCard({
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardContent className="p-6">
+    <Card className="transaction-status-card">
+      <CardContent className="transaction-status-content">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className={`w-10 h-10 rounded-full ${statusDisplay.bgColor} flex items-center justify-center`}>
+        <div className="transaction-status-header">
+          <div className="status-title-section">
+            <div className={`status-icon-large ${statusDisplay.bgColor}`}>
               {statusDisplay.icon}
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="transaction-status-title">
                 {transactionData.type || 'Transaction'} Status
               </h3>
-              <p className={`text-sm font-medium ${statusDisplay.color}`}>
+              <p className={`status-label ${statusDisplay.color}`}>
                 {statusDisplay.text}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="close-button"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Transaction Details */}
-        <div className="space-y-3 mb-4">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Amount:</span>
-            <span className="font-medium">${transactionData.amount || '0.00'}</span>
+        <div className="transaction-details-section">
+          <div className="detail-row">
+            <span className="detail-label">Amount:</span>
+            <span className="detail-value">${transactionData.amount || '0.00'}</span>
           </div>
           
           {transactionData.asset && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Asset:</span>
-              <span className="font-medium">{transactionData.asset}</span>
+            <div className="detail-row">
+              <span className="detail-label">Asset:</span>
+              <span className="detail-value">{transactionData.asset}</span>
             </div>
           )}
 
@@ -246,11 +246,11 @@ export default function TransactionStatusCard({
               {/* Progress Bar */}
               {status.progress !== undefined && (
                 <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Progress:</span>
-                    <span className="font-medium">{status.progress}%</span>
+                  <div className="progress-header">
+                    <span className="progress-label">Progress:</span>
+                    <span className="progress-value">{status.progress}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="progress-track">
                     <div
                       className={`h-2 rounded-full transition-all duration-300 ${
                         statusDisplay.color.includes('green') ? 'bg-green-500' :
@@ -264,9 +264,9 @@ export default function TransactionStatusCard({
 
               {/* Confirmations */}
               {status.confirmations !== undefined && status.requiredConfirmations > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Confirmations:</span>
-                  <span className="font-medium">
+                <div className="detail-row">
+                  <span className="detail-label">Confirmations:</span>
+                  <span className="detail-value">
                     {status.confirmations}/{status.requiredConfirmations}
                   </span>
                 </div>
@@ -274,9 +274,9 @@ export default function TransactionStatusCard({
 
               {/* Time Remaining */}
               {status.estimatedTimeRemaining && status.estimatedTimeRemaining > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Time Remaining:</span>
-                  <span className="font-medium">
+                <div className="detail-row">
+                  <span className="detail-label">Time Remaining:</span>
+                  <span className="detail-value">
                     ~{Math.ceil(status.estimatedTimeRemaining)}s
                   </span>
                 </div>
@@ -284,9 +284,9 @@ export default function TransactionStatusCard({
 
               {/* Last Update */}
               {status.lastUpdate && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Last Update:</span>
-                  <span className="font-medium text-xs">
+                <div className="detail-row">
+                  <span className="detail-label">Last Update:</span>
+                  <span className="detail-value-small">
                     {new Date(status.lastUpdate).toLocaleTimeString()}
                   </span>
                 </div>
@@ -297,13 +297,13 @@ export default function TransactionStatusCard({
 
         {/* Transaction Hash */}
         {showHash && status?.onChainHash && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Transaction Hash:</span>
-              <div className="flex space-x-1">
+          <div className="transaction-hash-section">
+            <div className="hash-header">
+              <span className="hash-label">Transaction Hash:</span>
+              <div className="hash-actions">
                 <button
                   onClick={() => copyHash(status.onChainHash)}
-                  className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
+                  className="hash-action-button"
                   title="Copy hash"
                 >
                   <Copy className="w-4 h-4" />
@@ -313,33 +313,33 @@ export default function TransactionStatusCard({
                     // Open block explorer (would need chain-specific URLs in real implementation)
                     window.open(`#/transaction/${status.onChainHash}`, '_blank')
                   }}
-                  className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
+                  className="hash-action-button"
                   title="View on explorer"
                 >
                   <ExternalLink className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            <p className="text-xs font-mono break-all text-gray-800">
+            <p className="hash-display">
               {status.onChainHash}
             </p>
             {copied && (
-              <p className="text-xs text-green-600 mt-1">Hash copied to clipboard!</p>
+              <p className="hash-success-message">Hash copied to clipboard!</p>
             )}
           </div>
         )}
 
         {/* Error State */}
         {(error || !connectionStatus.connected) && (
-          <div className="mb-4 p-3 bg-red-50 rounded-lg">
-            <p className="text-sm text-red-700 mb-2">
+          <div className="error-section">
+            <p className="error-message">
               {error || 'Connection lost'}
             </p>
             <Button
               size="sm"
               variant="outline"
               onClick={retry}
-              className="w-full"
+              className="action-button-full"
             >
               Retry
             </Button>
@@ -348,11 +348,11 @@ export default function TransactionStatusCard({
 
         {/* Action Buttons */}
         {(isCompleted || isFailed || isTimeout) && (
-          <div className="flex space-x-2">
+          <div className="action-buttons-row">
             <Button
               variant="outline"
               onClick={onClose}
-              className="flex-1"
+              className="action-button-flex"
             >
               Close
             </Button>
@@ -360,7 +360,7 @@ export default function TransactionStatusCard({
             {(isFailed || isTimeout) && (
               <Button
                 onClick={retry}
-                className="flex-1"
+                className="action-button-flex"
               >
                 Retry
               </Button>
