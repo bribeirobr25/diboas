@@ -313,14 +313,45 @@ export default function TransactionPage({ transactionType: propTransactionType }
   // Fee calculation and validation effect - recalculates when relevant fields change
   useEffect(() => {
     if (debouncedTransactionAmount && parseFloat(debouncedTransactionAmount) > 0) {
-      // Calculate fees
-      calculateTransactionFees({
+      // Calculate fees with correct API parameters
+      const feeParams = {
         type: currentTransactionType,
         amount: parseFloat(debouncedTransactionAmount),
-        asset: selectedCryptocurrencyAsset,
+        chains: ['SOL'], // Default to SOL, will be updated based on transaction type
         paymentMethod: chosenPaymentMethod,
-        recipient: recipientWalletAddress // Include for network detection in transfers
-      })
+        asset: selectedCryptocurrencyAsset || 'USDC'
+      }
+      
+      // Add recipient for transfer transactions
+      if (currentTransactionType === 'transfer' && recipientWalletAddress) {
+        feeParams.recipient = recipientWalletAddress
+      }
+      
+      // Update chains based on transaction type
+      if (currentTransactionType === 'buy' || currentTransactionType === 'sell') {
+        // Map assets to their native chains
+        const assetChainMap = {
+          'BTC': ['SOL', 'BTC'], // From SOL to BTC
+          'ETH': ['SOL', 'ETH'], // From SOL to ETH  
+          'SUI': ['SOL', 'SUI'], // From SOL to SUI
+          'SOL': ['SOL'], // SOL to SOL
+          'USDC': ['SOL'] // USDC on SOL
+        }
+        feeParams.chains = assetChainMap[selectedCryptocurrencyAsset] || ['SOL']
+      } else if (currentTransactionType === 'transfer' && recipientWalletAddress) {
+        // For transfers, detect destination chain from address
+        if (recipientWalletAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientWalletAddress.match(/^bc1[a-z0-9]{38,58}$/)) {
+          feeParams.chains = ['SOL', 'BTC'] // SOL to BTC
+        } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+          feeParams.chains = ['SOL', 'ETH'] // SOL to ETH
+        } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
+          feeParams.chains = ['SOL', 'SUI'] // SOL to SUI
+        } else {
+          feeParams.chains = ['SOL'] // SOL to SOL or invalid
+        }
+      }
+      
+      calculateTransactionFees(feeParams)
       
       // Validate transaction
       validateTransactionInput({

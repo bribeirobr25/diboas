@@ -11,6 +11,7 @@ const AppDashboard = lazy(() => import('./components/AppDashboard.jsx'))
 const AccountView = lazy(() => import('./components/AccountView.jsx'))
 const TransactionPage = lazy(() => import('./components/TransactionPage.jsx'))
 const EnvironmentDebugPanel = lazy(() => import('./components/debug/EnvironmentDebugPanel.jsx'))
+const PerformanceDashboard = lazy(() => import('./components/dev/PerformanceDashboard.jsx'))
 
 // Lazy load providers and utilities
 const FeatureFlagProvider = lazy(() => import('./hooks/useFeatureFlags.jsx').then(module => ({ default: module.FeatureFlagProvider })))
@@ -151,11 +152,16 @@ function App() {
               } />
             </Routes>
             
-            {/* Development Debug Panel - Only load in development */}
+            {/* Development Tools - Only load in development */}
             {envInfo.debugMode && (
-              <Suspense fallback={<div>Loading debug panel...</div>}>
-                <EnvironmentDebugPanel />
-              </Suspense>
+              <>
+                <Suspense fallback={<div>Loading debug panel...</div>}>
+                  <EnvironmentDebugPanel />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <PerformanceDashboard />
+                </Suspense>
+              </>
             )}
           </Router>
         </FeatureFlagProvider>

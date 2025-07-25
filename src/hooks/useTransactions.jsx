@@ -414,7 +414,7 @@ export const useTransactionValidation = () => {
           errors.recipient = { message: 'Recipient is required', isValid: false }
         } else if (type === 'transfer') {
           // External wallet address validation using fee calculator
-          const addressInfo = defaultFeeCalculator.detectNetworkFromAddress(recipient)
+          const addressInfo = defaultFeeCalculator.detectNetworkFromAddressDetailed(recipient)
           
           if (!addressInfo.isValid) {
             errors.recipient = { 

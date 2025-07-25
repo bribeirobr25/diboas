@@ -92,3 +92,21 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorageMock.clear()
 })
+
+// Mock performance.now for tests
+global.performance = global.performance || {}
+global.performance.now = global.performance.now || vi.fn(() => Date.now())
+
+// Mock URL.createObjectURL
+global.URL = global.URL || {}
+global.URL.createObjectURL = global.URL.createObjectURL || vi.fn(() => 'mock-url')
+global.URL.revokeObjectURL = global.URL.revokeObjectURL || vi.fn()
+
+// Mock navigator.clipboard
+Object.defineProperty(navigator, 'clipboard', {
+  value: {
+    writeText: vi.fn(() => Promise.resolve()),
+    readText: vi.fn(() => Promise.resolve(''))
+  },
+  writable: true
+})

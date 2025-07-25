@@ -316,11 +316,15 @@ class AuthError extends Error {
 
 /**
  * Enhanced utility function to simulate API calls with potential failures
+ * 
+ * TODO: Replace with actual API calls when backend authentication is ready
+ * Note: Failure rate set to 0 for development to avoid frustrating random errors
+ *       In production, consider a very low rate (0.01 = 1%) for realistic testing
  */
-function simulateAPICall(ms, failureRate = 0.05) {
+function simulateAPICall(ms, failureRate = 0.0) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      // Simulate random network failures
+      // Simulate random network failures (disabled for development)
       if (Math.random() < failureRate) {
         reject(new AuthError(AUTH_ERRORS.NETWORK_ERROR))
       } else {
