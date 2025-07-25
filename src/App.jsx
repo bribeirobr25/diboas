@@ -151,10 +151,12 @@ function App() {
               } />
             </Routes>
             
-            {/* Development Debug Panel */}
-            <Suspense fallback={<div>Loading debug panel...</div>}>
-              <EnvironmentDebugPanel />
-            </Suspense>
+            {/* Development Debug Panel - Only load in development */}
+            {envInfo.debugMode && (
+              <Suspense fallback={<div>Loading debug panel...</div>}>
+                <EnvironmentDebugPanel />
+              </Suspense>
+            )}
           </Router>
         </FeatureFlagProvider>
         </Suspense>

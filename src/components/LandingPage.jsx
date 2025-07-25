@@ -27,9 +27,11 @@ import { useNavigate } from 'react-router-dom'
 import { PAGE_SEO_CONFIG, useSEO } from '../utils/seoUtils.js'
 import SEOHelmet from './SEOHelmet.jsx'
 import diBoaSLogo from '../assets/diboas-logo.png'
-import mascotFinancialBasics from '../assets/mascot-financial-basics.png'
-import mascotInvestmentGuide from '../assets/mascot-investment-guide.png'
-import mascotCryptoDefi from '../assets/mascot-crypto-defi.png'
+
+// PERFORMANCE: Lazy load large mascot images
+const mascotFinancialBasics = new URL('../assets/mascot-financial-basics.png', import.meta.url).href
+const mascotInvestmentGuide = new URL('../assets/mascot-investment-guide.png', import.meta.url).href  
+const mascotCryptoDefi = new URL('../assets/mascot-crypto-defi.png', import.meta.url).href
 
 export default function LandingPage() {
   const navigate = useNavigate()
