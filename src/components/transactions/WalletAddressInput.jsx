@@ -19,7 +19,7 @@ export default function WalletAddressInput({
   const [suggestions, setSuggestions] = useState([])
   const [recentAddresses, setRecentAddresses] = useState([])
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
-  const [isLoading, setIsLoading] = useState(false)
+  const [_IS_LOADING, _SET_IS_LOADING] = useState(false)
   const [detectedNetwork, setDetectedNetwork] = useState(null)
   const inputRef = useRef(null)
   const dropdownRef = useRef(null)
@@ -36,7 +36,7 @@ export default function WalletAddressInput({
   }, [value])
 
   // Generate suggestions based on input
-  const generateSuggestions = useCallback(async (input) => {
+  const generateSuggestions = useCallback(async (_) => {
     // Only show recent addresses - no search functionality
     return recentAddresses.map(item => ({ ...item, isRecent: true }))
   }, [recentAddresses])

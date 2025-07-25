@@ -5,7 +5,7 @@
  * Lists all feature flags and their current status
  */
 
-import { featureFlagManager, FEATURE_FLAGS } from '../src/config/featureFlags.js'
+import { featureFlagManager } from '../src/config/featureFlags.js'
 import { getEnvironmentInfo } from '../src/config/environments.js'
 
 const colors = {

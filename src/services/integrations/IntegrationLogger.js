@@ -260,7 +260,7 @@ export class IntegrationLogger {
    * Set log level
    */
   setLogLevel(level) {
-    if (!IntegrationLogger.LOG_LEVELS.hasOwnProperty(level)) {
+    if (!Object.hasOwn(IntegrationLogger.LOG_LEVELS, level)) {
       throw new Error(`Invalid log level: ${level}`)
     }
     

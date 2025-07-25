@@ -3,7 +3,7 @@
  * Only visible in development mode - helps developers understand current configuration
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -250,7 +250,7 @@ function ApiTab() {
         ...prev, 
         [endpoint]: success ? 'success' : 'error' 
       }))
-    } catch (error) {
+    } catch (_) {
       setTestResults(prev => ({ ...prev, [endpoint]: 'error' }))
     }
   }

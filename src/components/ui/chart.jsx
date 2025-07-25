@@ -56,12 +56,9 @@ const ChartStyle = ({
 }) => {
   const colorConfig = Object.entries(config).filter(([, config]) => config.theme || config.color)
 
-  if (!colorConfig.length) {
-    return null
-  }
-
   // Generate CSS custom properties safely using React refs and useEffect
   React.useEffect(() => {
+    if (!colorConfig.length) return
     const chartElement = document.querySelector(`[data-chart="${id}"]`)
     if (!chartElement) return
 
@@ -74,7 +71,7 @@ const ChartStyle = ({
     })
 
     // Apply theme-specific colors safely
-    Object.entries(THEMES).forEach(([theme, prefix]) => {
+    Object.entries(THEMES).forEach(([theme, _]) => {
       const shouldApply = theme === 'light' || 
         (theme === 'dark' && document.documentElement.classList.contains('dark'))
       
@@ -104,6 +101,10 @@ const ChartStyle = ({
       }
     }
   }, [id, config, colorConfig])
+
+  if (!colorConfig.length) {
+    return null
+  }
 
   return null // No style element needed - using CSS custom properties directly
 }

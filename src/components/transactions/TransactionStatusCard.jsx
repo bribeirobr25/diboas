@@ -27,7 +27,7 @@ export default function TransactionStatusCard({
   compact = false,
   showHash = true 
 }) {
-  const [showDetails, setShowDetails] = useState(!compact)
+  const [_showDetails, _setShowDetails] = useState(!compact)
   const [copied, setCopied] = useState(false)
 
   const {

@@ -48,7 +48,7 @@ export function FeatureFlagProvider({ children, initialUserContext = {} }) {
 
   const isFeatureEnabled = useCallback((flagName) => {
     // Check cache first for performance
-    if (featuresCache.hasOwnProperty(flagName)) {
+    if (Object.hasOwn(featuresCache, flagName)) {
       return featuresCache[flagName]
     }
     
@@ -194,7 +194,7 @@ export function useFeatureFlagDebugger() {
  * Custom hook for gradual feature rollout status
  */
 export function useFeatureRolloutStatus(flagName) {
-  const { userContext } = useFeatureFlagContext()
+  const { userContext: _USER_CONTEXT } = useFeatureFlagContext()
   const envInfo = getEnvironmentInfo()
   
   const flagInfo = featureFlagManager.getFeatureFlagInfo(flagName)

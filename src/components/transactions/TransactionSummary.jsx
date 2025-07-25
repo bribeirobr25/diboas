@@ -17,7 +17,7 @@ export default function TransactionSummary({
   getNetworkFeeRate,
   getProviderFeeRate,
   getPaymentMethodFeeRate,
-  recipientAddress
+  // recipientAddress
 }) {
   const [showFeeDetails, setShowFeeDetails] = useState(false)
 

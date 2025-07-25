@@ -3,7 +3,7 @@
  * Quick test to verify transaction system functionality
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { useWalletBalance, useTransactionProcessor, useFeeCalculator } from '../hooks/useTransactions.jsx'

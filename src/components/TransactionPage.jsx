@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 
 // Components
 import PageHeader from './shared/PageHeader.jsx'
@@ -21,8 +21,7 @@ import {
   useWalletBalance, 
   useFeeCalculator, 
   useTransactionValidation, 
-  useTransactionFlow,
-  useTransactionTwoFA 
+  useTransactionFlow
 } from '../hooks/transactions/index.js'
 
 export default function TransactionPage({ transactionType: propTransactionType }) {
@@ -276,7 +275,6 @@ export default function TransactionPage({ transactionType: propTransactionType }
       
       if (result.requiresTwoFA) {
         // Handle 2FA requirement - implementation pending
-        console.log('2FA required for transaction')
       }
     } catch (error) {
       console.error('Transaction failed:', error)
@@ -285,9 +283,7 @@ export default function TransactionPage({ transactionType: propTransactionType }
 
   const handleTransactionConfirm = useCallback(async () => {
     try {
-      console.log('TransactionPage: Confirming transaction...')
-      const result = await confirmTransaction()
-      console.log('TransactionPage: Transaction confirmed with result:', result)
+      await confirmTransaction()
       // Don't navigate immediately - let the flow state transition to 'completed' 
       // and show the success screen first
     } catch (error) {
@@ -358,7 +354,6 @@ export default function TransactionPage({ transactionType: propTransactionType }
 
   // Show transaction progress screen if in progress
   if (flowState === 'processing' || flowState === 'confirming' || flowState === 'completed' || flowState === 'pending') {
-    console.log('TransactionPage: Rendering progress screen with flowState:', flowState, 'isCompleted:', flowState === 'completed')
     
     return (
       <TransactionProgressScreen

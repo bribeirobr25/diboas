@@ -105,7 +105,7 @@ export class BaseProviderRegistry {
   getBestProvider(requirements = {}) {
     const {
       feature = null,
-      environment = process.env.NODE_ENV || 'development',
+      environment = typeof process !== 'undefined' ? process?.env?.NODE_ENV : 'development',
       excludeProviders = [],
       forceProvider = null
     } = requirements

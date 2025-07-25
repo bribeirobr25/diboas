@@ -8,6 +8,29 @@ const getEnvVar = (key, fallback = null) => {
   return import.meta.env[key] || fallback
 }
 
+// Security filter: Remove sensitive keys from client-side config
+const filterSecrets = (config) => {
+  const sensitiveKeys = ['secret', 'private', 'api_key', 'webhook']
+  
+  const filtered = JSON.parse(JSON.stringify(config))
+  
+  const removeSecrets = (obj) => {
+    if (typeof obj !== 'object' || obj === null) return obj
+    
+    for (const [key, value] of Object.entries(obj)) {
+      if (sensitiveKeys.some(sensitive => key.toLowerCase().includes(sensitive))) {
+        // Replace with placeholder indicating server-side handling
+        obj[key] = `[SERVER_SIDE_ONLY]`
+      } else if (typeof value === 'object') {
+        removeSecrets(value)
+      }
+    }
+  }
+  
+  removeSecrets(filtered)
+  return filtered
+}
+
 export const INTEGRATION_CONFIG = {
   // Authentication providers
   auth: {
@@ -16,15 +39,13 @@ export const INTEGRATION_CONFIG = {
       providers: {
         google: {
           clientId: getEnvVar('VITE_GOOGLE_CLIENT_ID'),
-          clientSecret: getEnvVar('VITE_GOOGLE_CLIENT_SECRET'),
+          // clientSecret removed - handled server-side only
           scopes: ['email', 'profile'],
           enabled: true
         },
         apple: {
           clientId: getEnvVar('VITE_APPLE_CLIENT_ID'),
-          teamId: getEnvVar('VITE_APPLE_TEAM_ID'),
-          keyId: getEnvVar('VITE_APPLE_KEY_ID'),
-          privateKey: getEnvVar('VITE_APPLE_PRIVATE_KEY'),
+          // privateKey and secrets moved to server-side
           enabled: true
         },
         twitter: {
@@ -352,4 +373,8 @@ if (import.meta.env.DEV) {
   INTEGRATION_CONFIG.twoFA.authy.environment = 'sandbox'
 }
 
-export default INTEGRATION_CONFIG
+// Export filtered config for client-side use (secrets removed)
+const SECURE_INTEGRATION_CONFIG = filterSecrets(INTEGRATION_CONFIG)
+
+export default SECURE_INTEGRATION_CONFIG
+export { INTEGRATION_CONFIG as RAW_CONFIG } // Only for server-side use

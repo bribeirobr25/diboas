@@ -12,7 +12,6 @@ import {
   DollarSign,
   PieChart,
   Send,
-  CreditCard,
   Wallet,
   Eye,
   EyeOff,
@@ -20,8 +19,7 @@ import {
   ArrowRight,
   Zap,
   Shield,
-  Globe,
-  Star
+  Globe
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import SimpleMarketIndicators from './SimpleMarketIndicators.jsx'
@@ -31,7 +29,7 @@ import { useWalletBalance } from '../hooks/useTransactions.jsx'
 import { useDataManagerSubscription, useSafeDataManager } from '../hooks/useDataManagerSubscription.js'
 
 // PERFORMANCE: Memoized transaction item component
-const TransactionItem = memo(({ transaction, onNavigate }) => (
+const _TransactionItem = memo(({ transaction, onNavigate }) => (
   <div 
     key={transaction.id}
     className="transaction-card"
@@ -53,7 +51,7 @@ const TransactionItem = memo(({ transaction, onNavigate }) => (
 ))
 
 // PERFORMANCE: Memoized portfolio item component  
-const PortfolioItem = memo(({ item }) => (
+const _PortfolioItem = memo(({ item }) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center space-x-3">
       <div className={`w-3 h-3 rounded-full ${item.color}`}></div>

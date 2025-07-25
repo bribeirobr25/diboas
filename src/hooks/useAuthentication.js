@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { checkAuthRateLimit, checkPasswordRateLimit } from '../utils/advancedRateLimiter.js'
+import { checkAuthRateLimit } from '../utils/advancedRateLimiter.js'
 
 /**
  * Authentication error types for user-friendly messages

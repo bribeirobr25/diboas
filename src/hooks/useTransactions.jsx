@@ -4,11 +4,11 @@
  * Uses centralized DataManager for single source of truth
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { defaultFeeCalculator } from '../utils/feeCalculations.js'
 import { useAuth } from './useIntegrations.jsx'
 import { dataManager } from '../services/DataManager.js'
-import { getTransactionEngine, getWalletManager } from './transactions/transactionSingletons.js'
+// import { getWalletManager } from './transactions/transactionSingletons.js'
 
 // Main transaction hook moved to ./transactions/useTransactions.js
 
@@ -639,8 +639,6 @@ export const useTransactionTwoFA = () => {
       
       // In real implementation, integrate with 2FA provider
       return { success: true, sessionId }
-    } catch (error) {
-      throw error
     } finally {
       setIsVerifying(false)
     }
@@ -662,8 +660,6 @@ export const useTransactionTwoFA = () => {
       } else {
         throw new Error('Invalid 2FA code')
       }
-    } catch (error) {
-      throw error
     } finally {
       setIsVerifying(false)
     }

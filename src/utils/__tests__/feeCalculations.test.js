@@ -3,7 +3,7 @@
  * Tests all fee calculation scenarios, edge cases, and network-specific logic
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { FeeCalculator } from '../feeCalculations.js'
 
 describe('Fee Calculations', () => {

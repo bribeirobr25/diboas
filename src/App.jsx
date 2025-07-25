@@ -1,14 +1,19 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { useMemo, useEffect } from 'react';
-import LandingPage from './components/LandingPage.jsx'
-import AuthPage from './components/AuthPage.jsx'
-import AppDashboard from './components/AppDashboard.jsx'
-import AccountView from './components/AccountView.jsx'
-import TransactionPage from './components/TransactionPage.jsx'
+import { useMemo, useEffect, lazy, Suspense } from 'react';
 import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
-import { FeatureFlagProvider } from './hooks/useFeatureFlags.jsx'
-import EnvironmentDebugPanel from './components/debug/EnvironmentDebugPanel.jsx'
+import LoadingScreen from './components/shared/LoadingScreen.jsx'
+
+// Lazy load ALL non-critical components for better performance and smaller bundles
+const LandingPage = lazy(() => import('./components/LandingPage.jsx'))
+const AuthPage = lazy(() => import('./components/AuthPage.jsx'))
+const AppDashboard = lazy(() => import('./components/AppDashboard.jsx'))
+const AccountView = lazy(() => import('./components/AccountView.jsx'))
+const TransactionPage = lazy(() => import('./components/TransactionPage.jsx'))
+const EnvironmentDebugPanel = lazy(() => import('./components/debug/EnvironmentDebugPanel.jsx'))
+
+// Lazy load providers and utilities
+const FeatureFlagProvider = lazy(() => import('./hooks/useFeatureFlags.jsx').then(module => ({ default: module.FeatureFlagProvider })))
 import { validateEnvironment, getEnvironmentInfo } from './config/environments.js'
 import { resetToCleanState, isCleanState } from './utils/resetDataForTesting.js'
 import { initializeLocalStorageCleanup } from './utils/localStorageHelper.js'
@@ -59,7 +64,7 @@ function App() {
         delete window.diboas_app_logged
       }
     }
-  }, [envInfo.debugMode, validation.isValid, validation.issues])
+  }, [envInfo.debugMode, envInfo.environment, envInfo.region, envInfo.version, envInfo.baseUrl, validation.isValid, validation.issues])
   
   // Memoize initial user context to prevent unnecessary re-renders
   const initialUserContext = useMemo(() => ({
@@ -71,32 +76,88 @@ function App() {
   return (
     <HelmetProvider>
       <ErrorBoundary>
-        <FeatureFlagProvider initialUserContext={initialUserContext}>
-          <Router>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/app" element={<AppDashboard />} />
-              <Route path="/account" element={<AccountView />} />
+        <Suspense fallback={<LoadingScreen />}>
+          <FeatureFlagProvider initialUserContext={initialUserContext}>
+            <Router>
+              <Routes>
+                <Route path="/" element={
+                  <Suspense fallback={<LoadingScreen />}>
+                    <LandingPage />
+                  </Suspense>
+                } />
+              <Route path="/auth" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <AuthPage />
+                </Suspense>
+              } />
+              <Route path="/app" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <AppDashboard />
+                </Suspense>
+              } />
+              <Route path="/account" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <AccountView />
+                </Suspense>
+              } />
               
               {/* RESTful Transaction Routes */}
-              <Route path="/add" element={<TransactionPage transactionType="add" />} />
-              <Route path="/send" element={<TransactionPage transactionType="send" />} />
-              <Route path="/receive" element={<TransactionPage transactionType="receive" />} />
-              <Route path="/buy" element={<TransactionPage transactionType="buy" />} />
-              <Route path="/sell" element={<TransactionPage transactionType="sell" />} />
-              <Route path="/transfer" element={<TransactionPage transactionType="transfer" />} />
-              <Route path="/withdraw" element={<TransactionPage transactionType="withdraw" />} />
-              <Route path="/invest" element={<TransactionPage transactionType="invest" />} />
+              <Route path="/add" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage transactionType="add" />
+                </Suspense>
+              } />
+              <Route path="/send" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage transactionType="send" />
+                </Suspense>
+              } />
+              <Route path="/receive" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage transactionType="receive" />
+                </Suspense>
+              } />
+              <Route path="/buy" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage transactionType="buy" />
+                </Suspense>
+              } />
+              <Route path="/sell" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage transactionType="sell" />
+                </Suspense>
+              } />
+              <Route path="/transfer" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage transactionType="transfer" />
+                </Suspense>
+              } />
+              <Route path="/withdraw" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage transactionType="withdraw" />
+                </Suspense>
+              } />
+              <Route path="/invest" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage transactionType="invest" />
+                </Suspense>
+              } />
               
               {/* Legacy transaction route for backward compatibility */}
-              <Route path="/transaction" element={<TransactionPage />} />
+              <Route path="/transaction" element={
+                <Suspense fallback={<LoadingScreen />}>
+                  <TransactionPage />
+                </Suspense>
+              } />
             </Routes>
             
             {/* Development Debug Panel */}
-            <EnvironmentDebugPanel />
+            <Suspense fallback={<div>Loading debug panel...</div>}>
+              <EnvironmentDebugPanel />
+            </Suspense>
           </Router>
         </FeatureFlagProvider>
+        </Suspense>
       </ErrorBoundary>
     </HelmetProvider>
   )

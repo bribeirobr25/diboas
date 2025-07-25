@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../test/utils/testHelpers.jsx'
-import { mockMarketData, mockApiResponses } from '../../test/mocks/mockData.js'
+import { mockMarketData } from '../../test/mocks/mockData.js'
 import MarketIndicators from '../MarketIndicators.jsx'
 
 // Mock the market data hook

@@ -107,7 +107,7 @@ const CSP_POLICIES = {
     ],
     'style-src': [
       "'self'",
-      "'unsafe-inline'", // Required for CSS-in-JS libraries
+      // "'unsafe-inline'", // REMOVED for security - using nonce instead
       "https://fonts.googleapis.com",
       "https://fonts.gstatic.com"
     ],

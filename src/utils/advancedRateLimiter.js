@@ -244,7 +244,7 @@ export class AdvancedRateLimiter {
       request => now - request.timestamp < tier.windowMs
     )
 
-    const blockInfo = this.blocked.get(key)
+    // const blockInfo = this.blocked.get(key) // Removed unused variable
     const violations = this.violations.get(identifier) || 0
 
     return {
@@ -291,8 +291,8 @@ export class AdvancedRateLimiter {
     }
 
     // Clean old violations (keep for 24 hours)
-    const violationRetentionTime = 24 * 60 * 60 * 1000
-    for (const [identifier, _] of this.violations.entries()) {
+    // const violationRetentionTime = 24 * 60 * 60 * 1000 // Removed unused variable
+    for (const [_identifier, _] of this.violations.entries()) {
       // For simplicity, we'll keep all violations
       // In production, you might want to implement time-based cleanup
     }

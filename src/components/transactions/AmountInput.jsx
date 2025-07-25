@@ -36,13 +36,14 @@ export default function AmountInput({
           { label: '50%', value: Math.round((balance?.availableForSpending || 0) * 0.50 * 100) / 100 },
           { label: 'Max', value: balance?.availableForSpending || 0 }
         ]
-      case 'sell':
+      case 'sell': {
         const assetBalance = balance?.assets?.[selectedAsset]?.investedAmount || 0
         return [
           { label: '25%', value: Math.round(assetBalance * 0.25 * 100) / 100 },
           { label: '50%', value: Math.round(assetBalance * 0.50 * 100) / 100 },
           { label: 'Max', value: assetBalance }
         ]
+      }
       case 'withdraw':
         return [
           { label: '25%', value: Math.round((balance?.availableForSpending || 0) * 0.25 * 100) / 100 },

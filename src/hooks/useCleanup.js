@@ -4,6 +4,8 @@
  */
 
 import { useEffect, useRef } from 'react'
+import { dataManager } from '../services/DataManager.js'
+import { rateLimiter, checkAuthRateLimit, checkTransactionRateLimit, checkGeneralRateLimit } from '../utils/advancedRateLimiter.js'
 
 export const useCleanup = () => {
   const cleanupFunctions = useRef([])
@@ -63,7 +65,6 @@ export const useDataManagerSubscription = (eventName, handler, dependencies = []
   const { addCleanup } = useCleanup()
 
   useEffect(() => {
-    const { dataManager } = require('../services/DataManager.js')
     const unsubscribe = dataManager.subscribe(eventName, handler)
     
     addCleanup(unsubscribe)
@@ -79,8 +80,6 @@ export const useRateLimiter = () => {
   const { addServiceCleanup } = useCleanup()
 
   useEffect(() => {
-    const { rateLimiter } = require('../utils/advancedRateLimiter.js')
-    
     // Register for cleanup on unmount
     addServiceCleanup(rateLimiter)
   }, [])
@@ -88,15 +87,12 @@ export const useRateLimiter = () => {
   // Return rate limiting functions
   return {
     checkAuthRateLimit: (...args) => {
-      const { checkAuthRateLimit } = require('../utils/advancedRateLimiter.js')
       return checkAuthRateLimit(...args)
     },
     checkTransactionRateLimit: (...args) => {
-      const { checkTransactionRateLimit } = require('../utils/advancedRateLimiter.js')
       return checkTransactionRateLimit(...args)
     },
     checkGeneralRateLimit: (...args) => {
-      const { checkGeneralRateLimit } = require('../utils/advancedRateLimiter.js')
       return checkGeneralRateLimit(...args)
     }
   }

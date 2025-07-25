@@ -206,18 +206,19 @@ class DataManager {
     this.emit('balance:loading', true)
 
     try {
-      const { type, amount, netAmount, fees, asset, paymentMethod } = transactionData
+      const { type, amount, fees, asset, paymentMethod } = transactionData
       const numericAmount = parseFloat(amount)
       const feesTotal = parseFloat(fees?.total || 0)
 
       // Update balance based on transaction type
       switch (type) {
-        case 'add':
+        case 'add': {
           // Add (On-Ramp): Only affects Available Balance
           // Available Balance = current + (amount - fees)
           const netAmountAdded = numericAmount - feesTotal
           this.state.balance.availableForSpending += netAmountAdded
           break
+        }
           
         case 'withdraw':
           // Withdraw (Off-Ramp): Only affects Available Balance  
@@ -237,7 +238,7 @@ class DataManager {
           this.state.balance.availableForSpending += numericAmount
           break
           
-        case 'buy':
+        case 'buy': {
           // Buy: Can be On-Ramp or On-Chain
           const netInvestmentAmount = numericAmount - feesTotal
           
@@ -261,8 +262,9 @@ class DataManager {
           this.state.balance.assets[asset].usdValue += netInvestmentAmount
           this.state.balance.assets[asset].investedAmount += netInvestmentAmount
           break
+        }
           
-        case 'sell':
+        case 'sell': {
           // Sell (On-Chain): Transfer from Invested to Available
           // Invested Balance = current - full transaction amount
           // Available Balance = current + (transaction amount - fees)
@@ -279,6 +281,7 @@ class DataManager {
             }
           }
           break
+        }
       }
 
       // Recalculate total balance: Total = Available + Invested
@@ -348,14 +351,11 @@ class DataManager {
    */
   async processTransaction(transactionData) {
     try {
-      console.log('🔄 DataManager processing transaction:', transactionData)
-      
       // Update balance first
       await this.updateBalance(transactionData)
       
       // Add to transaction history
       const transaction = this.addTransaction(transactionData)
-      console.log('📚 Transaction added to history:', transaction)
       
       // Emit complete transaction event
       this.emit('transaction:completed', { transaction, balance: this.state.balance })
@@ -364,11 +364,9 @@ class DataManager {
       window.dispatchEvent(new CustomEvent('diboas-transaction-completed', {
         detail: { transaction, userId: transactionData.userId || 'demo_user_12345' }
       }))
-      console.log('🔔 Transaction completed event dispatched:', { transaction, userId: transactionData.userId || 'demo_user_12345' })
       
       return { transaction, balance: this.state.balance }
     } catch (error) {
-      console.error('❌ DataManager transaction error:', error)
       this.emit('transaction:error', error)
       throw error
     }
@@ -635,7 +633,7 @@ class DataManager {
         throw new Error('Invalid balance data provided')
       }
 
-      const previousBalance = { ...this.state.balance }
+      // const previousBalance = { ...this.state.balance } // Removed unused variable
       
       // Update balance
       this.state.balance = {
@@ -644,8 +642,7 @@ class DataManager {
         lastUpdated: new Date().toISOString()
       }
 
-      // Log balance change for audit
-      console.log(`Balance updated atomically: ${previousBalance.totalUSD} -> ${newBalance.totalUSD}`)
+      // Balance updated atomically
 
       // Emit event
       this.emit('balance:updated', this.state.balance)
@@ -702,7 +699,7 @@ class DataManager {
         this.subscribers.delete(eventType)
       }
     }
-    console.log(`DataManager: Active subscriptions: ${this.subscribers.size}`)
+    // Active subscriptions cleanup completed
   }
 
   /**
@@ -712,7 +709,7 @@ class DataManager {
     if (this.state.transactions.length > this.maxTransactionHistory) {
       const trimCount = this.state.transactions.length - this.maxTransactionHistory
       this.state.transactions = this.state.transactions.slice(trimCount)
-      console.log(`DataManager: Trimmed ${trimCount} old transactions`)
+      // Trimmed old transactions
       this.persistState()
     }
   }
@@ -724,7 +721,7 @@ class DataManager {
     if (this.operationQueue.length > this.maxOperationQueue) {
       const trimCount = this.operationQueue.length - this.maxOperationQueue
       this.operationQueue = this.operationQueue.slice(trimCount)
-      console.log(`DataManager: Trimmed ${trimCount} old queued operations`)
+      // Trimmed old queued operations
     }
   }
 
@@ -747,8 +744,7 @@ class DataManager {
    * MEMORY MANAGEMENT: Dispose of DataManager and clean up all resources
    */
   dispose() {
-    console.log('DataManager: Disposing and cleaning up resources')
-    
+    // Disposing and cleaning up resources
     this.disposed = true
     
     // Clear all intervals
@@ -778,7 +774,7 @@ class DataManager {
       lastUpdated: null
     }
     
-    console.log('DataManager: Disposal complete')
+    // Disposal complete
   }
 }
 

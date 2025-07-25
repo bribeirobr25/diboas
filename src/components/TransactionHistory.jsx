@@ -3,7 +3,7 @@
  * Displays comprehensive transaction history with filtering and monitoring
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -30,7 +30,7 @@ import {
 import { useTransactionProcessor } from '../hooks/useTransactions.jsx'
 
 const TransactionHistory = ({ limit = null, showHeader = true, className = '' }) => {
-  const { getTransactionHistory, getTransaction } = useTransactionProcessor()
+  const { getTransactionHistory } = useTransactionProcessor()
   const [transactions, setTransactions] = useState([])
   const [filteredTransactions, setFilteredTransactions] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -109,12 +109,8 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
     }
   }
 
-  // Load transaction history
-  useEffect(() => {
-    loadTransactions()
-  }, [])
-
-  const loadTransactions = () => {
+  // Load transaction history function
+  const loadTransactions = useCallback(() => {
     setIsLoading(true)
     try {
       const history = getTransactionHistory({ limit })
@@ -124,7 +120,12 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [getTransactionHistory, limit])
+
+  // Load transaction history on mount
+  useEffect(() => {
+    loadTransactions()
+  }, [loadTransactions])
 
   // Filter and search transactions
   useEffect(() => {

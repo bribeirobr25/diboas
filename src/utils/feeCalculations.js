@@ -218,7 +218,7 @@ export class FeeCalculator {
       detectedNetwork = assetNetwork
     } else if (type === 'invest') {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // Investments on Solana
-      detectedNetwork = 'SOL'
+      // detectedNetwork = 'SOL' // Removed unused variable
     }
 
     const networkFee = parseFloat(amount) * networkFeeRate
@@ -237,17 +237,19 @@ export class FeeCalculator {
     }
 
     switch (type) {
-      case 'add':
+      case 'add': {
         // On-ramp provider fees based on payment method
         const onrampRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.onramp[paymentMethod] || 0
         providerFee = amount * onrampRate
         break
+      }
 
-      case 'withdraw':
+      case 'withdraw': {
         // Off-ramp provider fees based on payment method
         const offrampRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.offramp[paymentMethod] || 0
         providerFee = amount * offrampRate
         break
+      }
 
       case 'invest':
         // Investment provider fees + potential on-chain fees
@@ -288,7 +290,7 @@ export class FeeCalculator {
         providerFee = 0
         break
 
-      case 'transfer':
+      case 'transfer': {
         // External transfer fees - 0.8% DEX/Bridge fee only for cross-chain transfers
         const addressInfo = this.detectNetworkFromAddress(transactionData.recipient)
         
@@ -300,6 +302,7 @@ export class FeeCalculator {
           providerFee = 0
         }
         break
+      }
 
       default:
         providerFee = 0
@@ -337,7 +340,7 @@ export class FeeCalculator {
   /**
    * Calculate gas fees for smart contract interactions
    */
-  async calculateGasFees(type, fromChain, toChain, asset) {
+  async calculateGasFees(_type, _fromChain, _toChain, _asset) {
     // Gas fees are included in network fees as per diBoaS design
     // The platform abstracts away gas complexity from users
     // All gas costs are covered within the network fee structure
@@ -546,7 +549,7 @@ export class FeeCalculator {
     return ['add', 'withdraw', 'buy', 'sell'].includes(type)
   }
 
-  async enhanceWithRealTimeData(fees, transactionData) {
+  async enhanceWithRealTimeData(fees, _transactionData) {
     // In real implementation, this would fetch current rates from:
     // - Payment processors (Stripe, PayPal)
     // - DEX aggregators (1inch, Jupiter)

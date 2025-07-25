@@ -19,7 +19,7 @@ class ErrorBoundary extends React.Component {
     }
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_) {
     // Update state so the next render will show the fallback UI
     return { hasError: true }
   }
@@ -69,7 +69,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       const { error } = this.state
-      const isDevelopment = process.env.NODE_ENV === 'development'
+      const isDevelopment = typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development'
 
       return (
         <div className="main-layout center-content" style={{ padding: '2rem', minHeight: '100vh' }}>

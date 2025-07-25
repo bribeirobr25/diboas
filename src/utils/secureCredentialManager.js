@@ -189,7 +189,7 @@ class SecureCredentialManager {
     
     try {
       // In production, this would be a secure API call
-      const credentialEndpoint = `https://credentials.diboas.com/api/v1/credentials/${type}`
+      // const credentialEndpoint = `https://credentials.diboas.com/api/v1/credentials/${type}` // Removed unused variable
       
       // Simulate secure endpoint call
       // In real implementation, this would use client certificates or other secure auth

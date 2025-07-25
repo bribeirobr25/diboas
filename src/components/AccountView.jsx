@@ -3,23 +3,18 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { 
-  ArrowUpRight,
   ArrowDownLeft,
+  ArrowUpRight,
+  Send,
+  CreditCard,
   TrendingUp,
   TrendingDown,
   DollarSign,
-  Send,
-  CreditCard,
   Wallet,
   Eye,
   EyeOff,
-  Filter,
   Download,
-  Search,
-  Calendar,
-  Star,
-  Zap,
-  Globe
+  Search
 } from 'lucide-react'
 import { Input } from '@/components/ui/input.jsx'
 import PageHeader from './shared/PageHeader.jsx'
@@ -37,14 +32,14 @@ export default function AccountView() {
   // Refresh balance when component mounts
   useEffect(() => {
     getBalance(true) // Force refresh
-  }, [])
+  }, [getBalance])
   
   // Get transaction history from DataManager (same as AppDashboard)
   const { getTransactions: safeGetTransactions } = useSafeDataManager()
   
   const getTransactionHistory = useCallback(() => {
     const allTransactions = safeGetTransactions()
-    console.log('📖 AccountView: Getting transaction history from DataManager:', allTransactions.length, 'transactions')
+    // Transaction history loaded
     return allTransactions // Get all transactions for account view
   }, [safeGetTransactions])
   
@@ -54,22 +49,21 @@ export default function AccountView() {
   useEffect(() => {
     try {
       setTransactionHistory(getTransactionHistory())
-    } catch (error) {
-      console.warn('Failed to load transaction history:', error)
+    } catch (_) {
       setTransactionHistory([])
     }
   }, [getTransactionHistory])
   
   // Use DataManager subscriptions (same as AppDashboard)
-  useDataManagerSubscription('transaction:added', (transaction) => {
-    console.log('🔔 AccountView: DataManager transaction added event received:', transaction)
+  useDataManagerSubscription('transaction:added', () => {
+    // Transaction added event received
     const newHistory = getTransactionHistory()
     setTransactionHistory(newHistory)
     getBalance(true)
   }, [getTransactionHistory, getBalance])
   
-  useDataManagerSubscription('transaction:completed', ({ transaction }) => {
-    console.log('🔔 AccountView: DataManager transaction completed event received:', transaction)
+  useDataManagerSubscription('transaction:completed', () => {
+    // Transaction completed event received
     const newHistory = getTransactionHistory()
     setTransactionHistory(newHistory)
     getBalance(true)

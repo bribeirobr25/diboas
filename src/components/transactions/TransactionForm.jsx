@@ -27,8 +27,8 @@ export default function TransactionForm({
   balance,
   availableBalance,
   validationErrors,
-  showRecipientAddress,
-  setShowRecipientAddress,
+  // showRecipientAddress,
+  // setShowRecipientAddress,
   currentType
 }) {
 

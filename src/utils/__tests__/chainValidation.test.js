@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 // Mock the validation utilities for testing
-const mockValidationUtils = {
+const _mockValidationUtils = {
   validateBitcoinAddress: vi.fn(),
   validateEthereumAddress: vi.fn(),
   validateSolanaAddress: vi.fn(),
