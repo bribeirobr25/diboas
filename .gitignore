@@ -1,11 +1,13 @@
-# Node modules
+# Dependencies
 node_modules/
+.pnpm-store/
 
-# Build output
+# Build outputs
 dist/
 build/
+out/
 
-# Vite cache
+# Vite cache and build artifacts
 .vite/
 .cache/
 
@@ -14,38 +16,93 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# Local environment variables
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables
 .env
-.env.*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging.local
 
-# Editor/OS/System files
-.DS_Store
-Thumbs.db
-
-# VS Code settings (optional)
+# Editor and IDE files
 .vscode/
-
-# Parcel cache (if accidentally mixed in)
-.parcel-cache/
-
-# IDE files
 .idea/
+*.swp
+*.swo
+*~
 *.sublime-workspace
 *.sublime-project
 
-# Output from Tailwind CLI (if any custom use)
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Storybook
+storybook-static/
+.storybook/public/
+
+# Tailwind CSS
 *.css.map
 
-# Coverage from tests
-coverage/
+# Build tools and optimization
+.eslintcache
+.parcel-cache/
 
-# Mac OS and Linux swap files
-*.swp
-*.swo
+# Temporary files
+*.tmp
+*.temp
+.temp/
+.tmp/
 
-# Optional: storybook output
-storybook-static/
+# Security and sensitive data
+*.pem
+*.key
+*.cert
+.npmrc
+.yarnrc
 
-# Optional: TypeScript
-*.tsbuildinfo
+# Local development
+.local/
+.history/
+
+# Package manager locks (keep pnpm-lock.yaml but ignore others)
+yarn.lock
+package-lock.json
+
+# Optional: Performance monitoring
+performance-report.json
+css-optimization-report.json
+css-optimization-summary.json
+image-optimization-report.json
+
+# Optional: Debug files
+debug-*.js
+
+# Optional: Generated documentation
+.docusaurus/
+docs/build/

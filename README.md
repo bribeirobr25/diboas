@@ -47,6 +47,13 @@ diBoaS bridges the gap between traditional financial services and decentralized 
 - **Transfer** - Send to external wallet addresses
 - **Withdraw** - Cash out to bank account or payment method
 
+### Transaction Management
+- **Interactive Transaction History** - Clickable transaction items across all views
+- **Real-time Status Updates** - Live transaction status tracking
+- **Detailed Transaction Views** - Comprehensive transaction information with blockchain explorer links
+- **Progressive Transaction UI** - Step-by-step transaction guidance
+- **Smart Fee Calculation** - Dynamic fee estimation with real-time updates
+
 ### Educational System
 The platform features friendly mascots for gamified financial education:
 
@@ -62,13 +69,18 @@ The platform features friendly mascots for gamified financial education:
 ## Technical Implementation
 
 ### Technology Stack
-- **Frontend**: React 19 with Vite
-- **Styling**: Tailwind CSS with custom diBoaS theme
-- **Components**: shadcn/ui component library  
-- **Icons**: Lucide React icons
-- **Animations**: Framer Motion (available)
+- **Frontend**: React 19 with Vite 6.3.5
+- **Package Manager**: pnpm 10.4.1
+- **Styling**: Tailwind CSS 4.1.7 with custom diBoaS theme
+- **Components**: shadcn/ui component library with Radix UI primitives
+- **Icons**: Lucide React icons 0.510.0
+- **Routing**: React Router DOM 7.6.1
+- **Forms**: React Hook Form with Zod validation
+- **Animations**: Framer Motion 12.15.0
 - **State Management**: Centralized DataManager pattern
 - **Transaction Engine**: Multi-chain abstraction layer
+- **Testing**: Vitest + Playwright + Testing Library
+- **Type Safety**: TypeScript with JSDoc annotations
 
 ### Architecture
 - **Multi-Chain Support**: BTC, ETH Layer 1, SOL, SUI
@@ -121,44 +133,81 @@ The codebase uses a semantic CSS class naming system for maintainability:
 diboas/
 ├── src/
 │   ├── components/
-│   │   ├── ui/                    # shadcn/ui components
+│   │   ├── ui/                    # shadcn/ui components & TransactionIcon.tsx
 │   │   ├── shared/                # Shared components
 │   │   │   ├── PageHeader.jsx
-│   │   │   ├── TransactionProgressScreen.jsx
+│   │   │   ├── EnhancedTransactionProgressScreen.jsx
 │   │   │   ├── LoadingScreen.jsx
-│   │   │   └── ErrorBoundary.jsx
+│   │   │   ├── ErrorBoundary.jsx
+│   │   │   └── FinancialErrorBoundary.jsx
+│   │   ├── transactions/          # Transaction-specific components
+│   │   │   ├── TransactionForm.jsx
+│   │   │   ├── AmountInput.jsx
+│   │   │   ├── PaymentMethodSelector.jsx
+│   │   │   └── TransactionStatusCard.jsx
 │   │   ├── LandingPage.jsx        # Marketing landing page
 │   │   ├── AppDashboard.jsx       # Main app dashboard
 │   │   ├── TransactionPage.jsx    # Transaction interface
-│   │   ├── AccountView.jsx        # Account management
-│   │   ├── TransactionHistory.jsx # Transaction history
+│   │   ├── AccountView.jsx        # Account management (with clickable history)
+│   │   ├── TransactionHistory.jsx # Interactive transaction history
+│   │   ├── TransactionDetailsPage.jsx # Detailed transaction view
 │   │   └── AuthPage.jsx           # Authentication
 │   ├── hooks/
-│   │   ├── useTransactions.jsx    # Transaction system hooks
-│   │   ├── useIntegrations.jsx    # Integration management
-│   │   └── useFeatureFlags.jsx    # Feature flag system
+│   │   ├── transactions/          # Transaction-specific hooks
+│   │   │   ├── useTransactions.js
+│   │   │   ├── useFeeCalculator.js
+│   │   │   └── useTransactionValidation.js
+│   │   ├── useDataManagerSubscription.js
+│   │   ├── useOnChainStatus.js
+│   │   ├── useFeatureFlags.jsx
+│   │   └── useIntegrations.jsx
 │   ├── services/
 │   │   ├── DataManager.js         # Centralized state management
 │   │   ├── transactions/
+│   │   │   ├── OnChainTransactionManager.js
 │   │   │   ├── TransactionEngine.js
 │   │   │   └── MultiWalletManager.js
-│   │   └── integrations/
+│   │   ├── integrations/          # Provider integration system
+│   │   │   ├── IntegrationManager.js
+│   │   │   ├── auth/, kyc/, payments/, wallets/
+│   │   │   └── onchain/
+│   │   └── onchain/
+│   │       └── OnChainStatusProvider.js
 │   ├── utils/
-│   │   ├── feeCalculations.js     # Fee calculation engine
-│   │   ├── navigationHelpers.js   # Navigation utilities
-│   │   └── security.js            # Security utilities
-│   ├── assets/
-│   │   ├── diboas-logo.png
-│   │   ├── mascot-financial-basics.png
-│   │   ├── mascot-investment-guide.png
-│   │   └── mascot-crypto-defi.png
+│   │   ├── feeCalculations.js     # Comprehensive fee calculation engine
+│   │   ├── chainValidation.js     # Multi-chain address validation
+│   │   ├── secureStorage.js       # Encrypted local storage
+│   │   ├── securityLogging.js     # Security event logging
+│   │   └── transactionDisplayHelpers.ts
+│   ├── test/                      # Comprehensive test suite
+│   │   ├── integration/           # Integration tests
+│   │   ├── e2e/                   # End-to-end tests
+│   │   ├── mocks/                 # Test mocks and fixtures
+│   │   └── helpers/               # Test utilities
+│   ├── config/
+│   │   ├── environments.js        # Environment configuration
+│   │   ├── featureFlags.js        # Feature flag definitions
+│   │   └── integrations.js        # Integration settings
+│   ├── styles/
+│   │   ├── design-system.css      # Custom design system
+│   │   └── design-system.optimized.css
 │   ├── App.jsx                    # Main application component
-│   ├── App.css                    # Custom styles and brand theme
 │   └── main.jsx                   # Entry point
-├── docs/
-│   └── TRANSACTIONS.md            # Transaction system documentation
-├── public/
-├── index.html
+├── docs/                          # Comprehensive documentation
+│   ├── TRANSACTIONS.md            # Transaction system guide
+│   ├── ARCHITECTURE.md            # System architecture
+│   ├── TESTING.md                 # Testing documentation
+│   ├── SECURITY.md                # Security implementation
+│   └── PERFORMANCE.md             # Performance optimization
+├── scripts/                       # Development and build scripts
+│   ├── deploy.sh                  # Deployment automation
+│   ├── optimize-css.js            # CSS optimization
+│   └── performance-audit.js       # Performance monitoring
+├── deployment/                    # Docker configurations
+│   ├── docker-compose.development.yml
+│   └── docker-compose.production.yml
+├── public/                        # Static assets including mascot images
+├── tests/e2e/                     # Playwright E2E tests
 └── package.json
 ```
 
@@ -194,17 +243,23 @@ diboas/
 ### Getting Started
 
 ```bash
-# Install dependencies
-npm install
+# Install dependencies (using pnpm)
+pnpm install
 
 # Start development server  
-npm run dev
+pnpm run dev
 
 # Build for production
-npm run build
+pnpm run build
 
 # Preview production build
-npm run preview
+pnpm run preview
+
+# Run linting
+pnpm run lint
+
+# Run type checking
+pnpm run type-check
 ```
 
 ### Code Standards
@@ -232,13 +287,41 @@ The codebase follows these naming conventions for maintainability:
 
 ### Testing
 
-The platform supports comprehensive testing scenarios:
+The platform includes a comprehensive testing infrastructure:
 
+```bash
+# Run all tests
+pnpm run test
+
+# Run tests in watch mode
+pnpm run test:watch
+
+# Run tests with UI
+pnpm run test:ui
+
+# Run tests with coverage
+pnpm run test:coverage
+
+# Run specific test suites
+pnpm run test:unit           # Unit tests
+pnpm run test:integration    # Integration tests
+pnpm run test:component      # Component tests
+pnpm run test:onchain        # On-chain transaction tests
+pnpm run test:e2e            # End-to-end tests with Playwright
+
+# Run all tests (CI-friendly)
+pnpm run test:all:ci
+```
+
+#### Test Coverage Areas:
 - **Balance Updates**: All transaction types properly update available vs invested balances
 - **Fee Calculations**: Real-time fee calculation with provider simulation
 - **Validation Logic**: Form validation with balance and format checking
 - **Transaction Flow**: End-to-end transaction processing with progress tracking
 - **Error Handling**: Graceful error states with user-friendly messages
+- **Concurrent Operations**: Race condition prevention and transaction integrity
+- **On-Chain Integration**: Blockchain interaction testing with mock providers
+- **Component Testing**: UI component behavior and user interactions
 
 ### Browser Compatibility
 
@@ -269,6 +352,11 @@ The platform embodies this philosophy by making complex financial operations fee
 ✅ Multi-chain wallet abstraction
 ✅ Balance management system
 ✅ Form validation and error handling
+✅ Interactive transaction history
+✅ Comprehensive testing infrastructure
+✅ On-chain transaction management
+✅ Security and performance optimizations
+✅ Provider integration architecture
 
 ### Phase 2 - Integration
 🔄 Real banking API integration
