@@ -374,7 +374,7 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
             return (
               <Card 
                 key={transaction.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer"
+                className="interactive-card"
                 onClick={() => navigateToTransactionDetails(transaction.id)}
               >
                 <CardContent className="p-4">
