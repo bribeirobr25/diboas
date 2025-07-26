@@ -4,9 +4,11 @@ import { useSearchParams } from 'react-router-dom'
 // Components
 import PageHeader from './shared/PageHeader.jsx'
 import TransactionProgressScreen from './shared/TransactionProgressScreen.jsx'
+import EnhancedTransactionProgressScreen from './shared/EnhancedTransactionProgressScreen.jsx'
 import TransactionTypeSelector from './transactions/TransactionTypeSelector.jsx'
 import TransactionForm from './transactions/TransactionForm.jsx'
 import TransactionSummary from './transactions/TransactionSummary.jsx'
+import TransactionDetailsPage from './TransactionDetailsPage.jsx'
 
 // Icons
 import { 
@@ -27,6 +29,10 @@ import {
 export default function TransactionPage({ transactionType: propTransactionType }) {
   // const navigate = useNavigate() // Commented out as not used directly
   const [urlSearchParams] = useSearchParams()
+  
+  // Check if this is a transaction details view (id parameter) or transaction creation (type parameter)
+  const transactionId = urlSearchParams.get('id')
+  const isViewingTransaction = !!transactionId
   
   // Support both prop-based routing (new RESTful) and query parameter routing (legacy)
   const initialTransactionType = propTransactionType || urlSearchParams.get('type') || 'add'
@@ -390,9 +396,38 @@ export default function TransactionPage({ transactionType: propTransactionType }
     }
   }, [currentTransactionType, validateTransactionInput, transactionAmountInput, recipientWalletAddress, selectedCryptocurrencyAsset, chosenPaymentMethod])
 
+  // Show transaction details page if viewing a specific transaction
+  if (isViewingTransaction) {
+    return <TransactionDetailsPage transactionId={transactionId} />
+  }
+
   // Show transaction progress screen if in progress
-  if (transactionFlowState === 'processing' || transactionFlowState === 'confirming' || transactionFlowState === 'completed' || transactionFlowState === 'pending') {
+  if (transactionFlowState === 'processing' || transactionFlowState === 'confirming' || transactionFlowState === 'completed' || transactionFlowState === 'pending' || transactionFlowState === 'pending_blockchain') {
     
+    // Use enhanced progress screen when we have a transaction ID (indicates on-chain transaction)
+    const hasOnChainTransaction = transactionFlowData?.transactionId
+    
+    if (hasOnChainTransaction) {
+      return (
+        <EnhancedTransactionProgressScreen
+          transactionData={{
+            type: currentTransactionType,
+            amount: transactionAmountInput,
+            recipient: recipientWalletAddress,
+            asset: selectedCryptocurrencyAsset,
+            paymentMethod: chosenPaymentMethod
+          }}
+          transactionId={transactionFlowData.transactionId}
+          onConfirm={handleTransactionConfirm}
+          onCancel={() => resetTransactionFlow()}
+          flowState={transactionFlowState}
+          flowData={transactionFlowData}
+          flowError={transactionFlowError}
+        />
+      )
+    }
+    
+    // Use legacy progress screen for non-on-chain transactions
     return (
       <TransactionProgressScreen
         transactionData={{

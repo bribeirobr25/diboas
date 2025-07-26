@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { defaultFeeCalculator } from '../utils/feeCalculations.js'
 import { useAuth } from './useIntegrations.jsx'
 import { dataManager } from '../services/DataManager.js'
+import { onChainTransactionManager } from '../services/transactions/OnChainTransactionManager.js'
 // import { getWalletManager } from './transactions/transactionSingletons.js'
 
 // Main transaction hook moved to ./transactions/useTransactions.js
@@ -516,7 +517,7 @@ export const useTransactionFlow = () => {
     }
   }, [validateTransaction, checkSufficientBalance, calculateFees])
 
-  // Confirm and process transaction
+  // Confirm and process transaction with on-chain confirmation
   const confirmTransaction = useCallback(async () => {
     if (!flowData || flowState !== 'confirming') {
       throw new Error('No transaction to confirm')
@@ -525,71 +526,49 @@ export const useTransactionFlow = () => {
     try {
       setFlowState('processing')
       
-      // Add fees to transaction data before processing
+      // Initialize on-chain transaction manager if needed
+      await onChainTransactionManager.initialize()
+      
+      // Prepare transaction data with fees and user context
       const transactionWithFees = {
         ...flowData.transaction,
-        fees: flowData.fees
+        fees: flowData.fees,
+        userId: 'current_user' // TODO: Get actual user ID from auth context
       }
       
-      // Add realistic processing time based on asset type (simulate On-Chain response time)
-      const getProcessingDelay = (transactionData) => {
-        // BTC transactions take 5 seconds, all others take 2 seconds
-        if (transactionData.asset === 'BTC' || 
-            (transactionData.type === 'transfer' && transactionData.recipient?.startsWith('1') || 
-             transactionData.recipient?.startsWith('3') || 
-             transactionData.recipient?.startsWith('bc1'))) {
-          return 5000 // 5 seconds for BTC
+      // Execute transaction with on-chain confirmation gating
+      const result = await onChainTransactionManager.executeTransaction(transactionWithFees)
+      
+      if (result.success) {
+        // Transaction successfully submitted to blockchain
+        setFlowData({ 
+          ...flowData, 
+          result: {
+            ...result,
+            onChainEnabled: true,
+            message: 'Transaction submitted to blockchain. Waiting for confirmation...'
+          },
+          transactionId: result.transactionId
+        })
+        setFlowState('pending_blockchain')
+        
+        // Return result with transaction ID for on-chain monitoring
+        return {
+          ...result,
+          transactionId: result.transactionId,
+          onChainEnabled: true
         }
-        return 2000 // 2 seconds for all other assets/chains
+      } else {
+        // Transaction submission failed
+        throw new Error(result.error || 'Transaction submission failed')
       }
       
-      const processingDelay = getProcessingDelay(transactionWithFees)
-      
-      // Set a timeout to show "Not Yet Summary" after 3 seconds if still processing
-      const pendingTimeout = setTimeout(() => {
-        if (flowState === 'processing') {
-          setFlowState('pending')
-          // Auto-return to dashboard after 3 more seconds
-          setTimeout(() => {
-            setFlowState('completed')
-            setFlowData({ 
-              ...flowData, 
-              result: { 
-                success: true, 
-                pending: true,
-                message: 'Transaction is processing and will complete shortly'
-              }
-            })
-          }, 3000)
-        }
-      }, 3000)
-      
-      let result
-      try {
-        const [transactionResult] = await Promise.all([
-          processTransaction(transactionWithFees),
-          new Promise(resolve => setTimeout(resolve, processingDelay))
-        ])
-        
-        result = transactionResult
-        
-        // Clear the pending timeout since we got a result
-        clearTimeout(pendingTimeout)
-        
-        setFlowData({ ...flowData, result })
-        setFlowState('completed')
-      } catch (error) {
-        clearTimeout(pendingTimeout)
-        throw error
-      }
-      
-      return result
     } catch (error) {
       setFlowError(error)
       setFlowState('error')
       throw error
     }
-  }, [flowData, flowState, processTransaction])
+  }, [flowData, flowState])
 
   // Reset flow
   const resetFlow = useCallback(() => {

@@ -85,7 +85,7 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
 **Technical Details**:
   - **Default Chain**: Solana
   - **Assets**: USDC → Fiat
-  - **Minimum**: $10
+  - **Minimum**: $5
   - **Validation**: Requires payment method selection and sufficient available balance
   - **KYC**: Handled by 3rd party off-ramp provider
   - **Balance Check**: Available balance only (cannot use invested funds)
@@ -154,7 +154,7 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
 **Technical Details**:
   - **Chain - Network Detection**: Auto-detected from recipient address format
   - **Assets**: Small SOL (gas) + remainder in USDC
-  - **Minimum**: $10
+  - **Minimum**: $5
   - **Validation**: Strict address format validation, unsupported addresses show "Invalid Chain" and sufficient available balance
   - **KYC**: not applicable
   - **Balance Check**: Available balance only (cannot use invested funds)
@@ -197,7 +197,7 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
 
 **Technical Details**:
   - **Chain - Network Detection**: Based on selected asset's native network
-  - **Assets**: BTC, ETH, SOL, SUI native network
+  - **Assets**: BTC, ETH, SOL, SUI native network (USD removed from selection per UI improvements)
   - **Minimum**: $10
   - **Validation**: Requires payment method selection + only for On-Chain it needs sufficient available balance
   - **KYC**: only for Buy On-Ramp and handle by 3rd party payment providers
@@ -235,7 +235,7 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
 - **Assets**:
   - Selling = BTC, ETH, SOL, SUI native network
   - Receiving USDC on Solana network
-  - **Minimum**: $10
+  - **Minimum**: $5
   - **Validation**: Requires asset selection for all assets with Invested Balance > 0
   - **KYC**: not applicable
   - **Balance Check**: Cannot sell more than invested amount on Invested Balance for that specific selected asset
@@ -252,8 +252,8 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
     - 1% for all Sell transactions (mockup service for now)
 
 ### 3.7 Receive/Request ❌
-**Status**: REMOVED - Future feature
-**Reason**: Temporarily removed from UI, will be revisited later
+**Status**: PERMANENTLY REMOVED
+**Reason**: Removed from transaction types to streamline user experience. Users can receive funds through Send transactions from other diBoaS users or external transfers to their wallet addresses.
 
 ### 3.8 Invest ⏸️
 **Status**: NOT YET IMPLEMENTED
@@ -271,7 +271,7 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
   - **SUI**: 0.003% of transaction amount
 
 ### 4.2 diBoaS Fees
-**0.09%** for: Add, Send, Buy, Sell
+**0.09%** for: Add, Send, Buy, Sell, DeFi investments
 **0.9%** for: Withdraw, Transfer
 
 ### 4.3 Payment Provider Fees
@@ -284,10 +284,16 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
 
 **DEX Fees (Buy/Sell)**: Comes from 3rd Party Payment providers
 **Mockup Service For Now**
+  - o.8% DEX fee for all Transfer transactions that are not using SOLANA wallets
   - 1% DEX fee for all Buy/Sell transactions
   - Additional Payment Provider Fees if using external payment methods for Buy
 
 ### 4.4 Fee Display Structure
+**Formatting Standards**:
+  - All fee amounts display exactly 2 decimal places using `.toFixed(2)`
+  - Expandable fee breakdown showing each component
+  - Real-time calculation updates as user inputs change
+  - Consistent currency formatting across all displays
 **Buy Transactions**:
   - **Payment Fee**: Only for external payment methods
   - **DEX Fee**: only when buying using diBoaS wallet
@@ -310,15 +316,21 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
 
 ## 5. Transaction Validation
 
-### 5.1 Button State Management
-Transaction button is disabled until ALL required fields are filled or changed:
+### 5.1 Enhanced Button State Management
+Transaction button is disabled until ALL required fields are filled and validated:
 - **Add**: Transaction Amount + Payment Method
 - **Withdraw**: Transaction Amount + Payment Method + Sufficient Available Balance
-- **Send**: Transaction Amount + Recipient + Sufficient Available Balance
+- **Send**: Transaction Amount + Recipient + Sufficient Available Balance  
 - **Transfer**: Transaction Amount + Valid Address + Sufficient Available Balance
 - **Buy On-Ramp**: Transaction Amount + Asset + External Payment Method
 - **Buy On-Chain**: Transaction Amount + Asset + diBoaS Wallet + Sufficient Available Balance
 - **Sell**: Transaction Amount + Asset + Sufficient Invested Balance (payment method auto-selected)
+
+**Real-time Balance Validation**:
+- Transaction button automatically disabled when amount exceeds available balance
+- Immediate feedback when insufficient funds detected
+- Separate validation for Available Balance (Send/Transfer/Withdraw) vs Invested Balance (Sell)
+- Enhanced validation checks run on every input change
 
 ### 5.2 Balance Validation Logic
 **Available Balance**: USDC only, used for spending transactions, buying assets and DeFi Inevstments
@@ -338,17 +350,25 @@ Transaction button is disabled until ALL required fields are filled or changed:
 
 ## 6. User Experience Features
 
-### 6.1 Transaction Progress
-**Progressive Loading**: Similar to signup flow with step-by-step progress
+### 6.1 Enhanced Transaction Progress
+**Progressive Loading**: Step-by-step progress with visual indicators
 **Minimum Display Time**: 3 seconds to show progress properly
+**Enhanced Confirmation Screen**: Shows detailed from/to information
+  - **Dynamic From/To Fields**: Automatically generated based on transaction type
+  - **Add**: From Payment Method → To diBoaS Wallet Available Balance
+  - **Withdraw**: From diBoaS Wallet Available Balance → To Payment Method
+  - **Send**: From diBoaS Wallet Available Balance → To Another diBoaS User
+  - **Transfer**: From diBoaS Wallet Available Balance → To External Wallet
+  - **Buy**: From Payment Method/diBoaS Wallet → To diBoaS Wallet Invested Balance
+  - **Sell**: From diBoaS Wallet Invested Balance → To diBoaS Wallet Available Balance
 **Success Summary**: Shows transaction details and updated balance
-  - It needs to wait for the On-Chain Success confirmation
-**Not Yet Summary**: Shows after 3 seconds if there is no success or error yet
-  - It mentiones the Transaction is on going and the funds will be deposited as soon as it succeeds
-  - Then it goes back to the dash board after 3 seconds
-  - For now, use a mockup to simulate this response taking 2 seconds for all except when dealing with BTC that will take 5 sec
+  - Waits for On-Chain Success confirmation
+**Not Yet Summary**: Shows after 3 seconds if no success/error
+  - Mentions transaction is ongoing, funds deposited when succeeded
+  - Returns to dashboard after 3 seconds
+  - Mockup timing: 2 seconds (5 seconds for BTC)
 **Error Handling**: Clear error messages with retry options
-  - It needs to wait for the On-Chain Error confirmation
+  - Waits for On-Chain Error confirmation
 
 ### 6.2 Irreversible Transaction Warnings
 **Send Transactions**: Warning about accuracy of recipient information
@@ -366,6 +386,15 @@ Transaction button is disabled until ALL required fields are filled or changed:
 - **Amount Buttons**: Quick select buttons (25%, 50%, 75%, Max) for applicable transactions
 - **Single-Click Flow**: Streamlined transaction execution
 - **Payment Method Ordering**: diBoaS Wallet listed first when applicable
+- **Enhanced Navigation**: 
+  - Back button returns to `/app` dashboard instead of home page
+  - View All link in Recent Activity navigates to Account page
+  - Consistent navigation flow across all transaction types
+- **Real-time Updates**:
+  - Transaction history updates automatically in Account page
+  - Cross-tab synchronization via localStorage events
+  - Same-tab updates via custom event listeners
+  - Balance refresh triggered on transaction completion
 
 ## 7. Technical Implementation
 
@@ -421,59 +450,54 @@ Transaction button is disabled until ALL required fields are filled or changed:
   - **P.S.:** For now there should be a mockup service simulating this On-Chain answer
     - taking 2 seconds for all transactions and assets except for BTC this should take 5 seconds to send the successful message
 
+## 10. Development Status
 
-## 9. Development Status
+### 10.1 Removed Features ❌
+- **Receive/Request**: Permanently removed from transaction types
+  - Replaced by direct Send functionality between diBoaS users
+  - External receives handled through wallet address transfers
+  - Streamlined UI by removing redundant transaction type
 
-### 9.1 Completed Features ✅
-- Add/Deposit with all payment methods and proper balance updates
-- Withdraw with available balance validation
-- Send with P2P functionality using available balance
-- Transfer with network detection and available balance checks
-- Buy with On-Ramp vs On-Chain logic and proper balance handling
-- Sell with invested balance validation and proper proceeds handling
-- Comprehensive fee calculations with separate payment/DEX fees
-- Transaction progress screens with realistic timing
-- Form validation with balance-aware restrictions
-- Real-time fee updates and caching
-
-### 9.2 Recent Fixes ✅
-- Fixed "fees is not defined" error for Buy transactions with external payments
-- Corrected balance update logic for all transaction types
-- Implemented proper financial flow: Available (USDC) vs Invested (assets)
-- Fixed fee display structure with separate Payment and DEX fees
-- Updated validation logic to match balance definitions
-- **Sell Transaction UX Improvements**:
-  - Fixed FIAT vs token value confusion (now uses USD invested amounts)
-  - Removed unnecessary payment method selection (auto-selects diBoaS Wallet)
-  - Updated balance display to show "Invested in [ASSET]: $X.XX"
-  - Streamlined user interface for sell transactions
-
-### 9.3 Removed Features ❌
-- Receive/Request (temporarily removed, future feature)
-
-### 9.4 Future Implementation ⏸️
+### 10.2 Future Implementation ⏸️
 - Invest (tokenized assets)
 - Advanced 2FA integration
 - Real third-party provider integration
 - KYC/AML compliance flows
 
-## 10. Integration Points
+## 11. Integration Points
 
-### 10.1 Current Simulation
+### 11.1 Current Simulation
 All transactions currently use mock implementations that:
 - Calculate realistic fees with proper separation
 - Update demo balance data with correct financial flow
 - Show proper progress flows with minimum display times
 - Validate user inputs with balance-aware restrictions
 
-### 10.2 Future Integration
+### 11.2 Current on-chain transaction links mockup
+BTC mockup links:
+account link = https://mempool.space/address/bc1q8ys49pxp3c6um7enemwdkl4ud5fwwg2rpdegxu
+transaction link = https://mempool.space/tx/bd2e7c74f5701c96673b16ecdc33d01d3e93574c81e869e715a78ff4698a556a
+
+ETH mockup links:
+account link = https://etherscan.io/address/0xac893c187843a775c74de8a7dd4cf749e5a4e262
+transaction link = https://etherscan.io/tx/0x2b21b80353ab6011a9b5df21db0a68755c2b787290e6250fdb4f8512d173f1e1
+
+SOL mockup links:
+account link = https://solscan.io/account/EgecX8HBapUxRW3otU4ES55WuygDDPSMMFSTCwfP57XR
+transaction link = https://solscan.io/tx/3pW7WADA8ysmwgMngGgu9RYdXpSvNeLRM7ftbsDV52doC91Gcc7mrtkteCu6HPjnWu9HTV9mKo43PshbRUe4AgmP
+
+SUI mockup links:
+account link = https://suivision.xyz/account/0x7c3e1ad62f0ac85e1227cb7b3dfa123c03c8191f9c3fbac9548ded485c52e169?tab=Activity
+transaction link = https://suivision.xyz/txblock/7r3zvFqvZNUavgXRVSp1uyaAoJvYCgP7CBSMZKRDyzQW
+
+### 11.3 Future Integration
 - Real payment provider APIs (On/Off-ramp)
 - DEX integration for asset swapping
 - Bridge services for cross-chain operations
 - KYC/AML service integration
 - Real-time price feeds for assets
 
-## 11. Example of Chain and wallet addresses
+## 12. Example of Chain and wallet addresses
 
 ### Accepted Chains and Wallet Addresses
 

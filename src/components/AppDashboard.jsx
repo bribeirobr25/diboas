@@ -29,11 +29,11 @@ import { useWalletBalance } from '../hooks/useTransactions.jsx'
 import { useDataManagerSubscription, useSafeDataManager } from '../hooks/useDataManagerSubscription.js'
 
 // PERFORMANCE: Memoized transaction item component with semantic naming
-const DashboardTransactionItem = memo(({ transactionDisplayData, onTransactionTypeNavigation }) => (
+const DashboardTransactionItem = memo(({ transactionDisplayData, onTransactionClick }) => (
   <div 
     key={transactionDisplayData.id}
     className="transaction-item interactive-card"
-    onClick={() => onTransactionTypeNavigation(transactionDisplayData.type)}
+    onClick={() => onTransactionClick(transactionDisplayData.id)}
   >
     <div className="transaction-item__content">
       <div className="transaction-item__icon-container">
@@ -138,6 +138,9 @@ export default function AppDashboard() {
   
   // PERFORMANCE: Memoized transaction type navigation function
   const navigateToTransactionType = useMemo(() => createTransactionNavigator(navigate), [navigate])
+  const navigateToTransactionDetails = useCallback((transactionId) => {
+    navigate(`/transaction?id=${transactionId}`)
+  }, [navigate])
   
   // Balance visibility toggle - using inline handler for better performance
 
@@ -431,7 +434,7 @@ export default function AppDashboard() {
                       <DashboardTransactionItem 
                         key={transactionDisplayData.id}
                         transactionDisplayData={transactionDisplayData}
-                        onTransactionTypeNavigation={navigateToTransactionType}
+                        onTransactionClick={navigateToTransactionDetails}
                       />
                     ))
                   )}

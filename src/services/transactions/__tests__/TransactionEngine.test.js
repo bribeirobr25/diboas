@@ -65,12 +65,12 @@ describe('TransactionEngine', () => {
     it('should initialize with correct minimum amounts', () => {
       expect(transactionEngine.minimumAmounts).toEqual({
         'add': 10.0,
-        'withdraw': 10.0,
+        'withdraw': 5.0,
         'send': 5.0,
         'receive': 5.0,
-        'transfer': 10.0,
+        'transfer': 5.0,
         'buy': 10.0,
-        'sell': 10.0,
+        'sell': 5.0,
         'invest': 10.0
       })
     })
@@ -130,11 +130,11 @@ describe('TransactionEngine', () => {
     describe('Minimum Amount Validation', () => {
       const minimumAmountTests = [
         { type: 'add', minimum: 10.0 },
-        { type: 'withdraw', minimum: 10.0 },
+        { type: 'withdraw', minimum: 5.0 },
         { type: 'send', minimum: 5.0 },
-        { type: 'transfer', minimum: 10.0 },
+        { type: 'transfer', minimum: 5.0 },
         { type: 'buy', minimum: 10.0 },
-        { type: 'sell', minimum: 10.0 }
+        { type: 'sell', minimum: 5.0 }
       ]
 
       minimumAmountTests.forEach(({ type, minimum }) => {
