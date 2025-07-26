@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -24,6 +25,7 @@ import {
 } from '../utils/transactionDisplayHelpers'
 
 export default function AccountView() {
+  const navigate = useNavigate()
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
   const [selectedTransactionFilter, setSelectedTransactionFilter] = useState('all')
 
@@ -43,6 +45,11 @@ export default function AccountView() {
     // Complete transaction history retrieved from data manager
     return allUserTransactions // Get all transactions for account overview
   }, [retrieveAllTransactionsFromDataManager])
+
+  // Navigation handler for transaction details
+  const navigateToTransactionDetails = useCallback((transactionId) => {
+    navigate(`/transaction?id=${transactionId}`)
+  }, [navigate])
 
   const [userTransactionHistory, setUserTransactionHistory] = useState([])
 
@@ -235,7 +242,8 @@ export default function AccountView() {
               {filteredTransactionDisplayList.map((transactionDisplayItem) => (
                 <div
                   key={transactionDisplayItem.transactionId}
-                  className="transaction-item"
+                  className="transaction-item interactive-card"
+                  onClick={() => navigateToTransactionDetails(transactionDisplayItem.transactionId)}
                 >
                   <div className="transaction-item__content">
                     {transactionDisplayItem.transactionIconElement}
