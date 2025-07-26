@@ -1,0 +1,630 @@
+{
+  "timestamp": "2025-07-25T16:26:18.127Z",
+  "public": {
+    "totalFiles": 21,
+    "totalSize": 14407.740000000002,
+    "largeFiles": [
+      {
+        "name": "aqua_mascot_pose.png",
+        "size": 1475.73,
+        "path": "/Users/simonekugler/Desktop/diboas/public/aqua_mascot_pose.png",
+        "ext": ".png"
+      },
+      {
+        "name": "favicon-16x16.png",
+        "size": 1400.43,
+        "path": "/Users/simonekugler/Desktop/diboas/public/favicon-16x16.png",
+        "ext": ".png"
+      },
+      {
+        "name": "favicon-32x32.png",
+        "size": 1400.43,
+        "path": "/Users/simonekugler/Desktop/diboas/public/favicon-32x32.png",
+        "ext": ".png"
+      },
+      {
+        "name": "logo.png",
+        "size": 1400.43,
+        "path": "/Users/simonekugler/Desktop/diboas/public/logo.png",
+        "ext": ".png"
+      },
+      {
+        "name": "coral_mascot_pose2.png",
+        "size": 740.65,
+        "path": "/Users/simonekugler/Desktop/diboas/public/coral_mascot_pose2.png",
+        "ext": ".png"
+      },
+      {
+        "name": "mystic_mascot_pose4.png",
+        "size": 718.18,
+        "path": "/Users/simonekugler/Desktop/diboas/public/mystic_mascot_pose4.png",
+        "ext": ".png"
+      },
+      {
+        "name": "aqua_mascot_pose1.png",
+        "size": 711.31,
+        "path": "/Users/simonekugler/Desktop/diboas/public/aqua_mascot_pose1.png",
+        "ext": ".png"
+      },
+      {
+        "name": "verde_mascot_pose2.png",
+        "size": 693.73,
+        "path": "/Users/simonekugler/Desktop/diboas/public/verde_mascot_pose2.png",
+        "ext": ".png"
+      },
+      {
+        "name": "mystic_mascot_pose2.png",
+        "size": 620.15,
+        "path": "/Users/simonekugler/Desktop/diboas/public/mystic_mascot_pose2.png",
+        "ext": ".png"
+      },
+      {
+        "name": "coral_mascot_pose3.png",
+        "size": 586.51,
+        "path": "/Users/simonekugler/Desktop/diboas/public/coral_mascot_pose3.png",
+        "ext": ".png"
+      },
+      {
+        "name": "aqua_mascot_pose2.png",
+        "size": 581.11,
+        "path": "/Users/simonekugler/Desktop/diboas/public/aqua_mascot_pose2.png",
+        "ext": ".png"
+      },
+      {
+        "name": "mystic_mascot_pose1.png",
+        "size": 571.15,
+        "path": "/Users/simonekugler/Desktop/diboas/public/mystic_mascot_pose1.png",
+        "ext": ".png"
+      },
+      {
+        "name": "mystic_mascot_pose.png",
+        "size": 561.24,
+        "path": "/Users/simonekugler/Desktop/diboas/public/mystic_mascot_pose.png",
+        "ext": ".png"
+      },
+      {
+        "name": "aqua_mascot_pose3.png",
+        "size": 550.42,
+        "path": "/Users/simonekugler/Desktop/diboas/public/aqua_mascot_pose3.png",
+        "ext": ".png"
+      },
+      {
+        "name": "coral_mascot_pose1.png",
+        "size": 531.53,
+        "path": "/Users/simonekugler/Desktop/diboas/public/coral_mascot_pose1.png",
+        "ext": ".png"
+      },
+      {
+        "name": "mystic_mascot_pose3.png",
+        "size": 531.36,
+        "path": "/Users/simonekugler/Desktop/diboas/public/mystic_mascot_pose3.png",
+        "ext": ".png"
+      },
+      {
+        "name": "logo_full.png",
+        "size": 531.02,
+        "path": "/Users/simonekugler/Desktop/diboas/public/logo_full.png",
+        "ext": ".png"
+      }
+    ],
+    "byExtension": {
+      ".png": {
+        "count": 21,
+        "size": 14407.740000000002
+      }
+    },
+    "recommendations": [
+      {
+        "file": "aqua_mascot_pose.png",
+        "issue": "Very large file (1475.73KB)",
+        "suggestion": "Consider compression or format conversion to WebP",
+        "priority": "high"
+      },
+      {
+        "file": "aqua_mascot_pose.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose1.png",
+        "issue": "Large file (711.31KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose1.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose2.png",
+        "issue": "Large file (581.11KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose2.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose3.png",
+        "issue": "Large file (550.42KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose3.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot_pose1.png",
+        "issue": "Large file (531.53KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot_pose1.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot_pose2.png",
+        "issue": "Large file (740.65KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot_pose2.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot_pose3.png",
+        "issue": "Large file (586.51KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot_pose3.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "favicon-16x16.png",
+        "issue": "Very large file (1400.43KB)",
+        "suggestion": "Consider compression or format conversion to WebP",
+        "priority": "high"
+      },
+      {
+        "file": "favicon-16x16.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "favicon-32x32.png",
+        "issue": "Very large file (1400.43KB)",
+        "suggestion": "Consider compression or format conversion to WebP",
+        "priority": "high"
+      },
+      {
+        "file": "favicon-32x32.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "logo.png",
+        "issue": "Very large file (1400.43KB)",
+        "suggestion": "Consider compression or format conversion to WebP",
+        "priority": "high"
+      },
+      {
+        "file": "logo.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "logo_full.png",
+        "issue": "Large file (531.02KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "logo_full.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose.png",
+        "issue": "Large file (561.24KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose1.png",
+        "issue": "Large file (571.15KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose1.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose2.png",
+        "issue": "Large file (620.15KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose2.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose3.png",
+        "issue": "Large file (531.36KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose3.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose4.png",
+        "issue": "Large file (718.18KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose4.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "verde_mascot_pose.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "verde_mascot_pose1.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "verde_mascot_pose2.png",
+        "issue": "Large file (693.73KB)",
+        "suggestion": "Consider optimization",
+        "priority": "medium"
+      },
+      {
+        "file": "verde_mascot_pose2.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      }
+    ]
+  },
+  "assets": {
+    "totalFiles": 5,
+    "totalSize": 6019.54,
+    "largeFiles": [
+      {
+        "name": "diboas-logo.png",
+        "size": 2054.58,
+        "path": "/Users/simonekugler/Desktop/diboas/src/assets/diboas-logo.png",
+        "ext": ".png"
+      },
+      {
+        "name": "mascot-investment-guide.png",
+        "size": 1538.56,
+        "path": "/Users/simonekugler/Desktop/diboas/src/assets/mascot-investment-guide.png",
+        "ext": ".png"
+      },
+      {
+        "name": "mascot-crypto-defi.png",
+        "size": 1250.67,
+        "path": "/Users/simonekugler/Desktop/diboas/src/assets/mascot-crypto-defi.png",
+        "ext": ".png"
+      },
+      {
+        "name": "mascot-financial-basics.png",
+        "size": 1171.7,
+        "path": "/Users/simonekugler/Desktop/diboas/src/assets/mascot-financial-basics.png",
+        "ext": ".png"
+      }
+    ],
+    "byExtension": {
+      ".png": {
+        "count": 4,
+        "size": 6015.51
+      },
+      ".svg": {
+        "count": 1,
+        "size": 4.03
+      }
+    },
+    "recommendations": [
+      {
+        "file": "diboas-logo.png",
+        "issue": "Very large file (2054.58KB)",
+        "suggestion": "Consider compression or format conversion to WebP",
+        "priority": "high"
+      },
+      {
+        "file": "diboas-logo.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "mascot-crypto-defi.png",
+        "issue": "Very large file (1250.67KB)",
+        "suggestion": "Consider compression or format conversion to WebP",
+        "priority": "high"
+      },
+      {
+        "file": "mascot-crypto-defi.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "mascot-financial-basics.png",
+        "issue": "Very large file (1171.7KB)",
+        "suggestion": "Consider compression or format conversion to WebP",
+        "priority": "high"
+      },
+      {
+        "file": "mascot-financial-basics.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      },
+      {
+        "file": "mascot-investment-guide.png",
+        "issue": "Very large file (1538.56KB)",
+        "suggestion": "Consider compression or format conversion to WebP",
+        "priority": "high"
+      },
+      {
+        "file": "mascot-investment-guide.png",
+        "issue": "PNG format for large image",
+        "suggestion": "Consider WebP format for better compression",
+        "priority": "medium"
+      }
+    ]
+  },
+  "optimization": {
+    "totalSavings": 15870.890000000001,
+    "actions": [
+      {
+        "file": "aqua_mascot_pose.png",
+        "location": "public",
+        "currentSize": 1475.73,
+        "targetSize": 200,
+        "savings": 1276,
+        "action": "optimize-mascot",
+        "priority": "high"
+      },
+      {
+        "file": "favicon-16x16.png",
+        "location": "public",
+        "currentSize": 1400.43,
+        "targetSize": 50,
+        "savings": 1350,
+        "action": "optimize-icon",
+        "priority": "high"
+      },
+      {
+        "file": "favicon-32x32.png",
+        "location": "public",
+        "currentSize": 1400.43,
+        "targetSize": 50,
+        "savings": 1350,
+        "action": "optimize-icon",
+        "priority": "high"
+      },
+      {
+        "file": "logo.png",
+        "location": "public",
+        "currentSize": 1400.43,
+        "targetSize": 150,
+        "savings": 1250,
+        "action": "optimize-logo",
+        "priority": "high"
+      },
+      {
+        "file": "coral_mascot_pose2.png",
+        "location": "public",
+        "currentSize": 740.65,
+        "targetSize": 200,
+        "savings": 541,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose4.png",
+        "location": "public",
+        "currentSize": 718.18,
+        "targetSize": 200,
+        "savings": 518,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose1.png",
+        "location": "public",
+        "currentSize": 711.31,
+        "targetSize": 200,
+        "savings": 511,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "verde_mascot_pose2.png",
+        "location": "public",
+        "currentSize": 693.73,
+        "targetSize": 200,
+        "savings": 494,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose2.png",
+        "location": "public",
+        "currentSize": 620.15,
+        "targetSize": 200,
+        "savings": 420,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot_pose3.png",
+        "location": "public",
+        "currentSize": 586.51,
+        "targetSize": 200,
+        "savings": 387,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose2.png",
+        "location": "public",
+        "currentSize": 581.11,
+        "targetSize": 200,
+        "savings": 381,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose1.png",
+        "location": "public",
+        "currentSize": 571.15,
+        "targetSize": 200,
+        "savings": 371,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose.png",
+        "location": "public",
+        "currentSize": 561.24,
+        "targetSize": 200,
+        "savings": 361,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "aqua_mascot_pose3.png",
+        "location": "public",
+        "currentSize": 550.42,
+        "targetSize": 200,
+        "savings": 350,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "coral_mascot_pose1.png",
+        "location": "public",
+        "currentSize": 531.53,
+        "targetSize": 200,
+        "savings": 332,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "mystic_mascot_pose3.png",
+        "location": "public",
+        "currentSize": 531.36,
+        "targetSize": 200,
+        "savings": 331,
+        "action": "optimize-mascot",
+        "priority": "medium"
+      },
+      {
+        "file": "logo_full.png",
+        "location": "public",
+        "currentSize": 531.02,
+        "targetSize": 150,
+        "savings": 381,
+        "action": "optimize-logo",
+        "priority": "medium"
+      },
+      {
+        "file": "diboas-logo.png",
+        "location": "src/assets",
+        "currentSize": 2054.58,
+        "targetSize": 150,
+        "savings": 1905,
+        "action": "optimize-logo",
+        "priority": "high"
+      },
+      {
+        "file": "mascot-investment-guide.png",
+        "location": "src/assets",
+        "currentSize": 1538.56,
+        "targetSize": 200,
+        "savings": 1339,
+        "action": "optimize-mascot",
+        "priority": "high"
+      },
+      {
+        "file": "mascot-crypto-defi.png",
+        "location": "src/assets",
+        "currentSize": 1250.67,
+        "targetSize": 200,
+        "savings": 1051,
+        "action": "optimize-mascot",
+        "priority": "high"
+      },
+      {
+        "file": "mascot-financial-basics.png",
+        "location": "src/assets",
+        "currentSize": 1171.7,
+        "targetSize": 200,
+        "savings": 972,
+        "action": "optimize-mascot",
+        "priority": "high"
+      }
+    ],
+    "summary": {
+      "currentSize": 20427.280000000002,
+      "targetSize": 4556.390000000001,
+      "compressionRatio": 78
+    }
+  }
+}

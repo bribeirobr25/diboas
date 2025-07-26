@@ -122,8 +122,6 @@ const VirtualizedTransactionList = ({
 
   // PERFORMANCE: Use virtual scrolling for large lists
   const {
-    startIndex,
-    endIndex,
     visibleItems,
     totalHeight,
     offsetY,
@@ -192,7 +190,7 @@ const VirtualizedTransactionList = ({
       <div style={{ height: totalHeight, position: 'relative' }}>
         {/* Visible items container */}
         <div style={{ transform: `translateY(${offsetY}px)` }}>
-          {visibleItems.map((transaction, index) => (
+          {visibleItems.map((transaction) => (
             <div
               key={transaction.id}
               onClick={() => onTransactionClick?.(transaction)}
@@ -208,7 +206,7 @@ const VirtualizedTransactionList = ({
       </div>
       
       {/* Performance indicator for development */}
-      {process.env.NODE_ENV === 'development' && (
+      {(typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') && (
         <div className="absolute top-2 right-2 text-xs bg-black bg-opacity-50 text-white px-2 py-1 rounded">
           Showing {visibleItems.length} of {sortedTransactions.length}
         </div>

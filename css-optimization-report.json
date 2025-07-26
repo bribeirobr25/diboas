@@ -1,0 +1,101 @@
+{
+  "timestamp": "2025-07-25T16:54:35.862Z",
+  "css": {
+    "sourceFiles": [
+      {
+        "name": "styles/design-system.css",
+        "size": 36.09,
+        "path": "/Users/simonekugler/Desktop/diboas/src/styles/design-system.css"
+      },
+      {
+        "name": "App.css",
+        "size": 13.02,
+        "path": "/Users/simonekugler/Desktop/diboas/src/App.css"
+      },
+      {
+        "name": "index.css",
+        "size": 0.13,
+        "path": "/Users/simonekugler/Desktop/diboas/src/index.css"
+      }
+    ],
+    "builtFiles": [
+      {
+        "name": "index-CiTYpJKy.css",
+        "size": 156.59,
+        "path": "/Users/simonekugler/Desktop/diboas/dist/assets/index-CiTYpJKy.css"
+      }
+    ],
+    "totalSourceSize": 49.24,
+    "totalBuiltSize": 156.59,
+    "recommendations": [
+      {
+        "type": "size",
+        "priority": "high",
+        "message": "CSS bundle size (156.59KB) exceeds 100KB target",
+        "suggestions": [
+          "Implement CSS purging to remove unused styles",
+          "Use CSS-in-JS for component-specific styles",
+          "Split CSS into critical and non-critical parts",
+          "Compress design-system.css which appears to be the largest file"
+        ]
+      }
+    ]
+  },
+  "designSystem": {
+    "totalLines": 1943,
+    "totalSize": 36.09,
+    "cssRules": 337,
+    "mediaQueries": 0,
+    "comments": 34,
+    "emptyLines": 324,
+    "duplicateProperties": [],
+    "optimizations": [
+      {
+        "type": "whitespace",
+        "savings": "Minor",
+        "description": "Remove 324 empty lines"
+      },
+      {
+        "type": "css-variables",
+        "savings": "Medium",
+        "description": "Use CSS custom properties for frequently used colors: #3b82f6"
+      }
+    ]
+  },
+  "optimization": {
+    "currentSize": 156.59,
+    "targetSize": 100,
+    "estimatedSavings": 46.977,
+    "actions": [
+      {
+        "action": "minify-css",
+        "description": "Enable CSS minification and remove development comments",
+        "estimatedSavings": "5-15KB",
+        "effort": "Low",
+        "priority": "High"
+      },
+      {
+        "action": "css-purging",
+        "description": "Implement PurgeCSS to remove unused styles",
+        "estimatedSavings": "20-40KB",
+        "effort": "Medium",
+        "priority": "High"
+      },
+      {
+        "action": "implement-css-variables",
+        "description": "Replace frequently used color values with CSS custom properties",
+        "estimatedSavings": "5-10KB",
+        "effort": "Low",
+        "priority": "Medium"
+      },
+      {
+        "action": "css-splitting",
+        "description": "Split CSS into critical and non-critical parts",
+        "estimatedSavings": "0KB (performance gain)",
+        "effort": "High",
+        "priority": "Low"
+      }
+    ],
+    "priority": "high"
+  }
+}

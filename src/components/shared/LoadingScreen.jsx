@@ -9,7 +9,7 @@ import diBoaSLogo from '../../assets/diboas-logo.png'
 export default function LoadingScreen({ 
   currentStep = 'Loading...', 
   isRegistering = false,
-  completedSteps = []
+  // _completedSteps = []
 }) {
   const defaultSteps = [
     'Secure connection established',

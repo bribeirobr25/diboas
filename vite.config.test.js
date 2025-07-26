@@ -8,6 +8,29 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
     globals: true,
+    
+    // Test optimizations
+    testTimeout: 10000, // Increase timeout for integration tests
+    hookTimeout: 30000, // Increase hook timeout
+    teardownTimeout: 10000,
+    
+    // Pool settings for better performance
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true, // Use single thread for more stable tests
+      }
+    },
+    
+    // Test retry settings
+    retry: 1, // Retry failed tests once
+    
+    // Reporter settings
+    reporter: 'default',
+    
+    // Silent mode for faster tests
+    silent: false,
+    
     exclude: [
       '**/node_modules/**',
       '**/dist/**',

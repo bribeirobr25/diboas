@@ -8,7 +8,7 @@
  */
 export const initializeConsoleManagement = () => {
   // Only apply in development
-  if (process.env.NODE_ENV !== 'development') {
+  if (typeof process !== 'undefined' && process?.env?.NODE_ENV !== 'development') {
     return
   }
 
@@ -69,7 +69,7 @@ export const initializeConsoleManagement = () => {
  * Log important application events
  */
 export const logAppEvent = (event, data = {}) => {
-  if (process.env.NODE_ENV === 'development') {
+  if (typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') {
     console.log(
       `%c[diBoaS] ${event}`,
       'color: #1E40AF; font-weight: bold;',
@@ -82,7 +82,7 @@ export const logAppEvent = (event, data = {}) => {
  * Log performance metrics
  */
 export const logPerformanceMetric = (metric, value, unit = 'ms') => {
-  if (process.env.NODE_ENV === 'development') {
+  if (typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') {
     const color = value < 100 ? '#10B981' : value < 500 ? '#F59E0B' : '#EF4444'
     console.log(
       `%c[Performance] ${metric}: ${value}${unit}`,

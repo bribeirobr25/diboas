@@ -3,7 +3,8 @@
  * Displays comprehensive transaction history with filtering and monitoring
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -27,10 +28,11 @@ import {
   Eye,
   RefreshCw
 } from 'lucide-react'
-import { useTransactionProcessor } from '../hooks/useTransactions.jsx'
+import { useSafeDataManager, useDataManagerSubscription } from '../hooks/useDataManagerSubscription.js'
 
 const TransactionHistory = ({ limit = null, showHeader = true, className = '' }) => {
-  const { getTransactionHistory, getTransaction } = useTransactionProcessor()
+  const navigate = useNavigate()
+  const { getTransactions } = useSafeDataManager()
   const [transactions, setTransactions] = useState([])
   const [filteredTransactions, setFilteredTransactions] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -95,36 +97,64 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
       icon: <CheckCircle className="w-4 h-4" />, 
       color: 'bg-green-100 text-green-800' 
     },
+    confirmed: { 
+      icon: <CheckCircle className="w-4 h-4" />, 
+      color: 'bg-green-100 text-green-800' 
+    },
     processing: { 
       icon: <Clock className="w-4 h-4" />, 
       color: 'bg-yellow-100 text-yellow-800' 
     },
-    failed: { 
-      icon: <XCircle className="w-4 h-4" />, 
-      color: 'bg-red-100 text-red-800' 
-    },
     pending: { 
       icon: <Clock className="w-4 h-4" />, 
       color: 'bg-gray-100 text-gray-800' 
+    },
+    pending_confirmation: { 
+      icon: <Clock className="w-4 h-4" />, 
+      color: 'bg-blue-100 text-blue-800' 
+    },
+    failed: { 
+      icon: <XCircle className="w-4 h-4" />, 
+      color: 'bg-red-100 text-red-800' 
     }
   }
 
-  // Load transaction history
-  useEffect(() => {
-    loadTransactions()
-  }, [])
+  // Navigation to transaction details
+  const navigateToTransactionDetails = useCallback((transactionId) => {
+    navigate(`/transaction?id=${transactionId}`)
+  }, [navigate])
 
-  const loadTransactions = () => {
+  // Load transaction history function
+  const loadTransactions = useCallback(() => {
     setIsLoading(true)
     try {
-      const history = getTransactionHistory({ limit })
+      const allTransactions = getTransactions()
+      const history = limit ? allTransactions.slice(0, limit) : allTransactions
+      console.log('📋 Loaded transactions from DataManager:', history.length, 'transactions')
+      console.log('📋 Transaction statuses:', history.map(tx => ({ id: tx.id.substring(0, 8), status: tx.status })))
       setTransactions(history)
     } catch (error) {
       console.error('Failed to load transaction history:', error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [getTransactions, limit])
+
+  // Subscribe to transaction updates
+  useDataManagerSubscription('transaction:added', () => {
+    console.log('📋 Transaction added, reloading history')
+    loadTransactions()
+  }, [loadTransactions])
+  
+  useDataManagerSubscription('transaction:updated', (updatedTransaction) => {
+    console.log('📋 Transaction updated:', updatedTransaction.id, 'status:', updatedTransaction.status)
+    loadTransactions()
+  }, [loadTransactions])
+
+  // Load transaction history on mount
+  useEffect(() => {
+    loadTransactions()
+  }, [loadTransactions])
 
   // Filter and search transactions
   useEffect(() => {
@@ -342,7 +372,11 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
             const details = getTransactionDetails(transaction)
             
             return (
-              <Card key={transaction.id} className="hover:shadow-md transition-shadow cursor-pointer">
+              <Card 
+                key={transaction.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigateToTransactionDetails(transaction.id)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -379,10 +413,17 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
                           )}
                         </div>
                         
-                        {/* Transaction ID */}
-                        <p className="text-xs text-gray-400 mt-1 font-mono">
-                          ID: {transaction.id.substring(0, 16)}...
-                        </p>
+                        {/* Transaction ID and Hash */}
+                        <div className="space-y-1 mt-1">
+                          <p className="text-xs text-gray-400 font-mono">
+                            ID: {transaction.id.substring(0, 16)}...
+                          </p>
+                          {(transaction.txHash || transaction.transactionHash) && (
+                            <p className="text-xs text-gray-400 font-mono">
+                              Hash: {(transaction.txHash || transaction.transactionHash).substring(0, 16)}...
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -405,12 +446,31 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
                       )}
                       
                       <div className="flex items-center justify-end space-x-2 mt-2">
-                        {transaction.result?.transactionHash && (
-                          <Button variant="ghost" size="sm" className="p-1">
+                        {/* Explorer Link for On-Chain Transactions */}
+                        {(transaction.explorerLink || transaction.transactionLink) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="p-1 hover:bg-blue-50 hover:text-blue-600" 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.open(transaction.explorerLink || transaction.transactionLink, '_blank', 'noopener,noreferrer')
+                            }}
+                            title="View on blockchain explorer"
+                          >
                             <ExternalLink className="w-3 h-3" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="sm" className="p-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="p-1 hover:bg-gray-100"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigateToTransactionDetails(transaction.id)
+                          }}
+                          title="View transaction details"
+                        >
                           <Eye className="w-3 h-3" />
                         </Button>
                       </div>
@@ -425,6 +485,50 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
                         <p className="text-sm text-red-700">
                           <strong>Error:</strong> {transaction.error}
                         </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* On-Chain Transaction Details */}
+                  {(transaction.txHash || transaction.transactionHash || transaction.chain) && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            Blockchain Transaction
+                          </p>
+                          <div className="space-y-1">
+                            {transaction.chain && (
+                              <p className="text-xs text-gray-600">
+                                <span className="font-medium">Network:</span> {transaction.chain}
+                              </p>
+                            )}
+                            {(transaction.txHash || transaction.transactionHash) && (
+                              <p className="text-xs text-gray-600 font-mono">
+                                <span className="font-medium">Hash:</span> {(transaction.txHash || transaction.transactionHash)}
+                              </p>
+                            )}
+                            {transaction.confirmedAt && (
+                              <p className="text-xs text-gray-600">
+                                <span className="font-medium">Confirmed:</span> {formatDate(transaction.confirmedAt)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {(transaction.explorerLink || transaction.transactionLink) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.open(transaction.explorerLink || transaction.transactionLink, '_blank', 'noopener,noreferrer')
+                            }}
+                            className="ml-3 flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            View on Explorer
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}

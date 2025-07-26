@@ -81,8 +81,36 @@ export function sanitizeInput(input) {
 export function sanitizeWalletAddress(address) {
   if (typeof address !== 'string') return ''
   
-  // Remove any non-alphanumeric characters except for common wallet address characters
-  return address.replace(/[^a-zA-Z0-9]/g, '').substring(0, 100)
+  // Clean the address first
+  const cleaned = address.trim()
+  
+  // Validate common wallet address formats
+  // Bitcoin: Base58 (26-35 chars, starts with 1/3/bc1)
+  // Ethereum: Hex with 0x prefix (42 chars)
+  // Solana: Base58 (32-44 chars)
+  
+  // Bitcoin address validation
+  if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(cleaned)) {
+    return cleaned
+  }
+  
+  // Bitcoin Bech32 address validation
+  if (/^bc1[a-z0-9]{39,59}$/.test(cleaned)) {
+    return cleaned
+  }
+  
+  // Ethereum address validation
+  if (/^0x[a-fA-F0-9]{40}$/.test(cleaned)) {
+    return cleaned
+  }
+  
+  // Solana address validation
+  if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(cleaned)) {
+    return cleaned
+  }
+  
+  // If no format matches, return empty string (invalid address)
+  return ''
 }
 
 /**

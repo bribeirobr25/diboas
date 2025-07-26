@@ -1,12 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 
 // Components
 import PageHeader from './shared/PageHeader.jsx'
 import TransactionProgressScreen from './shared/TransactionProgressScreen.jsx'
+import EnhancedTransactionProgressScreen from './shared/EnhancedTransactionProgressScreen.jsx'
 import TransactionTypeSelector from './transactions/TransactionTypeSelector.jsx'
 import TransactionForm from './transactions/TransactionForm.jsx'
 import TransactionSummary from './transactions/TransactionSummary.jsx'
+import TransactionDetailsPage from './TransactionDetailsPage.jsx'
 
 // Icons
 import { 
@@ -21,48 +23,58 @@ import {
   useWalletBalance, 
   useFeeCalculator, 
   useTransactionValidation, 
-  useTransactionFlow,
-  useTransactionTwoFA 
+  useTransactionFlow
 } from '../hooks/transactions/index.js'
 
 export default function TransactionPage({ transactionType: propTransactionType }) {
   // const navigate = useNavigate() // Commented out as not used directly
-  const [searchParams] = useSearchParams()
+  const [urlSearchParams] = useSearchParams()
+  
+  // Check if this is a transaction details view (id parameter) or transaction creation (type parameter)
+  const transactionId = urlSearchParams.get('id')
+  const isViewingTransaction = !!transactionId
   
   // Support both prop-based routing (new RESTful) and query parameter routing (legacy)
-  const initialType = propTransactionType || searchParams.get('type') || 'add'
+  const initialTransactionType = propTransactionType || urlSearchParams.get('type') || 'add'
   
-  // Core state
-  const [transactionType, setTransactionType] = useState(initialType)
-  const [amount, setAmount] = useState('')
-  const [recipientAddress, setRecipientAddress] = useState('')
-  const [selectedAsset, setSelectedAsset] = useState('USD')
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('')
-  const [showRecipientAddress, setShowRecipientAddress] = useState(false)
+  // Core transaction state with semantic naming
+  const [currentTransactionType, setCurrentTransactionType] = useState(initialTransactionType)
+  const [transactionAmountInput, setTransactionAmountInput] = useState('')
+  const [recipientWalletAddress, setRecipientWalletAddress] = useState('')
+  const [selectedCryptocurrencyAsset, setSelectedCryptocurrencyAsset] = useState('USD')
+  const [chosenPaymentMethod, setChosenPaymentMethod] = useState('')
+  const [isRecipientAddressFieldVisible, setIsRecipientAddressFieldVisible] = useState(false)
   
   // Sync transaction type with prop changes (for RESTful routing)
   useEffect(() => {
-    if (propTransactionType && propTransactionType !== transactionType) {
-      setTransactionType(propTransactionType)
+    if (propTransactionType && propTransactionType !== currentTransactionType) {
+      setCurrentTransactionType(propTransactionType)
     }
-  }, [propTransactionType, transactionType])
+  }, [propTransactionType, currentTransactionType])
 
   // Ensure fiat-only transactions always use USD
   useEffect(() => {
-    if (['add', 'withdraw', 'send', 'transfer'].includes(transactionType)) {
-      setSelectedAsset('USD')
+    if (['add', 'withdraw', 'send', 'transfer'].includes(currentTransactionType)) {
+      setSelectedCryptocurrencyAsset('USD')
     }
-  }, [transactionType])
+  }, [currentTransactionType])
   
-  // Transaction system hooks
-  const { balance } = useWalletBalance()
-  const { fees, calculateFees } = useFeeCalculator()
-  const { validationErrors, validateTransaction } = useTransactionValidation()
-  const { flowState, flowData, flowError, executeTransactionFlow, confirmTransaction, resetFlow } = useTransactionFlow()
+  // Transaction system hooks with semantic destructuring
+  const { balance: currentWalletBalance } = useWalletBalance()
+  const { fees: calculatedTransactionFees, calculateFees: calculateTransactionFees } = useFeeCalculator()
+  const { validationErrors: transactionValidationErrors, validateTransaction: validateTransactionInput } = useTransactionValidation()
+  const { 
+    flowState: transactionFlowState, 
+    flowData: transactionFlowData, 
+    flowError: transactionFlowError, 
+    executeTransactionFlow: executeCompleteTransactionFlow, 
+    confirmTransaction: confirmPendingTransaction, 
+    resetFlow: resetTransactionFlow 
+  } = useTransactionFlow()
   // const { verifyTwoFACode } = useTransactionTwoFA() // Commented out - implementation pending
 
-  // Configuration arrays
-  const transactionTypes = [
+  // Transaction type configuration with semantic naming
+  const availableTransactionTypeConfigs = [
     { 
       id: 'add', 
       label: 'Add', 
@@ -119,107 +131,107 @@ export default function TransactionPage({ transactionType: propTransactionType }
     }
   ]
 
-  const assets = [
-    { id: 'BTC', symbol: 'BTC', label: 'Bitcoin', icon: '₿', price: '$94,523.45', bgColor: 'bg-orange-50', color: 'text-orange-700', borderColor: 'border-orange-200' },
-    { id: 'ETH', symbol: 'ETH', label: 'Ethereum', icon: 'Ξ', price: '$3,245.67', bgColor: 'bg-blue-50', color: 'text-blue-700', borderColor: 'border-blue-200' },
-    { id: 'SOL', symbol: 'SOL', label: 'Solana', icon: '◎', price: '$198.23', bgColor: 'bg-purple-50', color: 'text-purple-700', borderColor: 'border-purple-200' },
-    { id: 'SUI', symbol: 'SUI', label: 'Sui', icon: 'Ⓢ', price: '$4.23', bgColor: 'bg-cyan-50', color: 'text-cyan-700', borderColor: 'border-cyan-200' }
+  const supportedCryptocurrencyAssets = [
+    { assetId: 'BTC', tickerSymbol: 'BTC', displayName: 'Bitcoin', currencyIcon: '₿', currentMarketPrice: '$94,523.45', themeClasses: { bgColor: 'bg-orange-50', textColor: 'text-orange-700', borderColor: 'border-orange-200' } },
+    { assetId: 'ETH', tickerSymbol: 'ETH', displayName: 'Ethereum', currencyIcon: 'Ξ', currentMarketPrice: '$3,245.67', themeClasses: { bgColor: 'bg-blue-50', textColor: 'text-blue-700', borderColor: 'border-blue-200' } },
+    { assetId: 'SOL', tickerSymbol: 'SOL', displayName: 'Solana', currencyIcon: '◎', currentMarketPrice: '$198.23', themeClasses: { bgColor: 'bg-purple-50', textColor: 'text-purple-700', borderColor: 'border-purple-200' } },
+    { assetId: 'SUI', tickerSymbol: 'SUI', displayName: 'Sui', currencyIcon: 'Ⓢ', currentMarketPrice: '$4.23', themeClasses: { bgColor: 'bg-cyan-50', textColor: 'text-cyan-700', borderColor: 'border-cyan-200' } }
   ]
 
-  const paymentMethods = [
-    { id: 'credit_debit_card', label: 'Credit/Debit Card', icon: <CreditCard className="w-4 h-4" /> },
-    { id: 'bank_account', label: 'Bank Account', icon: '🏦' },
-    { id: 'apple_pay', label: 'Apple Pay', icon: '🍎' },
-    { id: 'google_pay', label: 'Google Pay', icon: '🅶' },
-    { id: 'paypal', label: 'PayPal', icon: '💰' }
+  const availablePaymentMethodOptions = [
+    { methodId: 'credit_debit_card', displayLabel: 'Credit/Debit Card', paymentIcon: <CreditCard className="w-4 h-4" /> },
+    { methodId: 'bank_account', displayLabel: 'Bank Account', paymentIcon: '🏦' },
+    { methodId: 'apple_pay', displayLabel: 'Apple Pay', paymentIcon: '🍎' },
+    { methodId: 'google_pay', displayLabel: 'Google Pay', paymentIcon: '🅶' },
+    { methodId: 'paypal', displayLabel: 'PayPal', paymentIcon: '💰' }
   ]
 
-  const buyPaymentMethods = [
-    { id: 'diboas_wallet', label: 'diBoaS Wallet', icon: <Wallet className="w-4 h-4" /> },
-    { id: 'credit_debit_card', label: 'Credit/Debit Card', icon: <CreditCard className="w-4 h-4" /> },
-    { id: 'bank_account', label: 'Bank Account', icon: '🏦' },
-    { id: 'apple_pay', label: 'Apple Pay', icon: '🍎' },
-    { id: 'google_pay', label: 'Google Pay', icon: '🅶' },
-    { id: 'paypal', label: 'PayPal', icon: '💰' }
+  const buyTransactionPaymentMethods = [
+    { methodId: 'diboas_wallet', displayLabel: 'diBoaS Wallet', paymentIcon: <Wallet className="w-4 h-4" /> },
+    { methodId: 'credit_debit_card', displayLabel: 'Credit/Debit Card', paymentIcon: <CreditCard className="w-4 h-4" /> },
+    { methodId: 'bank_account', displayLabel: 'Bank Account', paymentIcon: '🏦' },
+    { methodId: 'apple_pay', displayLabel: 'Apple Pay', paymentIcon: '🍎' },
+    { methodId: 'google_pay', displayLabel: 'Google Pay', paymentIcon: '🅶' },
+    { methodId: 'paypal', displayLabel: 'PayPal', paymentIcon: '💰' }
   ]
 
-  // Debounced amount for fee calculation
-  const debouncedAmount = useValueDebounce(amount, 500)
+  // Debounced amount for fee calculation with semantic naming
+  const debouncedTransactionAmount = useValueDebounce(transactionAmountInput, 500)
 
-  // Computed values
-  const currentType = transactionTypes.find(type => type.id === transactionType)
-  const isOnRamp = ['add'].includes(transactionType)
-  const isOffRamp = ['withdraw'].includes(transactionType)
-  const availableBalance = selectedAsset === 'USD' 
-    ? balance?.availableForSpending || 0 
-    : balance?.assets?.[selectedAsset]?.investedAmount || 0
+  // Computed transaction configuration values
+  const selectedTransactionTypeConfig = availableTransactionTypeConfigs.find(typeConfig => typeConfig.id === currentTransactionType)
+  const isOnRampTransaction = ['add'].includes(currentTransactionType)
+  const isOffRampTransaction = ['withdraw'].includes(currentTransactionType)
+  const userAvailableBalance = selectedCryptocurrencyAsset === 'USD' 
+    ? currentWalletBalance?.availableForSpending || 0 
+    : currentWalletBalance?.assets?.[selectedCryptocurrencyAsset]?.investedAmount || 0
 
-  // Fee calculation helpers with dynamic updates
-  const getNetworkFeeRate = useCallback(() => {
+  // Fee calculation helpers with dynamic updates and semantic naming
+  const calculateNetworkFeePercentage = useCallback(() => {
     // Network fees based on asset/chain - from TRANSACTIONS.md
-    if (['buy', 'sell'].includes(transactionType) && selectedAsset) {
-      const rates = { 'BTC': '9%', 'ETH': '0.5%', 'SOL': '0.001%', 'SUI': '0.003%' }
-      return rates[selectedAsset] || '0.001%' // Default to Solana for USDC
+    if (['buy', 'sell'].includes(currentTransactionType) && selectedCryptocurrencyAsset) {
+      const networkFeeRatesByAsset = { 'BTC': '9%', 'ETH': '0.5%', 'SOL': '0.001%', 'SUI': '0.003%' }
+      return networkFeeRatesByAsset[selectedCryptocurrencyAsset] || '0.001%' // Default to Solana for USDC
     }
     // For transfer transactions, detect network from recipient address
-    if (transactionType === 'transfer' && recipientAddress) {
-      const address = recipientAddress.trim()
+    if (currentTransactionType === 'transfer' && recipientWalletAddress) {
+      const cleanRecipientAddress = recipientWalletAddress.trim()
       // BTC address detection
-      if (address.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || address.match(/^bc1[a-z0-9]{39,59}$/)) {
+      if (cleanRecipientAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || cleanRecipientAddress.match(/^bc1[a-z0-9]{39,59}$/)) {
         return '9%' // BTC
       }
       // ETH address detection
-      if (address.match(/^0x[a-fA-F0-9]{40}$/)) {
+      if (cleanRecipientAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
         return '0.5%' // ETH
       }
       // SUI address detection (0x followed by 64 hex chars)
-      if (address.match(/^0x[a-fA-F0-9]{64}$/)) {
+      if (cleanRecipientAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
         return '0.003%' // SUI
       }
       // SOL address detection (Base58, 32-44 chars)
-      if (address.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
+      if (cleanRecipientAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
         return '0.001%' // SOL
       }
     }
     // Default chain is Solana for most transactions
     return '0.001%'
-  }, [transactionType, selectedAsset, recipientAddress])
+  }, [currentTransactionType, selectedCryptocurrencyAsset, recipientWalletAddress])
 
-  const getProviderFeeRate = useCallback(() => {
+  const calculateProviderFeePercentage = useCallback(() => {
     // DEX fee for Sell transactions - always 1%
-    if (transactionType === 'sell') {
+    if (currentTransactionType === 'sell') {
       return '1%' // Fixed 1% DEX fee for all Sell transactions
     }
     
     // DEX fees for transfer operations - only for cross-chain transfers
-    if (transactionType === 'transfer') {
+    if (currentTransactionType === 'transfer') {
       // Detect network from recipient address
-      if (!recipientAddress) return '0%'
+      if (!recipientWalletAddress) return '0%'
       
       // Use the same detection logic as fee calculator
-      if (recipientAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientAddress.match(/^bc1[a-z0-9]{38,58}$/)) {
+      if (recipientWalletAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientWalletAddress.match(/^bc1[a-z0-9]{38,58}$/)) {
         return '0.8%' // BTC
       }
-      if (recipientAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+      if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
         return '0.8%' // ETH
       }
-      if (recipientAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
+      if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
         return '0.8%' // SUI
       }
-      if (recipientAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
+      if (recipientWalletAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
         return '0%' // SOL - no DEX fee
       }
       return '0%' // Invalid or empty address
     }
     
     // For other transactions, payment method is required
-    if (!selectedPaymentMethod) return '0%'
+    if (!chosenPaymentMethod) return '0%'
     
     // Payment provider fees based on payment method and transaction type
-    const isOnRampFee = isOnRamp || (transactionType === 'buy' && selectedPaymentMethod !== 'diboas_wallet')
+    const isOnRampFee = isOnRampTransaction || (currentTransactionType === 'buy' && chosenPaymentMethod !== 'diboas_wallet')
     const feeType = isOnRampFee ? 'onramp' : 'offramp'
     
-    const rates = {
+    const providerFeeRatesByMethod = {
       onramp: {
         'apple_pay': '0.5%',
         'credit_debit_card': '1%', 
@@ -236,64 +248,61 @@ export default function TransactionPage({ transactionType: propTransactionType }
       }
     }
     
-    return rates[feeType]?.[selectedPaymentMethod] || '0%'
-  }, [selectedPaymentMethod, transactionType, isOnRamp, recipientAddress])
+    return providerFeeRatesByMethod[feeType]?.[chosenPaymentMethod] || '0%'
+  }, [chosenPaymentMethod, currentTransactionType, isOnRampTransaction, recipientWalletAddress])
 
-  const getPaymentMethodFeeRate = useCallback(() => {
+  const calculatePaymentMethodFeePercentage = useCallback(() => {
     // This is the same as provider fee for display purposes
-    return getProviderFeeRate()
-  }, [getProviderFeeRate])
+    return calculateProviderFeePercentage()
+  }, [calculateProviderFeePercentage])
 
   // Enhanced transaction validation with balance checking
-  const isTransactionValid = useMemo(() => {
-    if (!amount || parseFloat(amount) <= 0) return false
-    if (['send', 'transfer'].includes(transactionType) && !recipientAddress) return false
-    if (Object.keys(validationErrors).length > 0) return false
+  const isTransactionInputValid = useMemo(() => {
+    if (!transactionAmountInput || parseFloat(transactionAmountInput) <= 0) return false
+    if (['send', 'transfer'].includes(currentTransactionType) && !recipientWalletAddress) return false
+    if (Object.keys(transactionValidationErrors).length > 0) return false
     
     // Balance validation for transactions that require sufficient funds
-    const numericAmount = parseFloat(amount)
-    if (['send', 'transfer', 'withdraw'].includes(transactionType)) {
-      const availableBalance = balance?.availableForSpending || 0
-      if (numericAmount > availableBalance) return false
-    } else if (transactionType === 'buy' && selectedPaymentMethod === 'diboas_wallet') {
-      const availableBalance = balance?.availableForSpending || 0
-      if (numericAmount > availableBalance) return false
+    const numericTransactionAmount = parseFloat(transactionAmountInput)
+    if (['send', 'transfer', 'withdraw'].includes(currentTransactionType)) {
+      const availableWalletBalance = currentWalletBalance?.availableForSpending || 0
+      if (numericTransactionAmount > availableWalletBalance) return false
+    } else if (currentTransactionType === 'buy' && chosenPaymentMethod === 'diboas_wallet') {
+      const availableWalletBalance = currentWalletBalance?.availableForSpending || 0
+      if (numericTransactionAmount > availableWalletBalance) return false
     }
     
     return true
-  }, [amount, transactionType, recipientAddress, validationErrors, balance, selectedPaymentMethod])
+  }, [transactionAmountInput, currentTransactionType, recipientWalletAddress, transactionValidationErrors, currentWalletBalance, chosenPaymentMethod])
 
   // Event handlers
   const handleTransactionStart = useCallback(async () => {
     try {
-      const result = await executeTransactionFlow({
-        type: transactionType,
-        amount: parseFloat(amount),
-        recipient: recipientAddress,
-        asset: selectedAsset,
-        paymentMethod: selectedPaymentMethod
+      const transactionRequestData = await executeCompleteTransactionFlow({
+        type: currentTransactionType,
+        amount: parseFloat(transactionAmountInput),
+        recipient: recipientWalletAddress,
+        asset: selectedCryptocurrencyAsset,
+        paymentMethod: chosenPaymentMethod
       })
       
-      if (result.requiresTwoFA) {
+      if (transactionRequestData.requiresTwoFA) {
         // Handle 2FA requirement - implementation pending
-        console.log('2FA required for transaction')
       }
     } catch (error) {
       console.error('Transaction failed:', error)
     }
-  }, [transactionType, amount, recipientAddress, selectedAsset, selectedPaymentMethod, executeTransactionFlow])
+  }, [currentTransactionType, transactionAmountInput, recipientWalletAddress, selectedCryptocurrencyAsset, chosenPaymentMethod, executeCompleteTransactionFlow])
 
   const handleTransactionConfirm = useCallback(async () => {
     try {
-      console.log('TransactionPage: Confirming transaction...')
-      const result = await confirmTransaction()
-      console.log('TransactionPage: Transaction confirmed with result:', result)
+      await confirmPendingTransaction()
       // Don't navigate immediately - let the flow state transition to 'completed' 
       // and show the success screen first
     } catch (error) {
       console.error('Transaction confirmation failed:', error)
     }
-  }, [confirmTransaction])
+  }, [confirmPendingTransaction])
 
   // 2FA verification handler - implementation pending
   // const handle2FAVerification = useCallback(async (twoFACode) => {
@@ -309,76 +318,135 @@ export default function TransactionPage({ transactionType: propTransactionType }
 
   // Fee calculation and validation effect - recalculates when relevant fields change
   useEffect(() => {
-    if (debouncedAmount && parseFloat(debouncedAmount) > 0) {
-      // Calculate fees
-      calculateFees({
-        type: transactionType,
-        amount: parseFloat(debouncedAmount),
-        asset: selectedAsset,
-        paymentMethod: selectedPaymentMethod,
-        recipient: recipientAddress // Include for network detection in transfers
-      })
+    if (debouncedTransactionAmount && parseFloat(debouncedTransactionAmount) > 0) {
+      // Calculate fees with correct API parameters
+      const feeParams = {
+        type: currentTransactionType,
+        amount: parseFloat(debouncedTransactionAmount),
+        chains: ['SOL'], // Default to SOL, will be updated based on transaction type
+        paymentMethod: chosenPaymentMethod,
+        asset: selectedCryptocurrencyAsset || 'USDC'
+      }
+      
+      // Add recipient for transfer transactions
+      if (currentTransactionType === 'transfer' && recipientWalletAddress) {
+        feeParams.recipient = recipientWalletAddress
+      }
+      
+      // Update chains based on transaction type
+      if (currentTransactionType === 'buy' || currentTransactionType === 'sell') {
+        // Map assets to their native chains
+        const assetChainMap = {
+          'BTC': ['SOL', 'BTC'], // From SOL to BTC
+          'ETH': ['SOL', 'ETH'], // From SOL to ETH  
+          'SUI': ['SOL', 'SUI'], // From SOL to SUI
+          'SOL': ['SOL'], // SOL to SOL
+          'USDC': ['SOL'] // USDC on SOL
+        }
+        feeParams.chains = assetChainMap[selectedCryptocurrencyAsset] || ['SOL']
+      } else if (currentTransactionType === 'transfer' && recipientWalletAddress) {
+        // For transfers, detect destination chain from address
+        if (recipientWalletAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientWalletAddress.match(/^bc1[a-z0-9]{38,58}$/)) {
+          feeParams.chains = ['SOL', 'BTC'] // SOL to BTC
+        } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+          feeParams.chains = ['SOL', 'ETH'] // SOL to ETH
+        } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
+          feeParams.chains = ['SOL', 'SUI'] // SOL to SUI
+        } else {
+          feeParams.chains = ['SOL'] // SOL to SOL or invalid
+        }
+      }
+      
+      calculateTransactionFees(feeParams)
       
       // Validate transaction
-      validateTransaction({
-        type: transactionType,
-        amount: debouncedAmount,
-        recipient: recipientAddress,
-        asset: selectedAsset,
-        paymentMethod: selectedPaymentMethod
+      validateTransactionInput({
+        type: currentTransactionType,
+        amount: debouncedTransactionAmount,
+        recipient: recipientWalletAddress,
+        asset: selectedCryptocurrencyAsset,
+        paymentMethod: chosenPaymentMethod
       })
     }
-  }, [debouncedAmount, transactionType, selectedAsset, selectedPaymentMethod, recipientAddress, calculateFees, validateTransaction])
+  }, [debouncedTransactionAmount, currentTransactionType, selectedCryptocurrencyAsset, chosenPaymentMethod, recipientWalletAddress, calculateTransactionFees, validateTransactionInput])
   
   // Additional validation when balance changes or form loads
   useEffect(() => {
-    if (amount && parseFloat(amount) > 0) {
-      validateTransaction({
-        type: transactionType,
-        amount: amount,
-        recipient: recipientAddress,
-        asset: selectedAsset,
-        paymentMethod: selectedPaymentMethod
+    if (transactionAmountInput && parseFloat(transactionAmountInput) > 0) {
+      validateTransactionInput({
+        type: currentTransactionType,
+        amount: transactionAmountInput,
+        recipient: recipientWalletAddress,
+        asset: selectedCryptocurrencyAsset,
+        paymentMethod: chosenPaymentMethod
       })
     }
-  }, [balance, validateTransaction, amount, transactionType, recipientAddress, selectedAsset, selectedPaymentMethod])
+  }, [currentWalletBalance, validateTransactionInput, transactionAmountInput, currentTransactionType, recipientWalletAddress, selectedCryptocurrencyAsset, chosenPaymentMethod])
   
   // Initial validation on component mount and transaction type change
   useEffect(() => {
-    if (amount) {
-      validateTransaction({
-        type: transactionType,
-        amount: amount,
-        recipient: recipientAddress,
-        asset: selectedAsset,
-        paymentMethod: selectedPaymentMethod
+    if (transactionAmountInput) {
+      validateTransactionInput({
+        type: currentTransactionType,
+        amount: transactionAmountInput,
+        recipient: recipientWalletAddress,
+        asset: selectedCryptocurrencyAsset,
+        paymentMethod: chosenPaymentMethod
       })
     }
-  }, [transactionType, validateTransaction, amount, recipientAddress, selectedAsset, selectedPaymentMethod])
+  }, [currentTransactionType, validateTransactionInput, transactionAmountInput, recipientWalletAddress, selectedCryptocurrencyAsset, chosenPaymentMethod])
+
+  // Show transaction details page if viewing a specific transaction
+  if (isViewingTransaction) {
+    return <TransactionDetailsPage transactionId={transactionId} />
+  }
 
   // Show transaction progress screen if in progress
-  if (flowState === 'processing' || flowState === 'confirming' || flowState === 'completed' || flowState === 'pending') {
-    console.log('TransactionPage: Rendering progress screen with flowState:', flowState, 'isCompleted:', flowState === 'completed')
+  if (transactionFlowState === 'processing' || transactionFlowState === 'confirming' || transactionFlowState === 'completed' || transactionFlowState === 'pending' || transactionFlowState === 'pending_blockchain') {
     
+    // Use enhanced progress screen when we have a transaction ID (indicates on-chain transaction)
+    const hasOnChainTransaction = transactionFlowData?.transactionId
+    
+    if (hasOnChainTransaction) {
+      return (
+        <EnhancedTransactionProgressScreen
+          transactionData={{
+            type: currentTransactionType,
+            amount: transactionAmountInput,
+            recipient: recipientWalletAddress,
+            asset: selectedCryptocurrencyAsset,
+            paymentMethod: chosenPaymentMethod
+          }}
+          transactionId={transactionFlowData.transactionId}
+          onConfirm={handleTransactionConfirm}
+          onCancel={() => resetTransactionFlow()}
+          flowState={transactionFlowState}
+          flowData={transactionFlowData}
+          flowError={transactionFlowError}
+        />
+      )
+    }
+    
+    // Use legacy progress screen for non-on-chain transactions
     return (
       <TransactionProgressScreen
         transactionData={{
-          type: transactionType,
-          amount: amount,
-          recipient: recipientAddress,
-          asset: selectedAsset,
-          paymentMethod: selectedPaymentMethod
+          type: currentTransactionType,
+          amount: transactionAmountInput,
+          recipient: recipientWalletAddress,
+          asset: selectedCryptocurrencyAsset,
+          paymentMethod: chosenPaymentMethod
         }}
-        isCompleted={flowState === 'completed'}
-        isError={flowState === 'error'}
-        errorMessage={flowError?.message || ''}
-        fees={flowData?.fees}
-        result={flowData?.result}
+        isCompleted={transactionFlowState === 'completed'}
+        isError={transactionFlowState === 'error'}
+        errorMessage={transactionFlowError?.message || ''}
+        fees={transactionFlowData?.fees}
+        result={transactionFlowData?.result}
         onConfirm={handleTransactionConfirm}
-        onCancel={() => resetFlow()}
-        flowState={flowState}
-        flowData={flowData}
-        flowError={flowError}
+        onCancel={() => resetTransactionFlow()}
+        flowState={transactionFlowState}
+        flowData={transactionFlowData}
+        flowError={transactionFlowError}
       />
     )
   }
@@ -392,60 +460,60 @@ export default function TransactionPage({ transactionType: propTransactionType }
         backTo="/app"
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="page-container-wide">
         
         {/* Transaction Type Selection */}
         <TransactionTypeSelector
-          transactionTypes={transactionTypes}
-          transactionType={transactionType}
-          setTransactionType={setTransactionType}
+          transactionTypes={availableTransactionTypeConfigs}
+          transactionType={currentTransactionType}
+          setTransactionType={setCurrentTransactionType}
           propTransactionType={propTransactionType}
-          currentType={currentType}
+          currentType={selectedTransactionTypeConfig}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="transaction-form-grid">
           
           {/* Transaction Form */}
           <TransactionForm
-            transactionType={transactionType}
-            isOnRamp={isOnRamp}
-            isOffRamp={isOffRamp}
-            recipientAddress={recipientAddress}
-            setRecipientAddress={setRecipientAddress}
-            amount={amount}
-            setAmount={setAmount}
-            selectedAsset={selectedAsset}
-            setSelectedAsset={setSelectedAsset}
-            selectedPaymentMethod={selectedPaymentMethod}
-            setSelectedPaymentMethod={setSelectedPaymentMethod}
-            assets={assets}
-            buyPaymentMethods={buyPaymentMethods}
-            paymentMethods={paymentMethods}
-            balance={balance}
-            availableBalance={availableBalance}
-            validationErrors={validationErrors}
-            showRecipientAddress={showRecipientAddress}
-            setShowRecipientAddress={setShowRecipientAddress}
-            currentType={currentType}
+            transactionType={currentTransactionType}
+            isOnRamp={isOnRampTransaction}
+            isOffRamp={isOffRampTransaction}
+            recipientAddress={recipientWalletAddress}
+            setRecipientAddress={setRecipientWalletAddress}
+            amount={transactionAmountInput}
+            setAmount={setTransactionAmountInput}
+            selectedAsset={selectedCryptocurrencyAsset}
+            setSelectedAsset={setSelectedCryptocurrencyAsset}
+            selectedPaymentMethod={chosenPaymentMethod}
+            setSelectedPaymentMethod={setChosenPaymentMethod}
+            assets={supportedCryptocurrencyAssets}
+            buyPaymentMethods={buyTransactionPaymentMethods}
+            paymentMethods={availablePaymentMethodOptions}
+            balance={currentWalletBalance}
+            availableBalance={userAvailableBalance}
+            validationErrors={transactionValidationErrors}
+            showRecipientAddress={isRecipientAddressFieldVisible}
+            setShowRecipientAddress={setIsRecipientAddressFieldVisible}
+            currentType={selectedTransactionTypeConfig}
           />
 
           {/* Transaction Summary */}
           <TransactionSummary
-            amount={amount}
-            transactionType={transactionType}
-            selectedAsset={selectedAsset}
-            assets={assets}
-            fees={fees}
-            currentType={currentType}
-            isOnRamp={isOnRamp}
-            isOffRamp={isOffRamp}
-            selectedPaymentMethod={selectedPaymentMethod}
+            amount={transactionAmountInput}
+            transactionType={currentTransactionType}
+            selectedAsset={selectedCryptocurrencyAsset}
+            assets={supportedCryptocurrencyAssets}
+            fees={calculatedTransactionFees}
+            currentType={selectedTransactionTypeConfig}
+            isOnRamp={isOnRampTransaction}
+            isOffRamp={isOffRampTransaction}
+            selectedPaymentMethod={chosenPaymentMethod}
             handleTransactionStart={handleTransactionStart}
-            isTransactionValid={isTransactionValid}
-            getNetworkFeeRate={getNetworkFeeRate}
-            getProviderFeeRate={getProviderFeeRate}
-            getPaymentMethodFeeRate={getPaymentMethodFeeRate}
-            recipientAddress={recipientAddress}
+            isTransactionValid={isTransactionInputValid}
+            getNetworkFeeRate={calculateNetworkFeePercentage}
+            getProviderFeeRate={calculateProviderFeePercentage}
+            getPaymentMethodFeeRate={calculatePaymentMethodFeePercentage}
+            recipientAddress={recipientWalletAddress}
           />
         </div>
       </div>

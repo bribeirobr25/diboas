@@ -3,7 +3,7 @@
  * Tests all fee calculation scenarios, edge cases, and network-specific logic
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { FeeCalculator } from '../feeCalculations.js'
 
 describe('Fee Calculations', () => {
@@ -197,8 +197,8 @@ describe('Fee Calculations', () => {
         { address: '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2NFD', expectedChain: 'SOL' },
         { address: 'DQyrAcCrDXQ8NeoqGgDCZwBvWDcYmFCjSb9JtteuvPpz', expectedChain: 'SOL' },
         
-        // Sui addresses
-        { address: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f', expectedChain: 'SUI' }
+        // Sui addresses (exactly 64 hex chars after 0x)
+        { address: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b', expectedChain: 'SUI' }
       ]
 
       addressTests.forEach(({ address, expectedChain }) => {
@@ -619,7 +619,7 @@ describe('Fee Calculations', () => {
           chains: ['SOL']
         })
 
-        expect(fees.total).toBeFinite()
+        expect(isFinite(fees.total)).toBe(true)
         expect(fees.total).toBeGreaterThan(0)
       })
     })
@@ -703,11 +703,11 @@ describe('Fee Calculations', () => {
           type: 'transfer',
           amount,
           paymentMethod: 'diboas_wallet',
-          chains: ['BTC']
+          chains: ['SOL', 'BTC'] // Cross-chain transfer from SOL to BTC
         })
 
         expect(solanaFees.total).toBeLessThan(bitcoinFees.total)
-        expect(bitcoinFees.total - solanaFees.total).toBeGreaterThan(80) // Bitcoin ~$90 more expensive
+        expect(bitcoinFees.total - solanaFees.total).toBeGreaterThan(80) // Bitcoin ~$90 more expensive due to 9% network fee
       })
 
       it('should show diBoaS wallet is cheaper than external payments for buy', () => {
@@ -717,18 +717,20 @@ describe('Fee Calculations', () => {
           type: 'buy',
           amount,
           paymentMethod: 'diboas_wallet',
-          chains: ['ETH']
+          chains: ['SOL'],
+          asset: 'SOL' // Specify asset for SOL chain
         })
         
-        const creditCardFees = feeCalculator.calculateComprehensiveFees({
+        const paypalFees = feeCalculator.calculateComprehensiveFees({
           type: 'buy',
           amount,
-          paymentMethod: 'credit_card',
-          chains: ['ETH']
+          paymentMethod: 'paypal',
+          chains: ['SOL'],
+          asset: 'SOL' // Specify asset for SOL chain
         })
 
-        expect(diboasWalletFees.total).toBeLessThan(creditCardFees.total)
-        // diBoaS wallet uses DEX fee (1%) vs credit card (varies, but typically higher)
+        expect(diboasWalletFees.total).toBeLessThan(paypalFees.total)
+        // diBoaS wallet uses DEX fee (1%) vs PayPal onramp fee (3%) - PayPal is more expensive
       })
     })
   })

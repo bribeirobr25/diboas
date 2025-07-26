@@ -106,13 +106,13 @@ export default function TransactionProgressScreen({
   isError = false,
   errorMessage = '',
   fees = null,
-  result = null,
+  _result = null,
   transactionId = null, // New prop for real-time status tracking
   onConfirm,
   onCancel,
   flowState,
-  flowData,
-  flowError
+  _flowData,
+  _flowError
 }) {
   const navigate = useNavigate()
   const [completedSteps, setCompletedSteps] = useState([])
@@ -121,7 +121,7 @@ export default function TransactionProgressScreen({
   // Use real-time transaction status if transactionId is provided
   const {
     status: realTimeStatus,
-    isLoading: statusLoading,
+    isLoading: _statusLoading,
     error: statusError,
     progress: realTimeProgress,
     progressText,
@@ -140,19 +140,11 @@ export default function TransactionProgressScreen({
     isError
   const finalErrorMessage = useRealTimeStatus && statusError ? statusError : errorMessage
 
-  // Debug logging
-  console.log('TransactionProgressScreen Debug:', {
-    isCompleted,
-    useRealTimeStatus,
-    finalIsCompleted,
-    finalIsError,
-    transactionId,
-    realTimeStatus
-  })
+  // Debug logging removed for production
 
   // Additional debugging for completion detection
   useEffect(() => {
-    console.log('TransactionProgressScreen: finalIsCompleted changed to', finalIsCompleted)
+    // Completion status tracking removed for production
   }, [finalIsCompleted])
 
   // Get transaction configuration with dynamic 'from' and 'to' fields

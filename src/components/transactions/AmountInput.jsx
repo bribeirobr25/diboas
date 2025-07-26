@@ -36,13 +36,14 @@ export default function AmountInput({
           { label: '50%', value: Math.round((balance?.availableForSpending || 0) * 0.50 * 100) / 100 },
           { label: 'Max', value: balance?.availableForSpending || 0 }
         ]
-      case 'sell':
+      case 'sell': {
         const assetBalance = balance?.assets?.[selectedAsset]?.investedAmount || 0
         return [
           { label: '25%', value: Math.round(assetBalance * 0.25 * 100) / 100 },
           { label: '50%', value: Math.round(assetBalance * 0.50 * 100) / 100 },
           { label: 'Max', value: assetBalance }
         ]
+      }
       case 'withdraw':
         return [
           { label: '25%', value: Math.round((balance?.availableForSpending || 0) * 0.25 * 100) / 100 },
@@ -88,9 +89,9 @@ export default function AmountInput({
             aria-label="Select asset to sell"
             autoComplete="off"
             >
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.label}
+              {assets.map((cryptoAsset) => (
+                <option key={cryptoAsset.assetId} value={cryptoAsset.assetId}>
+                  {cryptoAsset.displayName}
                 </option>
               ))}
             </select>
@@ -113,7 +114,7 @@ export default function AmountInput({
         ))}
       </div>
 
-      <p className="text-sm text-gray-500 mt-1">
+      <p className="balance-summary-text">
         {['withdraw', 'send', 'transfer'].includes(transactionType)
           ? `Maximum ${transactionType === 'withdraw' ? 'withdrawable' : transactionType === 'send' ? 'sendable' : 'transferable'}: $${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` 
           : transactionType === 'sell'
@@ -123,14 +124,14 @@ export default function AmountInput({
       </p>
       
       {validationErrors.amount && (
-        <p className="text-sm text-red-600 mt-1">
+        <p className="validation-error-text">
           {validationErrors.amount.message}
         </p>
       )}
       
       {['withdraw', 'send', 'transfer'].includes(transactionType) && balance?.investedAmount > 0 && (
         <div className="info-box">
-          <div className="flex items-start space-x-2">
+          <div className="flex-row-start">
             <Info className="info-icon" />
             <div className="info-content">
               <p className="font-medium">Invested funds cannot be {transactionType === 'withdraw' ? 'withdrawn' : transactionType === 'send' ? 'sent' : 'transferred'} directly</p>
@@ -142,7 +143,7 @@ export default function AmountInput({
       
       {transactionType === 'buy' && selectedPaymentMethod === 'diboas_wallet' && amount && parseFloat(amount) > (balance?.availableForSpending || 0) && (
         <div className="error-box">
-          <div className="flex items-start space-x-2">
+          <div className="flex-row-start">
             <AlertCircle className="error-icon" />
             <div className="error-content">
               <p className="font-medium">Insufficient diBoaS wallet balance</p>

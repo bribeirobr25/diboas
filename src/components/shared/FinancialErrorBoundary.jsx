@@ -167,7 +167,7 @@ class FinancialErrorBoundary extends React.Component {
               </div>
 
               {/* Development-only error details */}
-              {process.env.NODE_ENV === 'development' && (
+              {(typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') && (
                 <details className="bg-red-50 p-3 rounded-md">
                   <summary className="text-sm font-medium text-red-800 cursor-pointer">
                     Development Error Details

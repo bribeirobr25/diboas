@@ -43,7 +43,7 @@
 
 :root {
   --radius: 0.625rem;
-  /* diBoaS Brand Colors */
+  
   --diboas-blue: #1E40AF;
   --accent-cyan: #06B6D4;
   --success-green: #10B981;
@@ -52,7 +52,7 @@
   --neutral-gray: #6B7280;
   --light-gray: #F9FAFB;
   
-  /* Updated theme colors using diBoaS brand */
+  
   --background: #F9FAFB;
   --foreground: #1F2937;
   --card: #FFFFFF;
@@ -131,12 +131,6 @@
   }
 }
 
-/* =================================================================
-   DIBOAS SEMANTIC COMPONENT SYSTEM
-   Human-friendly class names for maintainable code
-   ================================================================= */
-
-/* LAYOUT COMPONENTS */
 .main-layout {
   min-height: 100vh;
   background: #f9fafb;
@@ -162,7 +156,6 @@
   text-align: center;
 }
 
-/* CARD COMPONENTS */
 .main-card {
   background: white;
   border-radius: 0.75rem;
@@ -211,9 +204,6 @@
   background: #f9fafb;
 }
 
-/* OPTIMIZED BUTTON SYSTEM - REDUCED DUPLICATION */
-
-/* Base button foundation - shared properties */
 .button-base,
 .cta-button,
 .primary-button,
@@ -257,7 +247,6 @@
   transform: none;
 }
 
-/* Button sizes */
 .button-default {
   height: 2.25rem;
   padding: 0.5rem 1rem;
@@ -282,7 +271,6 @@
   padding: 0;
 }
 
-/* Error button */
 .error-button {
   background: var(--error-red);
   color: white;
@@ -294,7 +282,6 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
 }
 
-/* Link button */
 .link-button {
   background: transparent;
   color: var(--diboas-blue);
@@ -308,7 +295,6 @@
   color: var(--accent-cyan);
 }
 
-/* Button variants - only unique properties */
 .cta-button,
 .get-started-button {
   background: var(--diboas-blue);
@@ -360,7 +346,6 @@
   color: #374151;
 }
 
-/* Specific button overrides */
 .sign-in-button {
   width: 100%;
   height: 3rem;
@@ -406,9 +391,6 @@
   background: #faf5ff;
 }
 
-/* OPTIMIZED INPUT SYSTEM - REDUCED DUPLICATION */
-
-/* Base input foundation - shared properties */
 .input-base,
 .main-input,
 .amount-input,
@@ -431,7 +413,6 @@
   box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
 }
 
-/* Input variants - only unique properties */
 .amount-input {
   font-size: 1.5rem;
   height: 3.5rem;
@@ -442,7 +423,6 @@
   padding-left: 2.5rem;
 }
 
-/* NAVIGATION */
 .main-navigation {
   display: flex;
   justify-content: space-between;
@@ -471,7 +451,6 @@
   background: #f0f9ff;
 }
 
-/* TEXT STYLES */
 .page-title {
   font-size: 2rem;
   font-weight: 700;
@@ -510,7 +489,6 @@
   background-clip: text;
 }
 
-/* UTILITY CLASSES */
 .center-content {
   display: flex;
   justify-content: center;
@@ -541,9 +519,6 @@
   gap: 1rem;
 }
 
-/* COMMON COMPONENT PATTERNS */
-
-/* Search input with icon */
 .search-input-container {
   position: relative;
 }
@@ -558,34 +533,6 @@
   color: #9ca3af;
 }
 
-/* Amount input with currency */
-.amount-input-container {
-  position: relative;
-}
-
-.amount-input-container .currency-label {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.amount-input-container .asset-selector {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-  outline: none;
-}
-
-/* Warning and info boxes */
 .warning-box {
   margin-top: 0.75rem;
   padding: 0.75rem;
@@ -607,107 +554,6 @@
   color: #92400e;
 }
 
-.info-box {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  background: #dbeafe;
-  border: 1px solid #3b82f6;
-  border-radius: 0.5rem;
-}
-
-.info-box .info-icon {
-  width: 1rem;
-  height: 1rem;
-  color: #2563eb;
-  margin-top: 0.125rem;
-  flex-shrink: 0;
-}
-
-.info-box .info-content {
-  font-size: 0.875rem;
-  color: #1d4ed8;
-}
-
-.error-box {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #ef4444;
-  border-radius: 0.5rem;
-}
-
-.error-box .error-icon {
-  width: 1rem;
-  height: 1rem;
-  color: #dc2626;
-  margin-top: 0.125rem;
-  flex-shrink: 0;
-}
-
-.error-box .error-content {
-  font-size: 0.875rem;
-  color: #991b1b;
-}
-
-/* Transaction type grid */
-.transaction-type-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-@media (min-width: 768px) {
-  .transaction-type-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .transaction-type-grid {
-    grid-template-columns: repeat(7, 1fr);
-  }
-}
-
-/* Asset selection grid */
-.asset-selection-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-/* Payment method grid */
-.payment-method-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-/* Quick amount options */
-.amount-quick-options {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.amount-option-button {
-  height: 2rem;
-  padding: 0 0.75rem;
-  font-size: 0.75rem;
-  border: 1px solid #d1d5db;
-  background: white;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.amount-option-button:hover {
-  background: #f9fafb;
-  border-color: var(--diboas-blue);
-}
-
-/* Empty state containers */
 .empty-state-container {
   margin-top: 0.5rem;
   padding: 1.5rem;
@@ -729,7 +575,6 @@
   margin-bottom: 0.75rem;
 }
 
-/* Feature icons */
 .feature-icon {
   width: 4rem;
   height: 4rem;
@@ -756,7 +601,6 @@
   background: linear-gradient(135deg, #fb7185 0%, #f59e0b 100%);
 }
 
-/* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
   .content-container {
     padding: 0 0.75rem;
@@ -779,7 +623,6 @@
   }
 }
 
-/* LOADING STATES */
 .loading-spinner {
   width: 1rem;
   height: 1rem;
@@ -795,7 +638,6 @@
   }
 }
 
-/* Legacy classes (to be removed gradually) */
 .diboas-gradient {
   background: linear-gradient(135deg, var(--diboas-blue) 0%, var(--accent-cyan) 100%);
 }

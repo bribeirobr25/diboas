@@ -3,7 +3,7 @@
  * Comprehensive SEO management for financial applications
  */
 
-import { Helmet } from 'react-helmet-async'
+// import { Helmet } from 'react-helmet-async' // Removed - not used in this utility file
 
 /**
  * SEO configuration constants

@@ -113,7 +113,7 @@ function clearCorruptedData() {
         localStorage.removeItem(key)
         clearedCount++
       }
-    } catch (error) {
+    } catch (_error) {
       console.warn(`🧹 Clearing invalid key: ${key}`)
       localStorage.removeItem(key)
       clearedCount++

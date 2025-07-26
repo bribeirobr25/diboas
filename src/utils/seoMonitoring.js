@@ -188,7 +188,7 @@ export const contentAnalysis = {
     analysis.structuredData = Array.from(scripts).map(script => {
       try {
         return JSON.parse(script.textContent)
-      } catch (e) {
+      } catch (_e) {
         return { error: 'Invalid JSON-LD' }
       }
     })

@@ -210,7 +210,7 @@ export class Money {
     let decimalAmount
     try {
       decimalAmount = new Decimal(amount)
-    } catch (error) {
+    } catch (_) {
       throw new Error('Amount must be a valid number, string, or Decimal')
     }
     

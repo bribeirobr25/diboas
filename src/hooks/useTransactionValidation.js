@@ -248,7 +248,7 @@ export function useTransactionValidation() {
  * Simulates transaction API with various failure scenarios
  */
 async function simulateTransactionAPI(transactionData) {
-  const { amount, transactionType } = transactionData
+  const { amount, transactionType: _TRANSACTION_TYPE } = transactionData
   const delay = Math.random() * 2000 + 1000 // 1-3 seconds
 
   return new Promise((resolve, reject) => {

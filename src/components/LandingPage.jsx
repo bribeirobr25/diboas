@@ -27,27 +27,29 @@ import { useNavigate } from 'react-router-dom'
 import { PAGE_SEO_CONFIG, useSEO } from '../utils/seoUtils.js'
 import SEOHelmet from './SEOHelmet.jsx'
 import diBoaSLogo from '../assets/diboas-logo.png'
-import mascotFinancialBasics from '../assets/mascot-financial-basics.png'
-import mascotInvestmentGuide from '../assets/mascot-investment-guide.png'
-import mascotCryptoDefi from '../assets/mascot-crypto-defi.png'
+
+// PERFORMANCE: Lazy load large mascot images
+const mascotFinancialBasics = new URL('../assets/mascot-financial-basics.png', import.meta.url).href
+const mascotInvestmentGuide = new URL('../assets/mascot-investment-guide.png', import.meta.url).href  
+const mascotCryptoDefi = new URL('../assets/mascot-crypto-defi.png', import.meta.url).href
 
 export default function LandingPage() {
-  const navigate = useNavigate()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('traditional')
+  const navigationHelper = useNavigate()
+  const [isMobileNavigationMenuOpen, setIsMobileNavigationMenuOpen] = useState(false)
+  const [activeFinancePlatformTab, setActiveFinancePlatformTab] = useState('traditional')
 
   // SEO configuration for homepage
-  const homeSEO = PAGE_SEO_CONFIG.home
-  useSEO(homeSEO)
+  const landingPageSEOConfiguration = PAGE_SEO_CONFIG.home
+  useSEO(landingPageSEOConfiguration)
 
   return (
     <>
       {/* SEO Meta Tags */}
       <SEOHelmet
-        title={homeSEO.title}
-        description={homeSEO.description}
-        keywords={homeSEO.keywords}
-        structuredData={homeSEO.structuredData}
+        title={landingPageSEOConfiguration.title}
+        description={landingPageSEOConfiguration.description}
+        keywords={landingPageSEOConfiguration.keywords}
+        structuredData={landingPageSEOConfiguration.structuredData}
         url="https://diboas.com/"
         type="website"
       />
@@ -77,7 +79,7 @@ export default function LandingPage() {
                 </a>
                 <Button 
                   className="get-started-button"
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigationHelper('/auth')}
                 >
                   Get Started
                 </Button>
@@ -88,16 +90,16 @@ export default function LandingPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                onClick={() => setIsMobileNavigationMenuOpen(!isMobileNavigationMenuOpen)}
               >
-                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                {isMobileNavigationMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
             </div>
           </div>
         </div>
         
         {/* Mobile menu */}
-        {isMenuOpen && (
+        {isMobileNavigationMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
               <a href="#features" className="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
@@ -111,7 +113,7 @@ export default function LandingPage() {
               </a>
               <Button 
                 className="diboas-button w-full mt-2"
-                onClick={() => navigate('/auth')}
+                onClick={() => navigationHelper('/auth')}
               >
                 Get Started
               </Button>
@@ -141,7 +143,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 className="cta-button"
-                onClick={() => navigate('/auth')}
+                onClick={() => navigationHelper('/auth')}
               >
                 Start Your Journey
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -155,26 +157,26 @@ export default function LandingPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <section className="landing-page-section--compact bg-white">
+        <div className="page-container">
+          <div className="stats-grid">
             <div>
-              <h3 className="text-3xl md:text-4xl font-bold diboas-text-gradient mb-2">5B+</h3>
+              <h3 className="stats-number">5B+</h3>
               <p className="text-lg font-semibold text-gray-900 mb-1">Global FinTech Users</p>
               <p className="text-sm text-gray-600">Worldwide users ready for crypto</p>
             </div>
             <div>
-              <h3 className="text-3xl md:text-4xl font-bold diboas-text-gradient mb-2">560M</h3>
+              <h3 className="stats-number">560M</h3>
               <p className="text-lg font-semibold text-gray-900 mb-1">Crypto Users</p>
               <p className="text-sm text-gray-600">Current crypto adoption</p>
             </div>
             <div>
-              <h3 className="text-3xl md:text-4xl font-bold diboas-text-gradient mb-2">5M</h3>
+              <h3 className="stats-number">5M</h3>
               <p className="text-lg font-semibold text-gray-900 mb-1">DeFi Users</p>
               <p className="text-sm text-gray-600">Target for expansion</p>
             </div>
             <div>
-              <h3 className="text-3xl md:text-4xl font-bold diboas-text-gradient mb-2">3</h3>
+              <h3 className="stats-number">3</h3>
               <p className="text-lg font-semibold text-gray-900 mb-1">Max Clicks</p>
               <p className="text-sm text-gray-600">Maximum clicks for any action</p>
             </div>
@@ -183,8 +185,8 @@ export default function LandingPage() {
       </section>
 
       {/* Transactions Section */}
-      <section className="py-20 diboas-gradient text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="landing-page-section diboas-gradient text-white">
+        <div className="page-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               All Transactions in 1 Click
@@ -194,7 +196,7 @@ export default function LandingPage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <div className="transaction-actions-grid">
             {[
               { icon: <Wallet className="w-8 h-8" />, label: 'Deposit', color: 'bg-green-500' },
               { icon: <TrendingUp className="w-8 h-8" />, label: 'Buy', color: 'bg-blue-500' },
@@ -218,18 +220,18 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="features" className="landing-page-section bg-gray-50">
+        <div className="page-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Why Choose diBoaS?
             </h2>
             <p className="text-xl text-gray-600">
-              We're solving the biggest challenges in finance and crypto adoption
+              We&apos;re solving the biggest challenges in finance and crypto adoption
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="feature-grid">
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardContent className="p-8">
                 <div className="feature-icon blue-gradient">
@@ -290,8 +292,8 @@ export default function LandingPage() {
       </section>
 
       {/* Platform Demo Section */}
-      <section id="how-it-works" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="how-it-works" className="landing-page-section bg-white">
+        <div className="page-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Traditional Finance meets DeFi
@@ -305,23 +307,23 @@ export default function LandingPage() {
             <div className="flex justify-center mb-8">
               <div className="bg-white rounded-lg p-1 shadow-sm">
                 <Button
-                  variant={activeTab === 'traditional' ? 'default' : 'ghost'}
-                  onClick={() => setActiveTab('traditional')}
-                  className={activeTab === 'traditional' ? 'diboas-button' : ''}
+                  variant={activeFinancePlatformTab === 'traditional' ? 'default' : 'ghost'}
+                  onClick={() => setActiveFinancePlatformTab('traditional')}
+                  className={activeFinancePlatformTab === 'traditional' ? 'diboas-button' : ''}
                 >
                   Traditional Finance
                 </Button>
                 <Button
-                  variant={activeTab === 'defi' ? 'default' : 'ghost'}
-                  onClick={() => setActiveTab('defi')}
-                  className={activeTab === 'defi' ? 'diboas-button' : ''}
+                  variant={activeFinancePlatformTab === 'defi' ? 'default' : 'ghost'}
+                  onClick={() => setActiveFinancePlatformTab('defi')}
+                  className={activeFinancePlatformTab === 'defi' ? 'diboas-button' : ''}
                 >
                   DeFi
                 </Button>
               </div>
             </div>
             
-            {activeTab === 'traditional' && (
+            {activeFinancePlatformTab === 'traditional' && (
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-6">
@@ -365,7 +367,7 @@ export default function LandingPage() {
               </div>
             )}
             
-            {activeTab === 'defi' && (
+            {activeFinancePlatformTab === 'defi' && (
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-6">
@@ -413,8 +415,8 @@ export default function LandingPage() {
       </section>
 
       {/* Education Section */}
-      <section id="learn" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="learn" className="landing-page-section bg-gray-50">
+        <div className="page-container">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Learn with Friendly Mascots
@@ -424,7 +426,7 @@ export default function LandingPage() {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="education-grid">
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardContent className="p-8">
                 <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center">
@@ -480,8 +482,8 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 diboas-gradient text-white">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+      <section className="landing-page-section diboas-gradient text-white">
+        <div className="page-container text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to Experience OneFi?
           </h2>
@@ -492,7 +494,7 @@ export default function LandingPage() {
             <Button 
               size="lg" 
               className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigationHelper('/auth')}
             >
               Get Started Now
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -505,8 +507,8 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="bg-gray-900 text-white landing-page-section--compact">
+        <div className="page-container">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <img src={diBoaSLogo} alt="diBoaS Logo" className="h-8 w-auto mb-4" />

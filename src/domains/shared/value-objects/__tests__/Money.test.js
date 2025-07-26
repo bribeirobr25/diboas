@@ -39,7 +39,7 @@ describe('Money Value Object - Decimal.js Integration', () => {
       expect(btc.amount).toBe(0.12345678) // 8 decimal places preserved
       
       const eth = Money.eth('1.123456789012345678')
-      expect(eth.amount).toBe(1.123456789012345678) // 18 decimal places preserved
+      expect(eth.amount).toBe(1.1234567890123457) // Precision adjusted for JS limits
     })
   })
   

@@ -3,7 +3,7 @@
  * Comprehensive QA utilities for financial applications
  */
 
-import logger, { AUDIT_EVENTS } from './secureLogger.js'
+import logger from './secureLogger.js'
 import { getCurrentEnvironment } from '../config/environments.js'
 
 /**
@@ -210,7 +210,7 @@ export const performanceQA = {
   },
 
   // Analyze bundle impact
-  analyzeBundleImpact: (componentPath) => {
+  analyzeBundleImpact: (_componentPath) => {
     // This would integrate with webpack-bundle-analyzer or similar
     return {
       size: 'Unknown',

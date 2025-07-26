@@ -4,21 +4,21 @@ import { Info } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function TransactionTypeSelector({ 
-  transactionTypes,
-  transactionType,
-  setTransactionType,
-  propTransactionType,
-  currentType
+  transactionTypes: availableTransactionTypeConfigs,
+  transactionType: currentTransactionType,
+  setTransactionType: setCurrentTransactionType,
+  propTransactionType: propTransactionType,
+  currentType: selectedTransactionTypeConfig
 }) {
-  const navigate = useNavigate()
+  const navigationHelper = useNavigate()
 
-  const handleTypeSelection = (type) => {
+  const handleTransactionTypeSelection = (selectedTransactionTypeConfig) => {
     // For RESTful routing, navigate to the specific route
     if (!propTransactionType) {
-      setTransactionType(type.id)
+      setCurrentTransactionType(selectedTransactionTypeConfig.id)
     } else {
       // Navigate to the specific transaction route
-      const routeMap = {
+      const transactionTypeRouteMapping = {
         'add': '/add',
         'send': '/send', 
         'receive': '/receive',
@@ -28,7 +28,7 @@ export default function TransactionTypeSelector({
         'withdraw': '/withdraw',
         'invest': '/invest'
       }
-      navigate(routeMap[type.id] || `/transaction?type=${type.id}`)
+      navigationHelper(transactionTypeRouteMapping[selectedTransactionTypeConfig.id] || `/transaction?type=${selectedTransactionTypeConfig.id}`)
     }
   }
 
@@ -41,30 +41,30 @@ export default function TransactionTypeSelector({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="transaction-type-grid">
-          {transactionTypes.map((type) => (
+        <div className="transaction-type-selection-grid">
+          {availableTransactionTypeConfigs.map((transactionTypeConfig) => (
             <Button
-              key={type.id}
-              variant={transactionType === type.id ? "default" : "outline"}
-              className={`h-16 flex-col space-y-1 ${
-                transactionType !== type.id 
-                  ? `${type.bgColor} ${type.color} ${type.borderColor} hover:scale-105`
+              key={transactionTypeConfig.id}
+              variant={currentTransactionType === transactionTypeConfig.id ? "default" : "outline"}
+              className={`transaction-type-button ${
+                currentTransactionType !== transactionTypeConfig.id 
+                  ? `${transactionTypeConfig.bgColor} ${transactionTypeConfig.color} ${transactionTypeConfig.borderColor} hover:scale-105`
                   : ''
               } transition-transform`}
-              onClick={() => handleTypeSelection(type)}
+              onClick={() => handleTransactionTypeSelection(transactionTypeConfig)}
             >
-              {type.icon}
-              <span className="text-xs font-medium">{type.label}</span>
+              {transactionTypeConfig.icon}
+              <span className="text-xs font-medium">{transactionTypeConfig.label}</span>
             </Button>
           ))}
         </div>
         
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <div className="flex items-start space-x-3">
-            <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+        <div className="transaction-type-info-panel">
+          <div className="flex-row-start">
+            <Info className="info-panel-icon" />
             <div>
-              <h4 className="font-medium text-blue-900">{currentType?.label}</h4>
-              <p className="text-sm text-blue-700">{currentType?.description}</p>
+              <h4 className="info-panel-title">{selectedTransactionTypeConfig?.label}</h4>
+              <p className="info-panel-description">{selectedTransactionTypeConfig?.description}</p>
             </div>
           </div>
         </div>

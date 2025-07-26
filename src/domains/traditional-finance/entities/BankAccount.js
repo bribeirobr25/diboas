@@ -312,9 +312,12 @@ export class BankAccount {
     
     // Fallback for Node.js environments
     try {
-      const crypto = require('crypto')
-      return `ach_${crypto.randomBytes(16).toString('hex')}`
-    } catch (error) {
+      const crypto = typeof require !== 'undefined' ? require('crypto') : null
+      if (crypto) {
+        return `ach_${crypto.randomBytes(16).toString('hex')}`
+      }
+      throw new Error('Crypto module not available')
+    } catch (_) {
       // Ultimate fallback (should not be used in production)
       console.warn('⚠️  Using weak random ID generation. Install crypto module.')
       return `ach_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`

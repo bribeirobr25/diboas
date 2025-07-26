@@ -278,7 +278,7 @@ export const performanceMonitor = {
     )
     
     // Log slow renders in development
-    if (process.env.NODE_ENV === 'development' && duration > 16) {
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development' && duration > 16) {
       console.warn(`Slow render detected: ${componentName} took ${duration.toFixed(2)}ms`)
     }
     
@@ -339,7 +339,7 @@ export const memoryLeakPrevention = {
   
   // Monitor memory usage (development only)
   monitorMemory: () => {
-    if (process.env.NODE_ENV !== 'development' || !performance.memory) {
+    if ((typeof process !== 'undefined' && process.env.NODE_ENV !== 'development') || !performance.memory) {
       return null
     }
     

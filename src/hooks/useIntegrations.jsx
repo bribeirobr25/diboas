@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getIntegrationManager } from '../services/integrations/IntegrationManager.js'
+import { secureStorage } from '../utils/secureStorage.js'
 
 export const useIntegrations = () => {
   const [integrationManager, setIntegrationManager] = useState(null)
@@ -89,8 +90,8 @@ export const useAuth = () => {
 
       if (result.success) {
         setUser(result.result.user)
-        // Store token in localStorage or secure storage
-        localStorage.setItem('authToken', result.result.token)
+        // Store token in secure encrypted storage
+        await secureStorage.setSecureItem('authToken', result.result.token, 'auth-session-key')
       }
 
       return result
@@ -118,7 +119,7 @@ export const useAuth = () => {
 
       if (result.success) {
         setUser(result.result.user)
-        localStorage.setItem('authToken', result.result.token)
+        await secureStorage.setSecureItem('authToken', result.result.token, 'auth-session-key')
       }
 
       return result
@@ -147,7 +148,7 @@ export const useAuth = () => {
 
       if (result.success) {
         setUser(result.result.user)
-        localStorage.setItem('authToken', result.result.token)
+        await secureStorage.setSecureItem('authToken', result.result.token, 'auth-session-key')
       }
 
       return result

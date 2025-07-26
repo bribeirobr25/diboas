@@ -1,0 +1,374 @@
+{
+  "timestamp": "2025-07-25T16:23:21.194Z",
+  "bundleSize": {
+    "js": {
+      "files": [
+        {
+          "name": "assets/react-dom-ut5kAQSk.js",
+          "size": 167.38,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/react-dom-ut5kAQSk.js"
+        },
+        {
+          "name": "assets/integrations-misc-B9poJNEN.js",
+          "size": 49.52,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/integrations-misc-B9poJNEN.js"
+        },
+        {
+          "name": "assets/vendor-misc-DNP30fpL.js",
+          "size": 43,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/vendor-misc-DNP30fpL.js"
+        },
+        {
+          "name": "assets/math-crypto-CaUKCcXN.js",
+          "size": 30.98,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/math-crypto-CaUKCcXN.js"
+        },
+        {
+          "name": "assets/react-router-CI1dxVZE.js",
+          "size": 30.72,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/react-router-CI1dxVZE.js"
+        },
+        {
+          "name": "assets/transaction-page-C7tKipPH.js",
+          "size": 28.1,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/transaction-page-C7tKipPH.js"
+        },
+        {
+          "name": "assets/financial-core-BWGAANGh.js",
+          "size": 21.47,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/financial-core-BWGAANGh.js"
+        },
+        {
+          "name": "assets/LandingPage-1xs4OeJU.js",
+          "size": 21.42,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/LandingPage-1xs4OeJU.js"
+        },
+        {
+          "name": "assets/react-core-BCO-OY9h.js",
+          "size": 20.72,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/react-core-BCO-OY9h.js"
+        },
+        {
+          "name": "assets/transaction-components-pdn2QDra.js",
+          "size": 18.21,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/transaction-components-pdn2QDra.js"
+        },
+        {
+          "name": "assets/debug-DOLHWlsz.js",
+          "size": 17.84,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/debug-DOLHWlsz.js"
+        },
+        {
+          "name": "assets/integration-manager-DYxEdz4w.js",
+          "size": 16.15,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/integration-manager-DYxEdz4w.js"
+        },
+        {
+          "name": "assets/auth-core-DiLI8OPu.js",
+          "size": 14.44,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/auth-core-DiLI8OPu.js"
+        },
+        {
+          "name": "assets/AppDashboard-DQxwugN4.js",
+          "size": 13.56,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/AppDashboard-DQxwugN4.js"
+        },
+        {
+          "name": "assets/payment-providers-B3EsYyxn.js",
+          "size": 13.35,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/payment-providers-B3EsYyxn.js"
+        },
+        {
+          "name": "assets/payment-core-CaNtlESA.js",
+          "size": 12.81,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/payment-core-CaNtlESA.js"
+        },
+        {
+          "name": "assets/AuthPage-CjtBRRNQ.js",
+          "size": 11.78,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/AuthPage-CjtBRRNQ.js"
+        },
+        {
+          "name": "assets/icons-8MQfejTO.js",
+          "size": 9.95,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/icons-8MQfejTO.js"
+        },
+        {
+          "name": "assets/index-BQ4HsTdK.js",
+          "size": 9.5,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/index-BQ4HsTdK.js"
+        },
+        {
+          "name": "assets/kyc-core-CD5hpC_K.js",
+          "size": 8.45,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/kyc-core-CD5hpC_K.js"
+        },
+        {
+          "name": "assets/transaction-services-X-C6JAIn.js",
+          "size": 8.36,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/transaction-services-X-C6JAIn.js"
+        },
+        {
+          "name": "assets/twofa-providers-C6lelf5E.js",
+          "size": 8.21,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/twofa-providers-C6lelf5E.js"
+        },
+        {
+          "name": "assets/AccountView-DnHfoktA.js",
+          "size": 6.77,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/AccountView-DnHfoktA.js"
+        },
+        {
+          "name": "assets/ui-kit-DLgZJsSZ.js",
+          "size": 6.69,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/ui-kit-DLgZJsSZ.js"
+        },
+        {
+          "name": "assets/transaction-hooks-BwCXrab7.js",
+          "size": 6.64,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/transaction-hooks-BwCXrab7.js"
+        },
+        {
+          "name": "assets/seo-utils-BdCxpHf_.js",
+          "size": 3.38,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/seo-utils-BdCxpHf_.js"
+        },
+        {
+          "name": "assets/integration-hooks-vTgd7p2j.js",
+          "size": 2.26,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/integration-hooks-vTgd7p2j.js"
+        },
+        {
+          "name": "assets/transaction-forms-C9-u6TMp.js",
+          "size": 2.15,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/transaction-forms-C9-u6TMp.js"
+        },
+        {
+          "name": "assets/security-DixxfCY6.js",
+          "size": 1.62,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/security-DixxfCY6.js"
+        },
+        {
+          "name": "assets/seo-monitoring-DlrKKWAu.js",
+          "size": 1.55,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/seo-monitoring-DlrKKWAu.js"
+        },
+        {
+          "name": "assets/twofa-core-DnIJrqQu.js",
+          "size": 0.85,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/twofa-core-DnIJrqQu.js"
+        },
+        {
+          "name": "assets/useDataManagerSubscription-_HTbHbcH.js",
+          "size": 0.78,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/useDataManagerSubscription-_HTbHbcH.js"
+        }
+      ],
+      "totalSize": 608.6100000000001
+    },
+    "css": {
+      "files": [
+        {
+          "name": "assets/index-CVrJJplG.css",
+          "size": 151.62,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/index-CVrJJplG.css"
+        }
+      ],
+      "totalSize": 151.62
+    },
+    "images": {
+      "files": [
+        {
+          "name": "assets/diboas-logo-B_Yavspf.png",
+          "size": 2054.58,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/diboas-logo-B_Yavspf.png"
+        },
+        {
+          "name": "assets/mascot-investment-guide-B2Q9obOv.png",
+          "size": 1538.56,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/mascot-investment-guide-B2Q9obOv.png"
+        },
+        {
+          "name": "aqua_mascot_pose.png",
+          "size": 1475.73,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/aqua_mascot_pose.png"
+        },
+        {
+          "name": "favicon-16x16.png",
+          "size": 1400.43,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/favicon-16x16.png"
+        },
+        {
+          "name": "favicon-32x32.png",
+          "size": 1400.43,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/favicon-32x32.png"
+        },
+        {
+          "name": "logo.png",
+          "size": 1400.43,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/logo.png"
+        },
+        {
+          "name": "assets/mascot-crypto-defi-BW4Ppzxy.png",
+          "size": 1250.67,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/mascot-crypto-defi-BW4Ppzxy.png"
+        },
+        {
+          "name": "assets/mascot-financial-basics-BDWhaEyO.png",
+          "size": 1171.7,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/assets/mascot-financial-basics-BDWhaEyO.png"
+        },
+        {
+          "name": "coral_mascot_pose2.png",
+          "size": 740.65,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/coral_mascot_pose2.png"
+        },
+        {
+          "name": "mystic_mascot_pose4.png",
+          "size": 718.18,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/mystic_mascot_pose4.png"
+        },
+        {
+          "name": "aqua_mascot_pose1.png",
+          "size": 711.31,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/aqua_mascot_pose1.png"
+        },
+        {
+          "name": "verde_mascot_pose2.png",
+          "size": 693.73,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/verde_mascot_pose2.png"
+        },
+        {
+          "name": "mystic_mascot_pose2.png",
+          "size": 620.15,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/mystic_mascot_pose2.png"
+        },
+        {
+          "name": "coral_mascot_pose3.png",
+          "size": 586.51,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/coral_mascot_pose3.png"
+        },
+        {
+          "name": "aqua_mascot_pose2.png",
+          "size": 581.11,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/aqua_mascot_pose2.png"
+        },
+        {
+          "name": "mystic_mascot_pose1.png",
+          "size": 571.15,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/mystic_mascot_pose1.png"
+        },
+        {
+          "name": "mystic_mascot_pose.png",
+          "size": 561.24,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/mystic_mascot_pose.png"
+        },
+        {
+          "name": "aqua_mascot_pose3.png",
+          "size": 550.42,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/aqua_mascot_pose3.png"
+        },
+        {
+          "name": "coral_mascot_pose1.png",
+          "size": 531.53,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/coral_mascot_pose1.png"
+        },
+        {
+          "name": "mystic_mascot_pose3.png",
+          "size": 531.36,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/mystic_mascot_pose3.png"
+        },
+        {
+          "name": "logo_full.png",
+          "size": 531.02,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/logo_full.png"
+        },
+        {
+          "name": "coral_mascot.png",
+          "size": 414.37,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/coral_mascot.png"
+        },
+        {
+          "name": "verde_mascot_pose1.png",
+          "size": 216.04,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/verde_mascot_pose1.png"
+        },
+        {
+          "name": "verde_mascot_pose.png",
+          "size": 171.94,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/verde_mascot_pose.png"
+        },
+        {
+          "name": "apple-touch-icon.png",
+          "size": 0.01,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/apple-touch-icon.png"
+        }
+      ],
+      "totalSize": 20423.250000000007
+    },
+    "other": {
+      "files": [
+        {
+          "name": "favicon.ico",
+          "size": 1400.43,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/favicon.ico"
+        },
+        {
+          "name": "index.html",
+          "size": 5.87,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/index.html"
+        },
+        {
+          "name": "sitemap.xml",
+          "size": 3.24,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/sitemap.xml"
+        },
+        {
+          "name": "site.webmanifest",
+          "size": 1.94,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/site.webmanifest"
+        },
+        {
+          "name": "security.txt",
+          "size": 1,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/security.txt"
+        },
+        {
+          "name": "robots.txt",
+          "size": 0.96,
+          "path": "/Users/simonekugler/Desktop/diboas/dist/robots.txt"
+        }
+      ],
+      "totalSize": 1413.44
+    },
+    "total": 22596.920000000002
+  },
+  "scores": {
+    "bundleSize": {
+      "main": 100,
+      "vendor": 100,
+      "css": 74.19,
+      "images": 0,
+      "total": 0
+    }
+  },
+  "recommendations": [
+    {
+      "type": "css-size",
+      "priority": "medium",
+      "message": "CSS size (151.62KB) exceeds threshold (100KB)",
+      "suggestion": "Consider CSS purging and optimization"
+    },
+    {
+      "type": "image-size",
+      "priority": "medium",
+      "message": "Image assets (20423.250000000007KB) exceed threshold (2000KB)",
+      "suggestion": "Optimize images and consider lazy loading"
+    }
+  ],
+  "summary": {
+    "grade": "F",
+    "score": 55,
+    "issues": 2
+  }
+}

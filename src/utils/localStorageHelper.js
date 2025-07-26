@@ -59,7 +59,7 @@ export function clearCorruptedDiBoaSData() {
       try {
         JSON.parse(stored)
         // If JSON.parse succeeds, the data is valid
-      } catch (parseError) {
+      } catch (_parseError) {
         // If it's not valid JSON and not a simple string, consider it corrupted
         // Allow simple strings (like user settings) and boolean values
         if (stored !== 'true' && stored !== 'false' && 

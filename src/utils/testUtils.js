@@ -16,7 +16,7 @@ expect.extend(toHaveNoViolations)
  */
 export const renderWithProviders = (ui, options = {}) => {
   const {
-    initialState = {},
+    initialState: _initialState = {},
     theme = 'light',
     ...renderOptions
   } = options
@@ -244,7 +244,7 @@ export const formTestUtils = {
     const submitButton = screen.getByRole('button', { name: /submit/i })
     await userEvent.click(submitButton)
     
-    Object.entries(expectedErrors).forEach(([field, expectedError]) => {
+    Object.entries(expectedErrors).forEach(([_field, expectedError]) => {
       expect(screen.getByText(new RegExp(expectedError, 'i'))).toBeInTheDocument()
     })
   },

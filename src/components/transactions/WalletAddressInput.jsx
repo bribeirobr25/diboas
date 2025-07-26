@@ -19,7 +19,7 @@ export default function WalletAddressInput({
   const [suggestions, setSuggestions] = useState([])
   const [recentAddresses, setRecentAddresses] = useState([])
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
-  const [isLoading, setIsLoading] = useState(false)
+  const [_IS_LOADING, _SET_IS_LOADING] = useState(false)
   const [detectedNetwork, setDetectedNetwork] = useState(null)
   const inputRef = useRef(null)
   const dropdownRef = useRef(null)
@@ -36,7 +36,7 @@ export default function WalletAddressInput({
   }, [value])
 
   // Generate suggestions based on input
-  const generateSuggestions = useCallback(async (input) => {
+  const generateSuggestions = useCallback(async (_) => {
     // Only show recent addresses - no search functionality
     return recentAddresses.map(item => ({ ...item, isRecent: true }))
   }, [recentAddresses])
@@ -198,7 +198,7 @@ export default function WalletAddressInput({
         >
           {/* Header section */}
           <div className="p-2 border-b border-gray-100">
-            <div className="flex items-center text-xs text-gray-500">
+            <div className="dropdown-header">
               <Clock className="w-3 h-3 mr-1" />
               Recent Addresses
             </div>
@@ -214,8 +214,8 @@ export default function WalletAddressInput({
               onClick={() => handleSuggestionSelect(suggestion.address)}
               onMouseEnter={() => setHighlightedIndex(index)}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center min-w-0">
+              <div className="flex-row-between">
+                <div className="address-display-container">
                   <Wallet className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
                   <div className="min-w-0">
                     <div className="font-mono text-sm font-medium truncate">
@@ -223,7 +223,7 @@ export default function WalletAddressInput({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                <div className="address-metadata-container">
                   {suggestion.network && (
                     <Badge 
                       variant="outline" 
@@ -232,7 +232,7 @@ export default function WalletAddressInput({
                       {suggestion.network}
                     </Badge>
                   )}
-                  <div className="flex items-center text-xs text-gray-400">
+                  <div className="recent-indicator">
                     <Clock className="w-3 h-3" />
                   </div>
                 </div>
@@ -244,7 +244,7 @@ export default function WalletAddressInput({
 
       {/* Validation Error */}
       {validationErrors?.recipient && (
-        <p className="text-sm text-red-600 mt-1">
+        <p className="validation-error-text">
           {validationErrors.recipient.message}
         </p>
       )}

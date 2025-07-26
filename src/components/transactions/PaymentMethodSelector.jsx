@@ -21,19 +21,19 @@ export default function PaymentMethodSelector({
   return (
     <div>
       <div id="payment-method-label" className="text-sm font-medium text-gray-700 mb-2">Payment Method</div>
-      <div className="payment-method-grid" role="radiogroup" aria-labelledby="payment-method-label">
-        {methods.map((method) => (
+      <div className="payment-method-selection-grid" role="radiogroup" aria-labelledby="payment-method-label">
+        {methods.map((paymentMethod) => (
           <Button
-            key={method.id}
-            variant={selectedPaymentMethod === method.id ? "default" : "outline"}
-            className="h-12 justify-start"
-            onClick={() => setSelectedPaymentMethod(method.id)}
+            key={paymentMethod.methodId}
+            variant={selectedPaymentMethod === paymentMethod.methodId ? "default" : "outline"}
+            className="payment-method-option-button"
+            onClick={() => setSelectedPaymentMethod(paymentMethod.methodId)}
             role="radio"
-            aria-checked={selectedPaymentMethod === method.id}
-            aria-label={`Select ${method.label} as payment method`}
+            aria-checked={selectedPaymentMethod === paymentMethod.methodId}
+            aria-label={`Select ${paymentMethod.displayLabel} as payment method`}
           >
-            <span className="mr-2">{method.icon}</span>
-            {method.label}
+            <span className="mr-2">{paymentMethod.paymentIcon}</span>
+            {paymentMethod.displayLabel}
           </Button>
         ))}
       </div>

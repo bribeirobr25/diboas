@@ -206,18 +206,21 @@ class DataManager {
     this.emit('balance:loading', true)
 
     try {
-      const { type, amount, netAmount, fees, asset, paymentMethod } = transactionData
+      const { type, amount, fees, asset, paymentMethod } = transactionData
       const numericAmount = parseFloat(amount)
       const feesTotal = parseFloat(fees?.total || 0)
 
       // Update balance based on transaction type
       switch (type) {
-        case 'add':
-          // Add (On-Ramp): Only affects Available Balance
-          // Available Balance = current + (amount - fees)
+        case 'add': {
+          // Add/Deposit transaction
+          // Available Balance = current + (transaction amount - fees)
+          // Invested Balance = no changes
           const netAmountAdded = numericAmount - feesTotal
           this.state.balance.availableForSpending += netAmountAdded
+          // Invested balance unchanged
           break
+        }
           
         case 'withdraw':
           // Withdraw (Off-Ramp): Only affects Available Balance  
@@ -237,20 +240,20 @@ class DataManager {
           this.state.balance.availableForSpending += numericAmount
           break
           
-        case 'buy':
-          // Buy: Can be On-Ramp or On-Chain
+        case 'buy': {
+          // Buy transaction
           const netInvestmentAmount = numericAmount - feesTotal
           
           if (paymentMethod === 'diboas_wallet') {
-            // Buy On-Chain: Uses diBoaS Available Balance
-            // Available Balance = current - full transaction amount
+            // Buy transaction diBoaS wallet
+            // Available Balance = current - transaction amount
             // Invested Balance = current + (transaction amount - fees)
             this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - numericAmount)
             this.state.balance.investedAmount += netInvestmentAmount
           } else {
-            // Buy On-Ramp: Uses external payment (credit card, bank, etc.)
-            // Available Balance = current (no change)
-            // Invested Balance = current + (amount - fees)
+            // Buy transaction other payment methods
+            // Available Balance = no changes
+            // Invested Balance = current + (transaction amount - fees)
             this.state.balance.investedAmount += netInvestmentAmount
           }
           
@@ -261,14 +264,15 @@ class DataManager {
           this.state.balance.assets[asset].usdValue += netInvestmentAmount
           this.state.balance.assets[asset].investedAmount += netInvestmentAmount
           break
+        }
           
-        case 'sell':
-          // Sell (On-Chain): Transfer from Invested to Available
-          // Invested Balance = current - full transaction amount
+        case 'sell': {
+          // Sell transaction
           // Available Balance = current + (transaction amount - fees)
+          // Invested Balance = current - transaction amount
           const netSellProceeds = numericAmount - feesTotal
-          this.state.balance.investedAmount = Math.max(0, this.state.balance.investedAmount - numericAmount)
           this.state.balance.availableForSpending += netSellProceeds
+          this.state.balance.investedAmount = Math.max(0, this.state.balance.investedAmount - numericAmount)
           
           // Update asset tracking
           if (this.state.balance.assets[asset]) {
@@ -279,6 +283,7 @@ class DataManager {
             }
           }
           break
+        }
       }
 
       // Recalculate total balance: Total = Available + Invested
@@ -302,27 +307,65 @@ class DataManager {
   }
 
   /**
+   * Update existing transaction in history
+   */
+  updateTransaction(transactionId, updates) {
+    const transactionIndex = this.state.transactions.findIndex(tx => tx.id === transactionId)
+    
+    if (transactionIndex === -1) {
+      console.warn(`Transaction ${transactionId} not found for update`)
+      return null
+    }
+    
+    // Update transaction with new data
+    this.state.transactions[transactionIndex] = {
+      ...this.state.transactions[transactionIndex],
+      ...updates,
+      lastUpdated: new Date().toISOString()
+    }
+    
+    // Persist transactions
+    this.persistTransactions()
+    
+    // Emit transaction events
+    this.emit('transaction:updated', this.state.transactions[transactionIndex])
+    this.emit('transactions:updated', this.state.transactions)
+    
+    return this.state.transactions[transactionIndex]
+  }
+
+  /**
    * Add transaction to history
    */
   addTransaction(transactionData) {
-    // Generate mock transaction hash and link
-    const txHash = this.generateMockTransactionHash(transactionData.type, transactionData.asset)
-    const txLink = this.generateMockTransactionLink(txHash, transactionData.type, transactionData.asset)
-    
+    // If transaction already has detailed data (from OnChainTransactionManager), use it
+    // Otherwise generate mock data for backward compatibility
     const transaction = {
-      id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+      id: transactionData.id || `tx_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
       type: transactionData.type,
       amount: transactionData.amount,
-      netAmount: transactionData.netAmount,
-      fees: transactionData.fees,
+      currency: transactionData.currency || 'USD',
+      status: transactionData.status || 'completed',
+      description: transactionData.description || this.generateTransactionDescription(transactionData),
+      recipient: transactionData.recipient,
       asset: transactionData.asset || 'USDC',
       paymentMethod: transactionData.paymentMethod,
-      status: 'completed',
-      timestamp: new Date().toISOString(),
-      description: this.generateTransactionDescription(transactionData),
-      transactionHash: txHash,
-      transactionLink: txLink,
-      onChainStatus: 'confirmed'
+      fees: transactionData.fees || {},
+      createdAt: transactionData.createdAt || new Date().toISOString(),
+      submittedAt: transactionData.submittedAt,
+      confirmedAt: transactionData.confirmedAt,
+      failedAt: transactionData.failedAt,
+      // On-chain specific fields (preserve if provided)
+      txHash: transactionData.txHash || this.generateMockTransactionHash(transactionData.type, transactionData.asset),
+      explorerLink: transactionData.explorerLink || this.generateMockTransactionLink(transactionData.txHash || 'mock', transactionData.type, transactionData.asset),
+      chain: transactionData.chain,
+      onChainStatus: transactionData.onChainStatus || 'confirmed',
+      error: transactionData.error,
+      // Legacy fields for backward compatibility
+      timestamp: transactionData.createdAt || new Date().toISOString(),
+      transactionHash: transactionData.txHash || this.generateMockTransactionHash(transactionData.type, transactionData.asset),
+      transactionLink: transactionData.explorerLink || this.generateMockTransactionLink(transactionData.txHash || 'mock', transactionData.type, transactionData.asset),
+      netAmount: transactionData.netAmount
     }
     
     // Add to state
@@ -348,14 +391,11 @@ class DataManager {
    */
   async processTransaction(transactionData) {
     try {
-      console.log('🔄 DataManager processing transaction:', transactionData)
-      
       // Update balance first
       await this.updateBalance(transactionData)
       
       // Add to transaction history
       const transaction = this.addTransaction(transactionData)
-      console.log('📚 Transaction added to history:', transaction)
       
       // Emit complete transaction event
       this.emit('transaction:completed', { transaction, balance: this.state.balance })
@@ -364,11 +404,9 @@ class DataManager {
       window.dispatchEvent(new CustomEvent('diboas-transaction-completed', {
         detail: { transaction, userId: transactionData.userId || 'demo_user_12345' }
       }))
-      console.log('🔔 Transaction completed event dispatched:', { transaction, userId: transactionData.userId || 'demo_user_12345' })
       
       return { transaction, balance: this.state.balance }
     } catch (error) {
-      console.error('❌ DataManager transaction error:', error)
       this.emit('transaction:error', error)
       throw error
     }
@@ -635,7 +673,7 @@ class DataManager {
         throw new Error('Invalid balance data provided')
       }
 
-      const previousBalance = { ...this.state.balance }
+      // const previousBalance = { ...this.state.balance } // Removed unused variable
       
       // Update balance
       this.state.balance = {
@@ -644,8 +682,7 @@ class DataManager {
         lastUpdated: new Date().toISOString()
       }
 
-      // Log balance change for audit
-      console.log(`Balance updated atomically: ${previousBalance.totalUSD} -> ${newBalance.totalUSD}`)
+      // Balance updated atomically
 
       // Emit event
       this.emit('balance:updated', this.state.balance)
@@ -702,7 +739,7 @@ class DataManager {
         this.subscribers.delete(eventType)
       }
     }
-    console.log(`DataManager: Active subscriptions: ${this.subscribers.size}`)
+    // Active subscriptions cleanup completed
   }
 
   /**
@@ -712,7 +749,7 @@ class DataManager {
     if (this.state.transactions.length > this.maxTransactionHistory) {
       const trimCount = this.state.transactions.length - this.maxTransactionHistory
       this.state.transactions = this.state.transactions.slice(trimCount)
-      console.log(`DataManager: Trimmed ${trimCount} old transactions`)
+      // Trimmed old transactions
       this.persistState()
     }
   }
@@ -724,7 +761,7 @@ class DataManager {
     if (this.operationQueue.length > this.maxOperationQueue) {
       const trimCount = this.operationQueue.length - this.maxOperationQueue
       this.operationQueue = this.operationQueue.slice(trimCount)
-      console.log(`DataManager: Trimmed ${trimCount} old queued operations`)
+      // Trimmed old queued operations
     }
   }
 
@@ -747,8 +784,7 @@ class DataManager {
    * MEMORY MANAGEMENT: Dispose of DataManager and clean up all resources
    */
   dispose() {
-    console.log('DataManager: Disposing and cleaning up resources')
-    
+    // Disposing and cleaning up resources
     this.disposed = true
     
     // Clear all intervals
@@ -778,7 +814,7 @@ class DataManager {
       lastUpdated: null
     }
     
-    console.log('DataManager: Disposal complete')
+    // Disposal complete
   }
 }
 
@@ -804,6 +840,11 @@ if (typeof window !== 'undefined') {
 
 // React hook for easy consumption with automatic cleanup
 export const useDataManager = () => {
+  return dataManager
+}
+
+// Function export for backward compatibility with tests
+export const getDataManager = () => {
   return dataManager
 }
 
