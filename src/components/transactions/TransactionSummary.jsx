@@ -49,6 +49,26 @@ export default function TransactionSummary({
           <CardTitle className="text-lg">Transaction Summary</CardTitle>
         </CardHeader>
         <CardContent className="transaction-summary-content">
+          {/* Special case for crypto wallet add - show instructions */}
+          {currentTransactionType === 'add' && chosenPaymentMethod === 'crypto_wallet' ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">How to deposit:</h4>
+                <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                  <li>Select the network above</li>
+                  <li>Copy the wallet address</li>
+                  <li>Send supported assets from your wallet</li>
+                  <li>Funds will appear in 1-30 minutes</li>
+                </ol>
+              </div>
+              
+              <div className="text-center text-sm text-gray-600">
+                <p>No fees for on-chain deposits</p>
+                <p>Only network gas fees apply</p>
+              </div>
+            </div>
+          ) : (
+          <>
           <div className="transaction-summary-row">
             <span>Amount</span>
             <div className="text-right">
@@ -147,6 +167,8 @@ export default function TransactionSummary({
             <p>All complexities handled in the background</p>
             <p>No gas fees, swaps, or approvals needed</p>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
     </div>

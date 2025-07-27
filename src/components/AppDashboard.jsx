@@ -8,7 +8,6 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   PieChart,
   Send,

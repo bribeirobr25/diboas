@@ -12,13 +12,12 @@ import TransactionDetailsPage from './TransactionDetailsPage.jsx'
 
 // Icons
 import { 
-  Plus, Send, ArrowDownLeft, TrendingUp, TrendingDown, ArrowRight,
-  CreditCard, Wallet, Shield, Clock, DollarSign
+  Plus, Send, TrendingUp, TrendingDown,
+  CreditCard, Wallet
 } from 'lucide-react'
 
 // Hooks and utilities
 import { useValueDebounce } from '../hooks/useValueDebounce.js'
-import { NAVIGATION_PATHS } from '../utils/navigationHelpers.js'
 import { 
   useWalletBalance, 
   useFeeCalculator, 
@@ -112,19 +111,10 @@ export default function TransactionPage({ transactionType: propTransactionType }
       borderColor: 'border-red-200' 
     },
     { 
-      id: 'transfer', 
-      label: 'Transfer', 
-      icon: <ArrowRight className="w-4 h-4" />, 
-      description: 'Transfer funds to external wallet',
-      bgColor: 'bg-orange-50', 
-      color: 'text-orange-700', 
-      borderColor: 'border-orange-200' 
-    },
-    { 
       id: 'withdraw', 
       label: 'Withdraw', 
       icon: <CreditCard className="w-4 h-4" />, 
-      description: 'Withdraw funds to your bank account',
+      description: 'Withdraw funds to bank or external wallet',
       bgColor: 'bg-indigo-50', 
       color: 'text-indigo-700', 
       borderColor: 'border-indigo-200' 
@@ -204,7 +194,7 @@ export default function TransactionPage({ transactionType: propTransactionType }
     }
     
     // DEX fees for transfer operations - only for cross-chain transfers
-    if (currentTransactionType === 'transfer') {
+    if (currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) {
       // Detect network from recipient address
       if (!recipientWalletAddress) return '0%'
       
@@ -260,6 +250,8 @@ export default function TransactionPage({ transactionType: propTransactionType }
   const isTransactionInputValid = useMemo(() => {
     if (!transactionAmountInput || parseFloat(transactionAmountInput) <= 0) return false
     if (['send', 'transfer'].includes(currentTransactionType) && !recipientWalletAddress) return false
+    // For withdraw, only require address if external_wallet is selected
+    if (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet' && !recipientWalletAddress) return false
     if (Object.keys(transactionValidationErrors).length > 0) return false
     
     // Balance validation for transactions that require sufficient funds

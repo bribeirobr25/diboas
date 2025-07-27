@@ -8,6 +8,7 @@ import AmountInput from './AmountInput.jsx'
 import PaymentMethodSelector from './PaymentMethodSelector.jsx'
 import DiBoaSUsernameInput from './DiBoaSUsernameInput.jsx'
 import WalletAddressInput from './WalletAddressInput.jsx'
+import WalletAddressDisplay from './WalletAddressDisplay.jsx'
 
 export default function TransactionForm({ 
   transactionType: currentTransactionType,
@@ -67,6 +68,18 @@ export default function TransactionForm({
             </div>
           )}
 
+          {/* Withdraw to External Wallet - Shows when external_wallet is selected */}
+          {currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet' && (
+            <div>
+              <Label htmlFor="recipient">To Wallet Address</Label>
+              <WalletAddressInput
+                value={recipientWalletAddress}
+                onChange={setRecipientWalletAddress}
+                validationErrors={transactionValidationErrors}
+              />
+            </div>
+          )}
+
           {/* Asset Selection Grid - Show for Buy transactions */}
           {currentTransactionType === 'buy' && (
             <div>
@@ -102,7 +115,13 @@ export default function TransactionForm({
             </div>
           )}
 
-          {/* Amount Input */}
+          {/* Crypto Wallet Address Display - Shows when crypto_wallet is selected for Add */}
+          {currentTransactionType === 'add' && chosenPaymentMethod === 'crypto_wallet' && (
+            <WalletAddressDisplay />
+          )}
+
+          {/* Amount Input - Hide for Add with crypto_wallet */}
+          {!(currentTransactionType === 'add' && chosenPaymentMethod === 'crypto_wallet') && (
           <AmountInput
             amount={transactionAmountInput}
             setAmount={setTransactionAmountInput}
@@ -115,6 +134,7 @@ export default function TransactionForm({
             validationErrors={transactionValidationErrors}
             selectedPaymentMethod={chosenPaymentMethod}
           />
+          )}
 
           {/* Payment Method Selection */}
           <PaymentMethodSelector
