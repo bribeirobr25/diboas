@@ -697,6 +697,13 @@ export class TransactionEngine {
         transactionHash: result.transactionHash || `tx_buy_${Date.now()}`,
         asset: transactionData.asset,
         amountPurchased: result.assetAmount || 0,
+        // Enhanced metadata for buy transparency
+        fromAsset: transactionData.paymentMethod === 'diboas_wallet' ? 'USDC' : undefined,
+        fromAmount: transactionData.paymentMethod === 'diboas_wallet' ? parseFloat(transactionData.amount) : undefined,
+        toAsset: transactionData.asset,
+        toAmount: result.assetAmount || 0,
+        dexProvider: result.dexProvider || 'Jupiter',
+        exchangeRate: result.exchangeRate,
         amountSpent: parseFloat(transactionData.amount)
       }
     } catch (error) {
@@ -741,6 +748,13 @@ export class TransactionEngine {
         transactionHash: result.transactionHash || `tx_sell_${Date.now()}`,
         asset: transactionData.asset,
         amountSold: parseFloat(transactionData.amount),
+        // Enhanced metadata for sell transparency
+        fromAsset: transactionData.asset,
+        fromAmount: parseFloat(transactionData.amount),
+        toAsset: 'USDC',
+        toAmount: result.usdReceived || 0,
+        dexProvider: result.dexProvider || 'Jupiter',
+        exchangeRate: result.exchangeRate,
         usdReceived: result.usdReceived || 0
       }
     } catch (error) {
