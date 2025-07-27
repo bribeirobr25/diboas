@@ -19,7 +19,8 @@ import {
   ArrowRight,
   Zap,
   Shield,
-  Globe
+  Globe,
+  ArrowRightLeft
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import SimpleMarketIndicators from './SimpleMarketIndicators.jsx'
@@ -27,6 +28,14 @@ import PageHeader from './shared/PageHeader.jsx'
 import { QUICK_ACTIONS, createTransactionNavigator } from '../utils/navigationHelpers.js'
 import { useWalletBalance } from '../hooks/useTransactions.jsx'
 import { useDataManagerSubscription, useSafeDataManager } from '../hooks/useDataManagerSubscription.js'
+import { 
+  calculateDisplayAmountWithSign, 
+  formatRelativeTimeFromTimestamp,
+  generateHumanReadableTransactionDescription,
+  shouldSplitTransactionInAdvancedMode,
+  createSplitTransactionsForAdvancedMode
+} from '../utils/transactionDisplayHelpers'
+import { useUserSettings } from '../utils/userSettings.js'
 
 // PERFORMANCE: Memoized transaction item component with semantic naming
 const DashboardTransactionItem = memo(({ transactionDisplayData, onTransactionClick }) => (
@@ -71,6 +80,7 @@ const DashboardPortfolioAssetItem = memo(({ portfolioAssetData }) => (
 export default function AppDashboard() {
   const navigate = useNavigate()
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
+  const { settings } = useUserSettings()
   
   // Get real wallet balance with semantic destructuring
   const { balance: currentWalletBalance, getBalance: refreshWalletBalance, isLoading: isWalletBalanceLoading } = useWalletBalance()
@@ -145,7 +155,16 @@ export default function AppDashboard() {
   // Balance visibility toggle - using inline handler for better performance
 
   // PERFORMANCE: Memoized transaction display helper functions
-  const generateTransactionIconElement = useCallback((transactionType) => {
+  const generateTransactionIconElement = useCallback((transactionType, paymentMethod) => {
+    // Check if it's an exchange transaction (buy on-chain or sell)
+    if (transactionType === 'buy' && paymentMethod === 'diboas_wallet') {
+      return <ArrowRightLeft className="w-4 h-4 text-blue-600" />
+    }
+    
+    if (transactionType === 'sell') {
+      return <ArrowRightLeft className="w-4 h-4 text-blue-600" /> // Exchange icon for sell
+    }
+    
     switch (transactionType) {
       case 'add':
         return <ArrowDownLeft className="w-4 h-4 text-green-600" />
@@ -154,31 +173,17 @@ export default function AppDashboard() {
       case 'withdraw':
         return <ArrowUpRight className="w-4 h-4 text-red-600" />
       case 'buy':
-        return <TrendingUp className="w-4 h-4 text-purple-600" />
-      case 'sell':
-        return <TrendingDown className="w-4 h-4 text-orange-600" />
+        return <TrendingUp className="w-4 h-4 text-green-600" /> // Green for on-ramp buy
+      case 'exchange_send':
+        return <Send className="w-4 h-4 text-orange-600" />
+      case 'exchange_receive':
+        return <ArrowDownLeft className="w-4 h-4 text-green-600" />
       default:
         return <DollarSign className="w-4 h-4 text-gray-600" />
     }
   }, [])
   
-  const formatTransactionAmountWithSign = useCallback((transactionType, originalAmount, netAmountAfterFees) => {
-    const isIncomingTransaction = ['add', 'receive'].includes(transactionType)
-    const transactionSign = isIncomingTransaction ? '+' : '-'
-    const displayAmount = isIncomingTransaction ? (netAmountAfterFees || originalAmount) : originalAmount
-    return `${transactionSign}$${parseFloat(displayAmount).toFixed(2)}`
-  }, [])
   
-  const calculateRelativeTimeFromTimestamp = useCallback((transactionTimestamp) => {
-    const currentTime = new Date()
-    const transactionTime = new Date(transactionTimestamp)
-    const timeDifferenceInMinutes = Math.floor((currentTime - transactionTime) / (1000 * 60))
-    
-    if (timeDifferenceInMinutes < 1) return 'Just now'
-    if (timeDifferenceInMinutes < 60) return `${timeDifferenceInMinutes}m ago`
-    if (timeDifferenceInMinutes < 1440) return `${Math.floor(timeDifferenceInMinutes / 60)}h ago`
-    return `${Math.floor(timeDifferenceInMinutes / 1440)}d ago`
-  }, [])
 
   // PERFORMANCE: Convert transaction history to dashboard display format
   const dashboardTransactionDisplayList = useMemo(() => {
@@ -193,15 +198,44 @@ export default function AppDashboard() {
       }]
     }
     
-    return dashboardTransactionHistory.map(rawTransactionData => ({
+    // Process transactions with advanced mode support
+    let processedTransactions = dashboardTransactionHistory
+    
+    // If advanced mode is enabled, split qualifying transactions
+    if (settings.showAdvancedTransactionDetails) {
+      processedTransactions = dashboardTransactionHistory.flatMap(transaction => {
+        if (shouldSplitTransactionInAdvancedMode(transaction.type, transaction.paymentMethod)) {
+          return createSplitTransactionsForAdvancedMode(transaction)
+        }
+        return transaction
+      })
+    }
+    
+    return processedTransactions.map(rawTransactionData => ({
       id: rawTransactionData.id,
-      type: ['add', 'receive'].includes(rawTransactionData.type) ? 'received' : 'sent',
-      description: rawTransactionData.description,
-      amount: formatTransactionAmountWithSign(rawTransactionData.type, rawTransactionData.amount, rawTransactionData.netAmount),
-      time: calculateRelativeTimeFromTimestamp(rawTransactionData.timestamp),
-      icon: generateTransactionIconElement(rawTransactionData.type)
+      type: ['add', 'receive', 'buy', 'sell'].includes(rawTransactionData.type) ? 'received' : 'sent',
+      description: generateHumanReadableTransactionDescription(
+        rawTransactionData.type,
+        rawTransactionData.amount,
+        rawTransactionData.asset,
+        rawTransactionData.paymentMethod,
+        rawTransactionData.fromAsset,
+        rawTransactionData.fromAmount,
+        rawTransactionData.toAsset,
+        rawTransactionData.toAmount
+      ),
+      amount: calculateDisplayAmountWithSign(
+        rawTransactionData.type, 
+        rawTransactionData.amount, 
+        rawTransactionData.netAmount,
+        rawTransactionData.paymentMethod,
+        rawTransactionData.toAsset,
+        rawTransactionData.toAmount
+      ),
+      time: formatRelativeTimeFromTimestamp(rawTransactionData.timestamp),
+      icon: generateTransactionIconElement(rawTransactionData.type || rawTransactionData.originalType, rawTransactionData.paymentMethod)
     }))
-  }, [dashboardTransactionHistory, generateTransactionIconElement, formatTransactionAmountWithSign, calculateRelativeTimeFromTimestamp])
+  }, [dashboardTransactionHistory, generateTransactionIconElement, settings.showAdvancedTransactionDetails])
 
   // PERFORMANCE: Memoize portfolio assets data based on real wallet balance
   const dashboardPortfolioAssetsData = useMemo(() => {

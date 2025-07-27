@@ -361,6 +361,18 @@ class DataManager {
       chain: transactionData.chain,
       onChainStatus: transactionData.onChainStatus || 'confirmed',
       error: transactionData.error,
+      // Enhanced exchange metadata for buy/sell transparency
+      fromAsset: transactionData.fromAsset || 
+        (transactionData.type === 'buy' && transactionData.paymentMethod === 'diboas_wallet' ? 'USDC' : 
+         transactionData.type === 'sell' ? transactionData.asset : undefined),
+      fromAmount: transactionData.fromAmount ||
+        (transactionData.type === 'sell' ? transactionData.amount : undefined),
+      toAsset: transactionData.toAsset || 
+        (transactionData.type === 'sell' ? 'USDC' : transactionData.asset),
+      toAmount: transactionData.toAmount ||
+        (transactionData.type === 'sell' ? (transactionData.netAmount || transactionData.amount - (transactionData.fees?.total || 0)) : undefined),
+      dexProvider: transactionData.dexProvider,
+      exchangeRate: transactionData.exchangeRate,
       // Legacy fields for backward compatibility
       timestamp: transactionData.createdAt || new Date().toISOString(),
       transactionHash: transactionData.txHash || this.generateMockTransactionHash(transactionData.type, transactionData.asset),

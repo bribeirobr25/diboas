@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
+import { Card, CardContent } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -15,10 +15,10 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  ArrowRightLeft,
   Plus,
   CreditCard,
   Search,
-  Filter,
   Download,
   ExternalLink,
   Clock,
@@ -29,10 +29,20 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { useSafeDataManager, useDataManagerSubscription } from '../hooks/useDataManagerSubscription.js'
+import { 
+  calculateDisplayAmountWithSign, 
+  generateHumanReadableTransactionDescription,
+  shouldSplitTransactionInAdvancedMode,
+  createSplitTransactionsForAdvancedMode,
+  getEnhancedTransactionIcon
+} from '../utils/transactionDisplayHelpers'
+import { useUserSettings } from '../utils/userSettings.js'
+import AdvancedModeToggle from './shared/AdvancedModeToggle.jsx'
 
 const TransactionHistory = ({ limit = null, showHeader = true, className = '' }) => {
   const navigate = useNavigate()
   const { getTransactions } = useSafeDataManager()
+  const { settings } = useUserSettings()
   const [transactions, setTransactions] = useState([])
   const [filteredTransactions, setFilteredTransactions] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -159,10 +169,20 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
   // Filter and search transactions
   useEffect(() => {
     let filtered = transactions
+    
+    // Apply advanced mode transformations first
+    if (settings.showAdvancedTransactionDetails) {
+      filtered = transactions.flatMap(transaction => {
+        if (shouldSplitTransactionInAdvancedMode(transaction.type, transaction.paymentMethod)) {
+          return createSplitTransactionsForAdvancedMode(transaction)
+        }
+        return transaction
+      })
+    }
 
     // Filter by type
     if (filterType !== 'all') {
-      filtered = filtered.filter(tx => tx.type === filterType)
+      filtered = filtered.filter(tx => tx.type === filterType || tx.originalType === filterType)
     }
 
     // Filter by status
@@ -182,7 +202,7 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
     }
 
     setFilteredTransactions(filtered)
-  }, [transactions, filterType, filterStatus, searchTerm])
+  }, [transactions, filterType, filterStatus, searchTerm, settings.showAdvancedTransactionDetails])
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
@@ -211,11 +231,6 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
     return stats
   }, [transactions])
 
-  const formatAmount = (amount, type, direction) => {
-    const numAmount = parseFloat(amount || 0)
-    const sign = direction === 'in' ? '+' : direction === 'out' ? '-' : ''
-    return `${sign}$${numAmount.toFixed(2)}`
-  }
 
   const formatDate = (dateString) => {
     const date = new Date(dateString)
@@ -228,18 +243,47 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
   }
 
   const getTransactionDetails = (transaction) => {
-    const typeConfig = transactionTypes[transaction.type]
+    // Handle split transactions in advanced mode
+    const actualType = transaction.originalType || transaction.type
+    const typeConfig = transactionTypes[actualType] || transactionTypes[transaction.type]
     const statusConfig_ = statusConfig[transaction.status]
+    
+    // Get enhanced icon based on transaction type
+    const enhancedIcon = getEnhancedTransactionIcon(actualType, transaction.paymentMethod)
+    
+    // Generate enhanced description
+    const enhancedDescription = transaction.description || generateHumanReadableTransactionDescription(
+      actualType,
+      transaction.amount,
+      transaction.asset,
+      transaction.paymentMethod,
+      transaction.fromAsset,
+      transaction.fromAmount,
+      transaction.toAsset,
+      transaction.toAmount
+    )
+    
+    // Calculate enhanced amount display
+    const enhancedAmount = transaction.displayAmount || calculateDisplayAmountWithSign(
+      actualType,
+      transaction.amount,
+      transaction.netAmount,
+      transaction.paymentMethod,
+      transaction.toAsset,
+      transaction.toAmount
+    )
     
     return {
       ...transaction,
       typeConfig,
       statusConfig: statusConfig_,
-      formattedAmount: formatAmount(transaction.amount, transaction.type, typeConfig?.direction),
-      formattedDate: formatDate(transaction.completedAt || transaction.initiatedAt),
-      recipient: transaction.metadata?.recipient || 'N/A',
-      asset: transaction.metadata?.asset || 'USD',
-      fees: transaction.fees?.total || 0
+      formattedAmount: enhancedAmount,
+      formattedDate: formatDate(transaction.completedAt || transaction.initiatedAt || transaction.timestamp),
+      recipient: transaction.metadata?.recipient || transaction.recipient || 'N/A',
+      asset: transaction.metadata?.asset || transaction.asset || 'USD',
+      fees: transaction.fees?.total || 0,
+      enhancedDescription,
+      enhancedIcon
     }
   }
 
@@ -251,6 +295,7 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
             <div>
               <h2 className="text-2xl font-bold">Transaction History</h2>
               <p className="text-gray-600">Track all your diBoaS transactions</p>
+              <AdvancedModeToggle className="mt-3" />
             </div>
             <div className="flex space-x-2">
               <Button 
@@ -382,13 +427,17 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
                     <div className="flex items-center space-x-4">
                       {/* Transaction Type Icon */}
                       <div className={`p-2 rounded-full ${details.typeConfig?.color || 'bg-gray-100'}`}>
-                        {details.typeConfig?.icon || <ArrowRight className="w-4 h-4" />}
+                        {details.enhancedIcon === 'exchange' ? (
+                          <ArrowRightLeft className="w-4 h-4 text-blue-600" />
+                        ) : (
+                          details.typeConfig?.icon || <ArrowRight className="w-4 h-4" />
+                        )}
                       </div>
                       
                       {/* Transaction Details */}
                       <div>
                         <div className="flex items-center space-x-2">
-                          <h4 className="font-medium">{details.typeConfig?.label || transaction.type}</h4>
+                          <h4 className="font-medium">{details.enhancedDescription}</h4>
                           <Badge className={details.statusConfig?.color || 'bg-gray-100'}>
                             <span className="flex items-center space-x-1">
                               {details.statusConfig?.icon}

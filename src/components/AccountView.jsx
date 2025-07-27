@@ -21,11 +21,17 @@ import {
   calculateDisplayAmountWithSign,
   formatRelativeTimeFromTimestamp,
   formatHumanReadableDate,
-  determineTransactionDisplayType
+  determineTransactionDisplayType,
+  generateHumanReadableTransactionDescription,
+  shouldSplitTransactionInAdvancedMode,
+  createSplitTransactionsForAdvancedMode
 } from '../utils/transactionDisplayHelpers'
+import { useUserSettings } from '../utils/userSettings.js'
+import AdvancedModeToggle from './shared/AdvancedModeToggle.jsx'
 
 export default function AccountView() {
   const navigate = useNavigate()
+  const { settings } = useUserSettings()
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
   const [selectedTransactionFilter, setSelectedTransactionFilter] = useState('all')
 
@@ -80,18 +86,42 @@ export default function AccountView() {
 
   // Transform raw transaction data into display-ready format with semantic naming
   const displayReadyTransactionList = useMemo(() => {
-    return userTransactionHistory.map(rawTransaction => {
+    // Apply advanced mode transformations if enabled
+    let processedTransactions = userTransactionHistory
+    
+    if (settings.showAdvancedTransactionDetails) {
+      processedTransactions = userTransactionHistory.flatMap(transaction => {
+        if (shouldSplitTransactionInAdvancedMode(transaction.type, transaction.paymentMethod)) {
+          return createSplitTransactionsForAdvancedMode(transaction)
+        }
+        return transaction
+      })
+    }
+    
+    return processedTransactions.map(rawTransaction => {
       // Convert string type to enum for type safety
-      const transactionType = rawTransaction.type
+      const transactionType = rawTransaction.originalType || rawTransaction.type
 
       const transactionDisplayData = {
         transactionId: rawTransaction.id,
         displayType: determineTransactionDisplayType(transactionType),
-        humanReadableDescription: rawTransaction.description,
+        humanReadableDescription: rawTransaction.description || generateHumanReadableTransactionDescription(
+          transactionType,
+          rawTransaction.amount,
+          rawTransaction.asset,
+          rawTransaction.paymentMethod,
+          rawTransaction.fromAsset,
+          rawTransaction.fromAmount,
+          rawTransaction.toAsset,
+          rawTransaction.toAmount
+        ),
         formattedAmount: calculateDisplayAmountWithSign(
           transactionType,
           rawTransaction.amount,
-          rawTransaction.netAmount
+          rawTransaction.netAmount,
+          rawTransaction.paymentMethod,
+          rawTransaction.toAsset,
+          rawTransaction.toAmount
         ),
         relativeTimeDisplay: formatRelativeTimeFromTimestamp(rawTransaction.timestamp),
         formattedDateDisplay: formatHumanReadableDate(rawTransaction.timestamp),
@@ -102,7 +132,7 @@ export default function AccountView() {
 
       return transactionDisplayData
     })
-  }, [userTransactionHistory])
+  }, [userTransactionHistory, settings.showAdvancedTransactionDetails])
 
   const filteredTransactionDisplayList = selectedTransactionFilter === 'all'
     ? displayReadyTransactionList
@@ -205,6 +235,7 @@ export default function AccountView() {
                 <CardDescription>
                   All your diBoaS account activity
                 </CardDescription>
+                <AdvancedModeToggle className="mt-2" />
               </div>
 
               <div className="transaction-controls">
