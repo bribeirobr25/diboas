@@ -128,11 +128,6 @@ function App() {
                   <TransactionPage transactionType="sell" />
                 </Suspense>
               } />
-              <Route path="/transfer" element={
-                <Suspense fallback={<LoadingScreen />}>
-                  <TransactionPage transactionType="transfer" />
-                </Suspense>
-              } />
               <Route path="/withdraw" element={
                 <Suspense fallback={<LoadingScreen />}>
                   <TransactionPage transactionType="withdraw" />

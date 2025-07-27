@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button.jsx'
 import { Label } from '@/components/ui/label.jsx'
+import { Wallet } from 'lucide-react'
 
 export default function PaymentMethodSelector({ 
   transactionType,
@@ -16,7 +17,23 @@ export default function PaymentMethodSelector({
     return null
   }
 
-  const methods = transactionType === 'buy' ? buyPaymentMethods : paymentMethods
+  let methods = transactionType === 'buy' ? buyPaymentMethods : paymentMethods
+  
+  // Add external wallet option for withdraw transactions
+  if (transactionType === 'withdraw') {
+    methods = [
+      ...paymentMethods,
+      { methodId: 'external_wallet', displayLabel: 'External Wallet', paymentIcon: <Wallet className="w-4 h-4" /> }
+    ]
+  }
+  
+  // Add crypto wallet option for add transactions (at the end)
+  if (transactionType === 'add') {
+    methods = [
+      ...paymentMethods,
+      { methodId: 'crypto_wallet', displayLabel: 'Crypto Wallet', paymentIcon: <Wallet className="w-4 h-4" /> }
+    ]
+  }
 
   return (
     <div>

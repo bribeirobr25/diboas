@@ -107,7 +107,12 @@ export class TransactionEngine {
           result = await this.processOnRamp(userId, transactionData, routingPlan, feeCalculation)
           break
         case 'withdraw':
-          result = await this.processOffRamp(userId, transactionData, routingPlan, feeCalculation)
+          // Handle external wallet withdrawal like a transfer
+          if (transactionData.paymentMethod === 'external_wallet') {
+            result = await this.processExternalTransfer(userId, transactionData, routingPlan, feeCalculation)
+          } else {
+            result = await this.processOffRamp(userId, transactionData, routingPlan, feeCalculation)
+          }
           break
         case 'send':
           result = await this.processSend(userId, transactionData, routingPlan, feeCalculation)
@@ -228,6 +233,16 @@ export class TransactionEngine {
         if (!this.isValidDiBoaSUsername(recipient)) {
           return { isValid: false, error: 'Invalid diBoaS username' }
         }
+      }
+    }
+
+    // Withdraw to external wallet validation
+    if (type === 'withdraw' && transactionData.paymentMethod === 'external_wallet') {
+      if (!recipient) {
+        return { isValid: false, error: 'Wallet address is required for external wallet withdrawal' }
+      }
+      if (!this.isValidWalletAddress(recipient)) {
+        return { isValid: false, error: 'Invalid wallet address' }
       }
     }
 
