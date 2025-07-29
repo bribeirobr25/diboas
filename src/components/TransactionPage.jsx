@@ -316,6 +316,7 @@ export default function TransactionPage({ transactionType: propTransactionType, 
       }
     } catch (error) {
       console.error('Transaction failed:', error)
+      // Error will be handled by TransactionProgressScreen via flowError
     }
   }, [currentTransactionType, transactionAmountInput, recipientWalletAddress, selectedCryptocurrencyAsset, chosenPaymentMethod, executeCompleteTransactionFlow])
 
@@ -326,6 +327,7 @@ export default function TransactionPage({ transactionType: propTransactionType, 
       // and show the success screen first
     } catch (error) {
       console.error('Transaction confirmation failed:', error)
+      // Error will be handled by TransactionProgressScreen via flowError
     }
   }, [confirmPendingTransaction])
 

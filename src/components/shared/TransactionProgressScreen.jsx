@@ -5,6 +5,7 @@ import { Loader2, CheckCircle, DollarSign, ArrowRight, CreditCard, Wallet, Send,
 import { useNavigate } from 'react-router-dom'
 import { useTransactionProgress } from '../../hooks/useTransactionStatus.js'
 import { TRANSACTION_STATUS } from '../../services/transactions/TransactionStatusService.js'
+import TransactionErrorHandler from './TransactionErrorHandler.jsx'
 import diBoaSLogo from '../../assets/diboas-logo.png'
 
 // Transaction configurations - moved outside component to prevent re-creation
@@ -112,7 +113,7 @@ export default function TransactionProgressScreen({
   onCancel,
   flowState,
   _flowData,
-  _flowError
+  flowError
 }) {
   const navigate = useNavigate()
   const [completedSteps, setCompletedSteps] = useState([])
@@ -139,6 +140,7 @@ export default function TransactionProgressScreen({
     (realTimeStatus.status === TRANSACTION_STATUS.FAILED || realTimeStatus.status === TRANSACTION_STATUS.TIMEOUT) : 
     isError
   const finalErrorMessage = useRealTimeStatus && statusError ? statusError : errorMessage
+  const finalError = flowError || (finalErrorMessage ? new Error(finalErrorMessage) : null)
 
   // Debug logging removed for production
 
@@ -410,66 +412,23 @@ export default function TransactionProgressScreen({
   }
 
   if (finalIsError) {
+    // Get current step name for error context
+    const currentStepName = steps[currentStepIndex] || currentStep || 'Processing transaction'
+    
     return (
-      <div className="main-layout center-content" style={{padding: '1rem'}}>
-        <Card className="main-card" style={{width: '100%', maxWidth: '32rem'}}>
-          <CardContent className="p-8 text-center">
-            <div className="mb-6">
-              <img src={diBoaSLogo} alt="diBoaS Logo" className="h-12 w-auto mx-auto mb-4" />
-            </div>
-            
-            {/* Error Icon */}
-            <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
-              {useRealTimeStatus && realTimeStatus?.status === TRANSACTION_STATUS.TIMEOUT ? (
-                <Clock className="w-8 h-8 text-red-600" />
-              ) : (
-                <XCircle className="w-8 h-8 text-red-600" />
-              )}
-            </div>
-            
-            {/* Error Message */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {useRealTimeStatus && realTimeStatus?.status === TRANSACTION_STATUS.TIMEOUT ? 
-                'Transaction Timed Out' : 
-                'Transaction Failed'
-              }
-            </h2>
-            <p className="text-gray-600 mb-6">
-              {finalErrorMessage || 
-               (useRealTimeStatus && realTimeStatus?.status === TRANSACTION_STATUS.TIMEOUT ? 
-                'The transaction took too long to complete. Please try again.' :
-                'Something went wrong. Please try again.'
-               )
-              }
-            </p>
-            
-            {/* Transaction Hash (if available) */}
-            {onChainHash && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-2">Transaction Hash:</p>
-                <p className="font-mono text-xs break-all">{onChainHash}</p>
-              </div>
-            )}
-            
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <Button 
-                className="w-full diboas-button"
-                onClick={() => navigate(-1)} // Go back to transaction form
-              >
-                Try Again
-              </Button>
-              <Button 
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate('/app')}
-              >
-                Back to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <TransactionErrorHandler
+        error={finalError}
+        transactionData={transactionData}
+        currentStep={currentStepName}
+        onRetry={() => {
+          // Reset error state and go back to transaction form
+          if (onCancel) onCancel()
+          navigate(-1)
+        }}
+        onCancel={onCancel}
+        onBackToDashboard={() => navigate('/app')}
+        showTechnicalDetails={true}
+      />
     )
   }
 
