@@ -19,6 +19,19 @@ import PageHeader from './shared/PageHeader.jsx'
 import { assetDataService } from '../services/assetDataService.js'
 import { dataManager } from '../services/DataManager.js'
 
+// Asset background images mapping
+const ASSET_BACKGROUND_IMAGES = {
+  BTC: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=1200&h=300&fit=crop&crop=center', // Bitcoin/crypto theme
+  ETH: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1200&h=300&fit=crop&crop=center', // Ethereum/tech theme
+  SOL: 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=1200&h=300&fit=crop&crop=center', // Solana/purple theme
+  SUI: 'https://images.unsplash.com/photo-1451187580459-43490279e0d7?w=1200&h=300&fit=crop&crop=center', // Modern tech/blue theme
+  PAXG: 'https://images.unsplash.com/photo-1610375461369-d1859bc96b13?w=1200&h=300&fit=crop&crop=center', // Gold theme
+  XAUT: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1200&h=300&fit=crop&crop=center', // Gold bars theme
+  MAG7: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&h=300&fit=crop&crop=center', // Tech stocks theme
+  SPX: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=1200&h=300&fit=crop&crop=center', // Stock market theme
+  REIT: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&h=300&fit=crop&crop=center'  // Real estate theme
+}
+
 export default function AssetDetailPage() {
   const { symbol } = useParams()
   const navigate = useNavigate()
@@ -239,48 +252,74 @@ export default function AssetDetailPage() {
         </Button>
       </div>
 
-      {/* Asset Header */}
+      {/* Asset Header with Background Image */}
       <div className="asset-header mb-8">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="asset-icon-large">
-              <span className="text-4xl">{assetData.icon}</span>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">{assetData.name}</h1>
-              <p className="text-gray-600 text-lg">{assetData.symbol}</p>
-            </div>
-          </div>
+        <div 
+          className="asset-header-bg relative rounded-2xl overflow-hidden"
+          style={{
+            backgroundImage: `url(${ASSET_BACKGROUND_IMAGES[assetData.symbol] || ASSET_BACKGROUND_IMAGES.BTC})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            minHeight: '200px'
+          }}
+        >
+          {/* Overlay */}
+          <div 
+            className="asset-header-overlay absolute inset-0"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5))'
+            }}
+          ></div>
           
-          <div className="text-right">
-            <div className="text-3xl font-bold mb-1">
-              {assetData.priceFormatted}
-            </div>
-            <div className={`flex items-center justify-end gap-2 ${
-              assetData.trend === 'up' ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {assetData.trend === 'up' ? (
-                <TrendingUp className="w-5 h-5" />
-              ) : (
-                <TrendingDown className="w-5 h-5" />
-              )}
-              <span className="font-medium">
-                {assetData.change24hFormatted} ({assetData.changeAmountFormatted})
-              </span>
-            </div>
-            {lastUpdate && (
-              <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                <span>Updated: {lastUpdate.toLocaleTimeString()}</span>
-                <button
-                  onClick={handleRefreshPrice}
-                  disabled={refreshing}
-                  className="text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
-                  title="Refresh price data"
-                >
-                  <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
-                </button>
+          {/* Content */}
+          <div className="asset-header-content relative z-10 p-8 text-white">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-6">
+                <div className="asset-icon-large p-4 rounded-xl bg-white/20 backdrop-blur-sm">
+                  <span className="text-5xl">{assetData.icon}</span>
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold text-white mb-2">{assetData.name}</h1>
+                  <p className="text-white/80 text-xl font-medium">{assetData.symbol}</p>
+                  {assetData.description && (
+                    <p className="text-white/70 text-sm mt-2 max-w-2xl leading-relaxed">
+                      {assetData.description}
+                    </p>
+                  )}
+                </div>
               </div>
-            )}
+              
+              <div className="text-right bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                <div className="text-4xl font-bold mb-2 text-white">
+                  {assetData.priceFormatted}
+                </div>
+                <div className={`flex items-center justify-end gap-2 ${
+                  assetData.trend === 'up' ? 'text-green-300' : 'text-red-300'
+                }`}>
+                  {assetData.trend === 'up' ? (
+                    <TrendingUp className="w-6 h-6" />
+                  ) : (
+                    <TrendingDown className="w-6 h-6" />
+                  )}
+                  <span className="font-medium text-lg">
+                    {assetData.change24hFormatted} ({assetData.changeAmountFormatted})
+                  </span>
+                </div>
+                {lastUpdate && (
+                  <div className="text-xs text-white/70 mt-2 flex items-center gap-2">
+                    <span>Updated: {lastUpdate.toLocaleTimeString()}</span>
+                    <button
+                      onClick={handleRefreshPrice}
+                      disabled={refreshing}
+                      className="text-white/80 hover:text-white disabled:opacity-50 transition-colors"
+                      title="Refresh price data"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

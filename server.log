@@ -1,0 +1,10 @@
+
+> diboas@0.0.0 dev /Users/simonekugler/Desktop/diboas
+> vite --port 3001
+
+
+  VITE v6.3.5  ready in 383 ms
+
+  ➜  Local:   http://localhost:3001/
+  ➜  Network: use --host to expose
+ ELIFECYCLE  Command failed with exit code 143.

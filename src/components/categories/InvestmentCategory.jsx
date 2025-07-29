@@ -1,11 +1,13 @@
 /**
  * Investment Category Page - Buy/Sell Crypto & Tokenized Assets
  * Handles investment operations with enhanced crypto and tokenized assets
+ * Now synchronized with AssetDetailPage data sources
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { dataManager } from '../../services/DataManager.js'
+import { assetDataService } from '../../services/assetDataService.js'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -23,7 +25,7 @@ import {
 } from 'lucide-react'
 import PageHeader from '../shared/PageHeader.jsx'
 
-// Investment categories and assets
+// Investment categories with asset symbols only - data comes from assetDataService
 const INVESTMENT_CATEGORIES = {
   crypto: {
     id: 'crypto',
@@ -31,44 +33,8 @@ const INVESTMENT_CATEGORIES = {
     description: 'Digital assets and cryptocurrencies',
     icon: Bitcoin,
     color: 'bg-orange-100 text-orange-800',
-    assets: [
-      { 
-        symbol: 'BTC', 
-        name: 'Bitcoin', 
-        price: '$43,250', 
-        change: '+2.4%', 
-        trend: 'up',
-        marketCap: '$850B',
-        popular: true
-      },
-      { 
-        symbol: 'ETH', 
-        name: 'Ethereum', 
-        price: '$2,680', 
-        change: '+1.8%', 
-        trend: 'up',
-        marketCap: '$322B',
-        popular: true
-      },
-      { 
-        symbol: 'SOL', 
-        name: 'Solana', 
-        price: '$98.50', 
-        change: '+5.2%', 
-        trend: 'up',
-        marketCap: '$44B',
-        popular: true
-      },
-      { 
-        symbol: 'SUI', 
-        name: 'Sui', 
-        price: '$3.45', 
-        change: '+12.1%', 
-        trend: 'up',
-        marketCap: '$9.8B',
-        popular: false
-      }
-    ]
+    assetSymbols: ['BTC', 'ETH', 'SOL', 'SUI'],
+    popularAssets: ['BTC', 'ETH', 'SOL']
   },
   tokenized: {
     id: 'tokenized',
@@ -76,28 +42,8 @@ const INVESTMENT_CATEGORIES = {
     description: 'Real-world assets on blockchain',
     icon: Coins,
     color: 'bg-yellow-100 text-yellow-800',
-    assets: [
-      { 
-        symbol: 'PAXG', 
-        name: 'PAX Gold', 
-        price: '$2,687.34', 
-        change: '+0.8%', 
-        trend: 'up',
-        marketCap: '$540M',
-        popular: true,
-        description: 'Each token represents 1 oz of gold'
-      },
-      { 
-        symbol: 'XAUT', 
-        name: 'Tether Gold', 
-        price: '$2,684.12', 
-        change: '+0.7%', 
-        trend: 'up',
-        marketCap: '$580M',
-        popular: true,
-        description: 'Gold-backed stablecoin'
-      }
-    ]
+    assetSymbols: ['PAXG', 'XAUT'],
+    popularAssets: ['PAXG', 'XAUT']
   },
   stocks: {
     id: 'stocks',
@@ -105,28 +51,8 @@ const INVESTMENT_CATEGORIES = {
     description: 'Tokenized stock market indices',
     icon: TrendingUp,
     color: 'bg-indigo-100 text-indigo-800',
-    assets: [
-      { 
-        symbol: 'MAG7', 
-        name: 'Magnificent 7', 
-        price: '$512.45', 
-        change: '+3.2%', 
-        trend: 'up',
-        marketCap: '$15.2T',
-        popular: true,
-        description: 'Apple, Microsoft, Google, Amazon, Meta, Tesla, Nvidia'
-      },
-      { 
-        symbol: 'SPX', 
-        name: 'S&P 500 Index', 
-        price: '$5,234.18', 
-        change: '+1.5%', 
-        trend: 'up',
-        marketCap: '$43.8T',
-        popular: true,
-        description: 'Top 500 US companies'
-      }
-    ]
+    assetSymbols: ['MAG7', 'SPX'],
+    popularAssets: ['MAG7', 'SPX']
   },
   realestate: {
     id: 'realestate',
@@ -134,18 +60,8 @@ const INVESTMENT_CATEGORIES = {
     description: 'Tokenized real estate funds',
     icon: BarChart3,
     color: 'bg-stone-100 text-stone-800',
-    assets: [
-      { 
-        symbol: 'REIT', 
-        name: 'Real Estate Fund', 
-        price: '$89.67', 
-        change: '+0.4%', 
-        trend: 'up',
-        marketCap: '$2.3B',
-        popular: true,
-        description: 'Diversified real estate investment trust'
-      }
-    ]
+    assetSymbols: ['REIT'],
+    popularAssets: ['REIT']
   },
   portfolio: {
     id: 'portfolio',
@@ -186,6 +102,8 @@ export default function InvestmentCategory() {
     totalGainLoss: 0,
     assetsOwned: 0
   })
+  const [assetPriceData, setAssetPriceData] = useState({})
+  const [loading, setLoading] = useState(true)
 
   // Get balance and portfolio data from DataManager
   useEffect(() => {
@@ -224,17 +142,96 @@ export default function InvestmentCategory() {
     return unsubscribe
   }, [])
 
+  // Fetch asset data from assetDataService for current category
+  useEffect(() => {
+    const fetchAssetData = async () => {
+      if (!currentCategory?.assetSymbols) return
+      
+      setLoading(true)
+      try {
+        const assetDataPromises = currentCategory.assetSymbols.map(symbol => 
+          assetDataService.getCompleteAssetData(symbol)
+        )
+        const assetDataResults = await Promise.all(assetDataPromises)
+        
+        const assetDataMap = {}
+        assetDataResults.forEach(data => {
+          assetDataMap[data.symbol] = data
+        })
+        
+        setAssetPriceData(assetDataMap)
+      } catch (error) {
+        console.error('Error fetching asset data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAssetData()
+  }, [selectedCategory])
+
+  // Subscribe to price updates for visible assets
+  useEffect(() => {
+    if (!currentCategory?.assetSymbols) return
+    
+    const unsubscribeFunctions = []
+    
+    currentCategory.assetSymbols.forEach(symbol => {
+      const unsubscribe = assetDataService.subscribeToPriceUpdates(symbol, (priceData) => {
+        setAssetPriceData(prev => ({
+          ...prev,
+          [symbol]: {
+            ...prev[symbol],
+            ...priceData,
+            priceFormatted: assetDataService.formatPrice(priceData.price),
+            change24hFormatted: assetDataService.formatPercentage(priceData.change24h)
+          }
+        }))
+      })
+      unsubscribeFunctions.push(unsubscribe)
+    })
+    
+    return () => {
+      unsubscribeFunctions.forEach(unsubscribe => unsubscribe())
+    }
+  }, [selectedCategory])
+
   // Get user holdings from balance data
   const userHoldings = balance?.assets || {}
+
+  // Get current category - must be defined before buildAssetList uses it
+  const currentCategory = INVESTMENT_CATEGORIES[selectedCategory]
 
   // Utility function to get holding info for an asset
   const getHoldingInfo = (symbol) => {
     const holding = userHoldings[symbol]
     return {
-      quantity: holding?.amount || 0,
+      quantity: holding?.quantity || 0,
       value: holding?.investedAmount || 0
     }
   }
+
+  // Build asset list from category symbols with real-time data
+  const buildAssetList = useCallback(() => {
+    if (!currentCategory?.assetSymbols) return []
+    
+    return currentCategory.assetSymbols.map(symbol => {
+      const assetData = assetPriceData[symbol]
+      const userHolding = getHoldingInfo(symbol)
+      
+      return {
+        symbol,
+        name: assetData?.name || symbol,
+        price: assetData?.priceFormatted || '$0.00',
+        change: assetData?.change24hFormatted || '+0.00%',
+        trend: assetData?.trend || 'up',
+        popular: currentCategory.popularAssets?.includes(symbol) || false,
+        description: assetData?.description || '',
+        userQuantity: userHolding.quantity,
+        userValue: userHolding.value
+      }
+    })
+  }, [currentCategory, assetPriceData, userHoldings])
 
   const handleActionClick = (action) => {
     navigate(action.route)
@@ -249,24 +246,28 @@ export default function InvestmentCategory() {
     navigate(`/category/investment/buy?asset=${asset.symbol}`)
   }
 
+  const handleSellClick = (asset, e) => {
+    e.stopPropagation()
+    navigate(`/category/investment/sell?asset=${asset.symbol}`)
+  }
+
   const handleBackClick = () => {
     navigate('/app')
   }
 
-  const currentCategory = INVESTMENT_CATEGORIES[selectedCategory]
-
+  // Generate asset list with real-time data
+  const assetList = buildAssetList()
+  
   // Sort assets: user holdings first (by value desc), then non-holdings
-  const sortedAssets = currentCategory.assets ? [...currentCategory.assets].sort((a, b) => {
-    const aHolding = getHoldingInfo(a.symbol)
-    const bHolding = getHoldingInfo(b.symbol)
-    const aHasHoldings = aHolding.quantity > 0
-    const bHasHoldings = bHolding.quantity > 0
+  const sortedAssets = [...assetList].sort((a, b) => {
+    const aHasHoldings = a.userQuantity > 0
+    const bHasHoldings = b.userQuantity > 0
     
     if (aHasHoldings && !bHasHoldings) return -1
     if (!aHasHoldings && bHasHoldings) return 1
-    if (aHasHoldings && bHasHoldings) return bHolding.value - aHolding.value
+    if (aHasHoldings && bHasHoldings) return b.userValue - a.userValue
     return 0
-  }) : []
+  })
 
   return (
     <div className="main-layout">
@@ -413,41 +414,45 @@ export default function InvestmentCategory() {
           </div>
 
           {/* Asset Grid */}
-          {sortedAssets.length > 0 && (
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-3 text-gray-600">Loading assets...</span>
+            </div>
+          ) : sortedAssets.length > 0 ? (
             <div className="asset-list-container">
               <div className="asset-grid">
                 {sortedAssets.map((asset) => {
-                  const userHolding = getHoldingInfo(asset.symbol)
-                  const hasHoldings = userHolding.quantity > 0
+                  const hasHoldings = asset.userQuantity > 0
                   
                   return (
                     <Card 
                       key={asset.symbol}
-                      className={`asset-card ${hasHoldings ? 'asset-card--owned' : ''}`}
+                      className={`asset-card ${hasHoldings ? 'asset-card--owned bg-green-50 border-green-200' : 'hover:shadow-md transition-shadow'}`}
                       onClick={() => handleAssetClick(asset)}
                     >
                       <div className="asset-card-header">
                         <div className="asset-info">
                           <div className="asset-icon">
-                            <span>{asset.symbol}</span>
+                            <span className={hasHoldings ? 'text-green-700 font-semibold' : ''}>{asset.symbol}</span>
                           </div>
                           <div className="asset-name-container">
-                            <h3 className="asset-name">
+                            <h3 className={`asset-name ${hasHoldings ? 'text-green-800' : ''}`}>
                               {asset.name}
                               {asset.popular && (
                                 <Star className="w-4 h-4 text-yellow-500 inline ml-1" />
                               )}
                             </h3>
                             <p className="asset-symbol-quantity">
-                              {asset.symbol} • {userHolding.quantity.toFixed(userHolding.quantity >= 1 ? 0 : 3)}
+                              {asset.symbol} • {asset.userQuantity.toFixed(asset.userQuantity >= 1 ? 2 : 6)}
                             </p>
                           </div>
                         </div>
                         
                         <div className="asset-values">
-                          <p className="asset-price">{asset.price}</p>
-                          <p className="asset-user-value">
-                            ${userHolding.value.toFixed(2)}
+                          <p className={`asset-price ${hasHoldings ? 'text-green-700 font-semibold' : ''}`}>{asset.price}</p>
+                          <p className="asset-user-value text-sm text-gray-600">
+                            ${asset.userValue.toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -460,27 +465,44 @@ export default function InvestmentCategory() {
                       
                       <div className="asset-card-footer">
                         <div className={`asset-change ${
-                          asset.trend === 'up' ? 'asset-change--positive' : 'asset-change--negative'
-                        }`}>
+                          asset.trend === 'up' ? 'asset-change--positive text-green-600' : 'asset-change--negative text-red-600'
+                        } flex items-center gap-1`}>
                           {asset.trend === 'up' ? (
                             <TrendingUp className="w-3 h-3" />
                           ) : (
                             <TrendingDown className="w-3 h-3" />
                           )}
-                          <span>{asset.change}</span>
+                          <span className="text-sm">{asset.change}</span>
                         </div>
                         
-                        <Button 
-                          className="asset-buy-button"
-                          onClick={(e) => handleBuyClick(asset, e)}
-                        >
-                          Buy
-                        </Button>
+                        <div className="flex gap-2">
+                          {hasHoldings && (
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              className="asset-sell-button border-red-200 text-red-700 hover:bg-red-50"
+                              onClick={(e) => handleSellClick(asset, e)}
+                            >
+                              Sell
+                            </Button>
+                          )}
+                          <Button 
+                            size="sm"
+                            className={`asset-buy-button ${hasHoldings ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                            onClick={(e) => handleBuyClick(asset, e)}
+                          >
+                            Buy
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   )
                 })}
               </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <p>No assets available in this category</p>
             </div>
           )}
         </div>
