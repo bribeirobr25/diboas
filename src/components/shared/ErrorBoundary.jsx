@@ -54,16 +54,44 @@ class ErrorBoundary extends React.Component {
   }
 
   handleRetry = () => {
+    console.log('🔄 ErrorBoundary: Retry button clicked, attempting to recover...')
+    
     this.setState(prevState => ({
       hasError: false,
       error: null,
       errorInfo: null,
       retryCount: prevState.retryCount + 1
-    }))
+    }), () => {
+      // Callback after state update to ensure clean recovery
+      console.log('✅ ErrorBoundary: State reset complete, retry count:', this.state.retryCount)
+      
+      // Small delay to ensure React processes the state change
+      setTimeout(() => {
+        this.forceUpdate()
+      }, 10)
+    })
   }
 
   handleGoHome = () => {
-    window.location.href = '/'
+    // CRITICAL FIX: Use React Router navigation instead of window.location
+    // to prevent data loss from full page reload
+    
+    // Determine appropriate destination based on current location
+    const currentPath = window.location.pathname
+    let destination = '/app' // default
+    
+    if (currentPath === '/' || currentPath === '/auth') {
+      destination = '/auth' // Go back to auth if we're on landing or auth pages
+    }
+    
+    if (this.props.navigate) {
+      this.props.navigate(destination)
+    } else {
+      // Fallback: dispatch a custom event that App.jsx can listen to
+      window.dispatchEvent(new CustomEvent('diboas-navigate-home', { 
+        detail: { destination } 
+      }))
+    }
   }
 
   render() {
@@ -112,7 +140,7 @@ class ErrorBoundary extends React.Component {
                   className="action-button-full"
                 >
                   <Home className="w-4 h-4 mr-2" />
-                  Go Home
+                  {window.location.pathname === '/' || window.location.pathname === '/auth' ? 'Back to Login' : 'Back to Dashboard'}
                 </Button>
               </div>
 

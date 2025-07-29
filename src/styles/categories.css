@@ -1,0 +1,475 @@
+/* Category Page Styles */
+
+/* Banking Category Actions */
+.banking-category__actions-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+/* Responsive layout for banking actions */
+@media (min-width: 640px) {
+  .banking-category__actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .banking-category__actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+.banking-category__action-card {
+  transition: all 0.2s ease-in-out;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: white;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.banking-category__action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: #d1d5db;
+}
+
+.banking-category__action-header {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.banking-category__action-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Ensure equal height and better visual balance */
+@media (min-width: 1024px) {
+  .banking-category__action-card {
+    min-height: 220px;
+  }
+  
+  /* Desktop specific layout improvements */
+  .banking-category__actions {
+    max-width: none;
+    padding: 0 2rem;
+  }
+  
+  .banking-category__actions-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    gap: 2.5rem;
+  }
+  
+  /* Better desktop spacing for action cards */
+  .banking-category__action-card {
+    padding: 1.5rem;
+  }
+  
+  .banking-category__action-title {
+    font-size: 1.25rem;
+  }
+  
+  /* Better method badges on desktop */
+  .banking-category__method-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Method badges styling */
+.banking-category__method-badge {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+}
+
+.banking-category__action-methods {
+  margin-top: 1rem;
+}
+
+.banking-category__action-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* Banking Overview Card */
+.banking-overview-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.banking-overview-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.banking-overview-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.banking-overview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.banking-overview-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: #f9fafb;
+}
+
+.banking-overview-content {
+  flex: 1;
+}
+
+.banking-overview-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+}
+
+.banking-overview-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.banking-overview-divider {
+  width: 1px;
+  height: 3rem;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* Investment Overview Card */
+.investment-overview-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.investment-overview-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.investment-overview-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.investment-overview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.investment-overview-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: #f9fafb;
+}
+
+.investment-overview-content {
+  flex: 1;
+}
+
+.investment-overview-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+}
+
+.investment-overview-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.investment-overview-divider {
+  width: 1px;
+  height: 3rem;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* Yield Overview Card */
+.yield-overview-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.yield-overview-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.yield-overview-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.yield-overview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.yield-overview-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: #f9fafb;
+}
+
+.yield-overview-content {
+  flex: 1;
+}
+
+.yield-overview-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+}
+
+.yield-overview-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.yield-overview-divider {
+  width: 1px;
+  height: 3rem;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* Asset List Styles */
+.asset-list-container {
+  margin-top: 2rem;
+}
+
+.asset-category-section {
+  margin-bottom: 2rem;
+}
+
+.asset-category-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .asset-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .asset-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.asset-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: white;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.asset-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.asset-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.asset-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.asset-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.asset-name-container {
+  flex: 1;
+}
+
+.asset-name {
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.asset-symbol-quantity {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.asset-values {
+  text-align: right;
+}
+
+.asset-price {
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.asset-user-value {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.asset-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.asset-change {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.asset-change--positive {
+  color: #16a34a;
+}
+
+.asset-change--negative {
+  color: #dc2626;
+}
+
+.asset-buy-button {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 0.375rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.asset-buy-button:hover {
+  background: #2563eb;
+}
+
+/* User Holdings Priority */
+.asset-card--owned {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.asset-card--owned .asset-icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .banking-overview-grid,
+  .investment-overview-grid,
+  .yield-overview-grid {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .banking-overview-divider,
+  .investment-overview-divider,
+  .yield-overview-divider {
+    display: none;
+  }
+  
+  .banking-overview-item,
+  .investment-overview-item,
+  .yield-overview-item {
+    justify-content: center;
+    text-align: center;
+  }
+}

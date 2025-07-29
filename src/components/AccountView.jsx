@@ -12,28 +12,21 @@ import {
 } from 'lucide-react'
 import { Input } from '@/components/ui/input.jsx'
 import PageHeader from './shared/PageHeader.jsx'
+import TransactionFilters from './account/TransactionFilters.jsx'
+import AdvancedModeToggle from './shared/AdvancedModeToggle.jsx'
 import { NAVIGATION_PATHS } from '../utils/navigationHelpers.js'
 import { useWalletBalance } from '../hooks/useTransactions.jsx'
 import { useSafeDataManager, useDataManagerSubscription } from '../hooks/useDataManagerSubscription.js'
 import TransactionIcon from './ui/TransactionIcon.tsx'
-import { TransactionType } from '../types/transactionTypes'
-import {
-  calculateDisplayAmountWithSign,
-  formatRelativeTimeFromTimestamp,
-  formatHumanReadableDate,
-  determineTransactionDisplayType,
-  generateHumanReadableTransactionDescription,
-  shouldSplitTransactionInAdvancedMode,
-  createSplitTransactionsForAdvancedMode
-} from '../utils/transactionDisplayHelpers'
+import { useAccountTransactionDisplay } from '../hooks/useTransactionDisplay.js'
 import { useUserSettings } from '../utils/userSettings.js'
-import AdvancedModeToggle from './shared/AdvancedModeToggle.jsx'
 
 export default function AccountView() {
   const navigate = useNavigate()
   const { settings } = useUserSettings()
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
-  const [selectedTransactionFilter, setSelectedTransactionFilter] = useState('all')
+  const [filteredTransactions, setFilteredTransactions] = useState([])
+  const [activeFilters, setActiveFilters] = useState({})
 
   // Get real wallet balance with semantic naming
   const { balance: currentWalletBalance, getBalance: refreshWalletBalance } = useWalletBalance()
@@ -84,71 +77,38 @@ export default function AccountView() {
     refreshWalletBalance(true)
   }, [loadCompleteTransactionHistory, refreshWalletBalance])
 
-  // Transform raw transaction data into display-ready format with semantic naming
-  const displayReadyTransactionList = useMemo(() => {
-    // Apply advanced mode transformations if enabled
-    let processedTransactions = userTransactionHistory
+  // Use shared transaction display logic
+  const displayReadyTransactionList = useAccountTransactionDisplay(userTransactionHistory)
+  
+  // Add transaction icons to the shared data
+  const enhancedTransactionList = useMemo(() => {
+    return displayReadyTransactionList.map(transactionData => ({
+      ...transactionData,
+      transactionIconElement: <TransactionIcon transactionType={transactionData.transactionCategory} />
+    }))
+  }, [displayReadyTransactionList])
+
+  // Handle filter changes from TransactionFilters component
+  const handleFiltersChange = useCallback(({ filtered, filters }) => {
+    // Map filtered raw transactions to display data by finding matches in enhanced list
+    const filteredIds = new Set(filtered.map(tx => tx.id))
+    const filteredWithDisplay = enhancedTransactionList.filter(
+      displayData => filteredIds.has(displayData.transactionId)
+    )
     
-    if (settings.showAdvancedTransactionDetails) {
-      processedTransactions = userTransactionHistory.flatMap(transaction => {
-        if (shouldSplitTransactionInAdvancedMode(transaction.type, transaction.paymentMethod)) {
-          return createSplitTransactionsForAdvancedMode(transaction)
-        }
-        return transaction
+    setFilteredTransactions(filteredWithDisplay)
+    setActiveFilters(filters)
+  }, [enhancedTransactionList])
+
+  // Initially show all transactions
+  useEffect(() => {
+    if (enhancedTransactionList.length > 0 && filteredTransactions.length === 0) {
+      handleFiltersChange({ 
+        filtered: userTransactionHistory, 
+        filters: { category: 'all', period: 'all_time', secondaryFilter: 'all' } 
       })
     }
-    
-    return processedTransactions.map(rawTransaction => {
-      // Convert string type to enum for type safety
-      const transactionType = rawTransaction.originalType || rawTransaction.type
-
-      const transactionDisplayData = {
-        transactionId: rawTransaction.id,
-        displayType: determineTransactionDisplayType(transactionType),
-        humanReadableDescription: rawTransaction.description || generateHumanReadableTransactionDescription(
-          transactionType,
-          rawTransaction.amount,
-          rawTransaction.asset,
-          rawTransaction.paymentMethod,
-          rawTransaction.fromAsset,
-          rawTransaction.fromAmount,
-          rawTransaction.toAsset,
-          rawTransaction.toAmount
-        ),
-        formattedAmount: calculateDisplayAmountWithSign(
-          transactionType,
-          rawTransaction.amount,
-          rawTransaction.netAmount,
-          rawTransaction.paymentMethod,
-          rawTransaction.toAsset,
-          rawTransaction.toAmount
-        ),
-        relativeTimeDisplay: formatRelativeTimeFromTimestamp(rawTransaction.timestamp),
-        formattedDateDisplay: formatHumanReadableDate(rawTransaction.timestamp),
-        currentStatus: rawTransaction.status || 'completed',
-        transactionIconElement: <TransactionIcon transactionType={transactionType} />,
-        transactionCategory: transactionType
-      }
-
-      return transactionDisplayData
-    })
-  }, [userTransactionHistory, settings.showAdvancedTransactionDetails])
-
-  const filteredTransactionDisplayList = selectedTransactionFilter === 'all'
-    ? displayReadyTransactionList
-    : displayReadyTransactionList.filter(transactionItem =>
-      transactionItem.transactionCategory === selectedTransactionFilter
-    )
-
-  const transactionFilterOptionsConfig = [
-    { filterValue: 'all', displayLabel: 'All Transactions' },
-    { filterValue: TransactionType.ADD, displayLabel: 'Deposits' },
-    { filterValue: TransactionType.SEND, displayLabel: 'Sent' },
-    { filterValue: TransactionType.BUY, displayLabel: 'Purchases' },
-    { filterValue: TransactionType.SELL, displayLabel: 'Sold' },
-    { filterValue: TransactionType.TRANSFER, displayLabel: 'Transfer' },
-    { filterValue: TransactionType.WITHDRAW, displayLabel: 'Withdrawals' }
-  ]
+  }, [enhancedTransactionList, userTransactionHistory, handleFiltersChange])
 
   return (
     <div className="main-layout">
@@ -239,27 +199,6 @@ export default function AccountView() {
               </div>
 
               <div className="transaction-controls">
-                <div className="search-input-container">
-                  <Search className="search-input__icon" />
-                  <Input
-                    placeholder="Search transactions..."
-                    className="search-input__field"
-                  />
-                </div>
-
-                <select
-                  value={selectedTransactionFilter}
-                  onChange={(e) => setSelectedTransactionFilter(e.target.value)}
-                  className="filter-dropdown"
-                  aria-label="Filter transactions by type"
-                >
-                  {transactionFilterOptionsConfig.map((filterOption) => (
-                    <option key={filterOption.filterValue} value={filterOption.filterValue}>
-                      {filterOption.displayLabel}
-                    </option>
-                  ))}
-                </select>
-
                 <Button variant="outline" size="sm">
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -269,8 +208,17 @@ export default function AccountView() {
           </CardHeader>
 
           <CardContent>
+            {/* Transaction Filters */}
+            <div className="mb-6">
+              <TransactionFilters 
+                onFiltersChange={handleFiltersChange}
+                transactions={userTransactionHistory}
+              />
+            </div>
+
+            {/* Transaction List */}
             <div className="transaction-list">
-              {filteredTransactionDisplayList.map((transactionDisplayItem) => (
+              {filteredTransactions.map((transactionDisplayItem) => (
                 <div
                   key={transactionDisplayItem.transactionId}
                   className="transaction-item interactive-card"
@@ -303,7 +251,7 @@ export default function AccountView() {
               ))}
             </div>
 
-            {filteredTransactionDisplayList.length === 0 && (
+            {filteredTransactions.length === 0 && (
               <div className="empty-state">
                 <Wallet className="empty-state__icon" />
                 <h3 className="empty-state__title">No transactions found</h3>
@@ -311,7 +259,7 @@ export default function AccountView() {
               </div>
             )}
 
-            {filteredTransactionDisplayList.length > 0 && (
+            {filteredTransactions.length > 0 && (
               <div className="load-more-container">
                 <Button variant="outline">
                   Load More Transactions

@@ -14,6 +14,14 @@ export const calculateDisplayAmountWithSign = (
   toAsset?: string,
   toAmount?: number
 ): string => {
+  // SAFETY: Handle undefined/null inputs to prevent crashes
+  if (!transactionType || originalAmount == null) {
+    return '$0.00'
+  }
+  
+  // Ensure originalAmount is a valid number
+  const safeOriginalAmount = typeof originalAmount === 'number' ? originalAmount : parseFloat(String(originalAmount)) || 0
+  
   // Buy transactions now show positive values
   const isIncomingTransaction = [
     TransactionType.ADD, 
@@ -26,16 +34,18 @@ export const calculateDisplayAmountWithSign = (
   if (transactionType === TransactionType.BUY) {
     // If we have toAsset and toAmount (exchange), show what was gained
     if (toAsset && toAmount) {
-      return `+${toAmount} ${toAsset}`
+      const safeToAmount = typeof toAmount === 'number' ? toAmount : parseFloat(String(toAmount)) || 0
+      return `+${safeToAmount} ${toAsset}`
     }
     // Otherwise show the USD value as positive
-    return `+$${parseFloat(originalAmount.toString()).toFixed(2)}`
+    return `+$${safeOriginalAmount.toFixed(2)}`
   }
   
   // Special handling for sell transactions (show proceeds)
   if (transactionType === TransactionType.SELL) {
-    const proceeds = netAmountAfterFees || originalAmount
-    return `+$${parseFloat(proceeds.toString()).toFixed(2)}`
+    const proceeds = netAmountAfterFees || safeOriginalAmount
+    const safeProceeds = typeof proceeds === 'number' ? proceeds : parseFloat(String(proceeds)) || 0
+    return `+$${safeProceeds.toFixed(2)}`
   }
   
   const transactionSign = isIncomingTransaction ? '+' : '-'
@@ -43,10 +53,12 @@ export const calculateDisplayAmountWithSign = (
   // For incoming transactions, show net amount (after fees)
   // For outgoing transactions, show original amount (before fees)
   const displayAmount = isIncomingTransaction 
-    ? (netAmountAfterFees || originalAmount) 
-    : originalAmount
+    ? (netAmountAfterFees || safeOriginalAmount) 
+    : safeOriginalAmount
     
-  return `${transactionSign}$${parseFloat(displayAmount.toString()).toFixed(2)}`
+  // Ensure displayAmount is defined and can be converted to number
+  const safeAmount = typeof displayAmount === 'number' ? displayAmount : parseFloat(String(displayAmount)) || 0
+  return `${transactionSign}$${safeAmount.toFixed(2)}`
 }
 
 export const formatRelativeTimeFromTimestamp = (transactionTimestamp: string): string => {

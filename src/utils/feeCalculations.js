@@ -15,7 +15,9 @@ export const FEE_STRUCTURE = {
     'transfer': 0.009,  // 0.9%
     'buy': 0.0009,      // 0.09%
     'sell': 0.0009,     // 0.09%
-    'invest': 0.0009    // 0.09%
+    'invest': 0.0009,   // 0.09%
+    'strategy_start': 0.0009,  // 0.09% - FinObjective DeFi start
+    'strategy_stop': 0.0009    // 0.09% - FinObjective DeFi stop
   },
 
   // Network fees (percentage of transaction amount)
@@ -229,7 +231,7 @@ export class FeeCalculator {
       case 'buy':
       case 'sell':
         if (paymentMethod === 'diboas_wallet') {
-          providerFee = numericAmount * 0.01 // 1% DEX fee
+          providerFee = numericAmount * 0.002 // 0.2% DEX fee for Buy/Sell
         } else if (['apple_pay', 'credit_card', 'credit_debit_card', 'bank_account', 'paypal', 'google_pay'].includes(paymentMethod)) {
           const paymentRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.onramp[actualPaymentMethod] || 0
           providerFee = numericAmount * paymentRate
@@ -444,7 +446,19 @@ export class FeeCalculator {
     if (type === 'add') {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // Always Solana for on-ramp
     } else if (type === 'withdraw') {
-      networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // Always from Solana
+      // For external wallet withdrawals, use destination chain fees
+      if (transactionData?.paymentMethod === 'external_wallet' && recipient) {
+        const addressInfo = this.detectNetworkFromAddressDetailed(recipient)
+        
+        if (!addressInfo.isValid) {
+          networkFeeRate = 0
+        } else {
+          networkFeeRate = FEE_STRUCTURE.NETWORK_FEES[addressInfo.network] || FEE_STRUCTURE.NETWORK_FEES.SOL
+        }
+      } else {
+        // Traditional off-ramp (to payment methods) uses Solana
+        networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL
+      }
     } else if (type === 'send') {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // P2P on Solana
     } else if (type === 'transfer') {
@@ -496,8 +510,22 @@ export class FeeCalculator {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // Always Solana for on-ramp
       detectedNetwork = 'SOL'
     } else if (type === 'withdraw') {
-      networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // Always from Solana
-      detectedNetwork = 'SOL'
+      // For external wallet withdrawals, use destination chain fees
+      if (transactionData?.paymentMethod === 'external_wallet' && recipient) {
+        const addressInfo = this.detectNetworkFromAddressDetailed(recipient)
+        
+        if (!addressInfo.isValid) {
+          networkFeeRate = 0
+          detectedNetwork = 'Invalid Chain'
+        } else {
+          detectedNetwork = addressInfo.network
+          networkFeeRate = FEE_STRUCTURE.NETWORK_FEES[addressInfo.network] || FEE_STRUCTURE.NETWORK_FEES.SOL
+        }
+      } else {
+        // Traditional off-ramp (to payment methods) uses Solana
+        networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL
+        detectedNetwork = 'SOL'
+      }
     } else if (type === 'send') {
       networkFeeRate = FEE_STRUCTURE.NETWORK_FEES.SOL // P2P on Solana
       detectedNetwork = 'SOL'
@@ -544,7 +572,7 @@ export class FeeCalculator {
     let providerFee = 0
 
     // Return 0 if no payment method selected (except for transfer transactions)
-    if (!paymentMethod && type !== 'transfer') {
+    if (!paymentMethod && (type !== 'transfer' && type !== 'withdraw')) {
         return 0
     }
 
@@ -563,9 +591,22 @@ export class FeeCalculator {
       }
 
       case 'withdraw': {
-        // Off-ramp provider fees based on payment method
-        const offrampRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.offramp[actualPaymentMethod] || 0
-        providerFee = amount * offrampRate
+        if (actualPaymentMethod === 'external_wallet') {
+          // External wallet withdrawal - 0.8% DEX fee for non-SOL networks
+          const addressInfo = this.detectNetworkFromAddressDetailed(transactionData.recipient)
+          
+          if (addressInfo.isValid && addressInfo.network !== 'SOL') {
+            // Cross-chain withdrawal (non-Solana) - apply 0.8% DEX fee
+            providerFee = amount * 0.008 // 0.8% DEX fee
+          } else {
+            // Solana-to-Solana withdrawal or invalid address - no DEX fee
+            providerFee = 0
+          }
+        } else {
+          // Traditional off-ramp provider fees based on payment method
+          const offrampRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.offramp[actualPaymentMethod] || 0
+          providerFee = amount * offrampRate
+        }
         break
       }
 
@@ -574,10 +615,16 @@ export class FeeCalculator {
         providerFee = amount * FEE_STRUCTURE.ONCHAIN_FEES.defi
         break
 
+      case 'strategy_start':
+      case 'strategy_stop':
+        // FinObjective DeFi fees
+        providerFee = amount * 0.005 // 0.5% DeFi fee
+        break
+
       case 'buy': {
         // Buy transaction fees - DEX fee only for On-Chain, Payment fee only for On-Ramp
         if (paymentMethod === 'diboas_wallet') {
-          fees.dex = amount * 0.01 // 1% DEX fee for display breakdown
+          fees.dex = amount * 0.002 // 0.2% DEX fee for display breakdown
           fees.payment = 0 // No payment method fee
           providerFee = fees.dex // This becomes fees.provider
         } else if (['apple_pay', 'credit_card', 'credit_debit_card', 'bank_account', 'paypal', 'google_pay'].includes(paymentMethod)) {
@@ -596,7 +643,7 @@ export class FeeCalculator {
 
       case 'sell': {
         // Sell transaction fees - only DEX fee, no payment provider fee
-        fees.dex = amount * 0.01 // 1% DEX fee
+        fees.dex = amount * 0.002 // 0.2% DEX fee
         fees.payment = 0 // No payment method fee for selling
         providerFee = fees.dex
         break
@@ -635,7 +682,7 @@ export class FeeCalculator {
     let providerFee = 0
 
     // Return 0 if no payment method selected (except for transfer transactions)
-    if (!paymentMethod && type !== 'transfer') {
+    if (!paymentMethod && (type !== 'transfer' && type !== 'withdraw')) {
         return 0
     }
 
@@ -654,9 +701,22 @@ export class FeeCalculator {
       }
 
       case 'withdraw': {
-        // Off-ramp provider fees based on payment method
-        const offrampRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.offramp[actualPaymentMethod] || 0
-        providerFee = amount * offrampRate
+        if (actualPaymentMethod === 'external_wallet') {
+          // External wallet withdrawal - 0.8% DEX fee for non-SOL networks
+          const addressInfo = this.detectNetworkFromAddressDetailed(transactionData.recipient)
+          
+          if (addressInfo.isValid && addressInfo.network !== 'SOL') {
+            // Cross-chain withdrawal (non-Solana) - apply 0.8% DEX fee
+            providerFee = amount * 0.008 // 0.8% DEX fee
+          } else {
+            // Solana-to-Solana withdrawal or invalid address - no DEX fee
+            providerFee = 0
+          }
+        } else {
+          // Traditional off-ramp provider fees based on payment method
+          const offrampRate = FEE_STRUCTURE.PAYMENT_PROVIDER_FEES.offramp[actualPaymentMethod] || 0
+          providerFee = amount * offrampRate
+        }
         break
       }
 
@@ -665,11 +725,17 @@ export class FeeCalculator {
         providerFee = amount * FEE_STRUCTURE.ONCHAIN_FEES.defi
         break
 
+      case 'strategy_start':
+      case 'strategy_stop':
+        // FinObjective DeFi fees
+        providerFee = amount * 0.005 // 0.5% DeFi fee
+        break
+
       case 'buy':
         // Buy transaction fees - DEX fee only for On-Chain, Payment fee only for On-Ramp
         if (paymentMethod === 'diboas_wallet') {
           // Buy On-Chain: uses diBoaS wallet, only DEX fee applies
-          fees.dex = amount * 0.01 // 1% DEX fee for display breakdown
+          fees.dex = amount * 0.002 // 0.2% DEX fee for display breakdown
           fees.payment = 0 // No payment method fee
           providerFee = fees.dex // This becomes fees.provider
         } else if (['apple_pay', 'credit_debit_card', 'bank_account', 'paypal', 'google_pay'].includes(paymentMethod)) {
@@ -689,7 +755,7 @@ export class FeeCalculator {
 
       case 'sell':
         // Sell transaction fees - only DEX fee, no payment provider fee
-        fees.dex = amount * 0.01 // 1% DEX fee
+        fees.dex = amount * 0.002 // 0.2% DEX fee
         fees.payment = 0 // No payment method fee for selling
         providerFee = fees.dex
         break
@@ -1011,7 +1077,7 @@ export const FeeUtils = {
           return `$0.0${match[1].padEnd(2, '0')}`
         }
       }
-      return `$${amount.toFixed(3)}`
+      return `$${amount.toFixed(2)}`
     }
     return `${amount.toFixed(6)} ${currency}`
   },

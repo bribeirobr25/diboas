@@ -53,31 +53,26 @@ const STATIC_MARKET_DATA = [
   }
 ]
 
-// Memoized market data item to prevent unnecessary re-renders
+// Minimalist market data item
 const MarketDataItem = memo(({ marketItem }) => {
   if (!marketItem) return null
   
   return (
-    <div className="feature-card" style={{
-      background: 'rgba(255, 255, 255, 0.5)', 
-      backdropFilter: 'blur(4px)', 
-      padding: '0.75rem', 
-      minWidth: '0'
-    }}>
-      <div className="text-lg">{marketItem.icon}</div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-gray-600 truncate">{marketItem.name}</p>
-        <div className="flex items-center space-x-2">
-          <span className="font-semibold text-sm text-gray-900">{marketItem.value}</span>
-          <div className={`flex items-center space-x-1 ${
-            marketItem.isPositive ? 'text-green-600' : 'text-red-600'
+    <div className="market-indicator-compact">
+      <div className="market-indicator-icon">{marketItem.icon}</div>
+      <div className="market-indicator-content">
+        <p className="market-indicator-name">{marketItem.name}</p>
+        <div className="market-indicator-values">
+          <span className="market-indicator-price">{marketItem.value}</span>
+          <div className={`market-indicator-change ${
+            marketItem.isPositive ? 'market-indicator-change--positive' : 'market-indicator-change--negative'
           }`}>
             {marketItem.isPositive ? (
               <TrendingUp className="w-3 h-3" />
             ) : (
               <TrendingDown className="w-3 h-3" />
             )}
-            <span className="text-xs font-medium">{marketItem.change}</span>
+            <span className="market-indicator-change-text">{marketItem.change}</span>
           </div>
         </div>
       </div>
@@ -87,32 +82,36 @@ const MarketDataItem = memo(({ marketItem }) => {
 
 MarketDataItem.displayName = 'MarketDataItem'
 
-// Main component - fully memoized for performance
+// Main component - minimalist and smaller design
 const SimpleMarketIndicators = memo(() => {
   return (
-    <div className="mb-6">
-      {/* Status indicator */}
-      <div className="mb-3 text-xs text-gray-500 flex items-center justify-between">
+    <div className="market-indicators-container">
+      {/* Status indicator - smaller */}
+      <div className="market-indicators-status">
         <span>📊 Demo Market Data</span>
-        <span className="text-green-600">Live</span>
+        <span className="market-indicators-status-live">Live</span>
       </div>
 
-      {/* Desktop View - All indicators visible */}
-      <div className="hidden md:grid md:grid-cols-6 gap-3">
+      {/* Mobile View - Show all items in horizontal scroll */}
+      <div className="market-indicators-mobile">
+        <div className="market-indicators-scroll">
+          {STATIC_MARKET_DATA.map((item, index) => (
+            <MarketDataItem 
+              key={`${item.name}-${index}`} 
+              marketItem={item} 
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop View - Grid layout with fewer columns */}
+      <div className="market-indicators-desktop">
         {STATIC_MARKET_DATA.map((item, index) => (
           <MarketDataItem 
             key={`${item.name}-${index}`} 
             marketItem={item} 
           />
         ))}
-      </div>
-
-      {/* Mobile View - Show first 2 items */}
-      <div className="md:hidden">
-        <div className="grid-2-cols">
-          <MarketDataItem marketItem={STATIC_MARKET_DATA[0]} />
-          <MarketDataItem marketItem={STATIC_MARKET_DATA[1]} />
-        </div>
       </div>
     </div>
   )

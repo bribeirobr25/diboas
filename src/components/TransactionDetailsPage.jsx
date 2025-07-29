@@ -329,10 +329,10 @@ export default function TransactionDetailsPage({ transactionId: propTransactionI
               </p>
             </div>
 
-            {transaction.createdAt && (
+            {(transaction.createdAt || transaction.timestamp) && (
               <div>
                 <span className="text-gray-600">Created</span>
-                <p className="text-sm">{formatDate(transaction.createdAt)}</p>
+                <p className="text-sm">{formatDate(transaction.createdAt || transaction.timestamp)}</p>
               </div>
             )}
 

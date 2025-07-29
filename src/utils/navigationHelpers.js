@@ -13,15 +13,35 @@ export const NAVIGATION_PATHS = {
   APP: '/app',
   ACCOUNT: '/account',
   
-  // Transaction routes - RESTful structure
+  // Category routes
+  CATEGORIES: {
+    BANKING: '/category/banking',
+    INVESTMENT: '/category/investment',
+    YIELD: '/category/yield'
+  },
+  
+  // Transaction routes - Category-based structure
   TRANSACTIONS: {
-    ADD: '/add',
-    SEND: '/send', 
-    RECEIVE: '/receive',
-    BUY: '/buy',
-    SELL: '/sell',
-    WITHDRAW: '/withdraw',
-    INVEST: '/invest'
+    // Banking transactions
+    ADD: '/category/banking/add',
+    SEND: '/category/banking/send', 
+    RECEIVE: '/category/banking/receive',
+    WITHDRAW: '/category/banking/withdraw',
+    
+    // Investment transactions
+    BUY: '/category/investment/buy',
+    SELL: '/category/investment/sell',
+    
+    // Legacy paths for backward compatibility
+    LEGACY: {
+      ADD: '/add',
+      SEND: '/send', 
+      RECEIVE: '/receive',
+      BUY: '/buy',
+      SELL: '/sell',
+      WITHDRAW: '/withdraw',
+      INVEST: '/invest'
+    }
   },
   
   // Legacy support (will be removed)

@@ -2,6 +2,20 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 
+// Fee formatting utility - shows 2 decimals for standard display
+const formatFeeAmount = (amount) => {
+  const numAmount = parseFloat(amount) || 0
+  
+  // For very small fees (less than $0.01), show special formatting
+  if (numAmount > 0 && numAmount < 0.01) {
+    // For fees under 1 cent, show as "< $0.01"
+    return "< 0.01"
+  }
+  
+  // For normal fees, show 2 decimals
+  return numAmount.toFixed(2)
+}
+
 export default function TransactionSummary({ 
   amount: transactionAmountInput, 
   transactionType: currentTransactionType,
@@ -17,7 +31,7 @@ export default function TransactionSummary({
   getNetworkFeeRate: calculateNetworkFeePercentage,
   getProviderFeeRate: calculateProviderFeePercentage,
   getPaymentMethodFeeRate: calculatePaymentMethodFeePercentage,
-  // recipientAddress: recipientWalletAddress
+  recipientAddress: recipientWalletAddress
 }) {
   const [areFeeDetailsVisible, setAreFeeDetailsVisible] = useState(false)
 
@@ -89,31 +103,31 @@ export default function TransactionSummary({
               onClick={() => setAreFeeDetailsVisible(!areFeeDetailsVisible)}
             >
               <span>Fee Details</span>
-              <span className="font-medium">${(parseFloat(calculatedTransactionFees?.total) || 0).toFixed(2)}</span>
+              <span className="font-medium">${formatFeeAmount(calculatedTransactionFees?.total)}</span>
             </Button>
             
             {areFeeDetailsVisible && (
               <div className="mt-3 space-y-2 text-sm">
                 <div className="fee-breakdown-row">
                   <span>diBoaS Fee ({isOffRampTransaction || currentTransactionType === 'transfer' ? '0.9%' : '0.09%'})</span>
-                  <span>${(parseFloat(calculatedTransactionFees?.diBoaS) || 0).toFixed(2)}</span>
+                  <span>${formatFeeAmount(calculatedTransactionFees?.diBoaS)}</span>
                 </div>
                 <div className="fee-breakdown-row">
                   <span>Network Fee ({calculateNetworkFeePercentage()})</span>
-                  <span>${(parseFloat(calculatedTransactionFees?.network) || 0).toFixed(2)}</span>
+                  <span>${formatFeeAmount(calculatedTransactionFees?.network)}</span>
                 </div>
-                {/* Provider Fee - for Add/Withdraw transactions, but NOT Send (P2P) */}
-                {(isOnRampTransaction || isOffRampTransaction) && currentTransactionType !== 'send' && (
+                {/* Provider Fee - for Add/Withdraw to traditional payment methods */}
+                {(isOnRampTransaction || (isOffRampTransaction && chosenPaymentMethod !== 'external_wallet')) && currentTransactionType !== 'send' && (
                   <div className="fee-breakdown-row">
                     <span>Provider Fee ({calculateProviderFeePercentage()})</span>
-                    <span>${(parseFloat(calculatedTransactionFees?.provider) || 0).toFixed(2)}</span>
+                    <span>${formatFeeAmount(calculatedTransactionFees?.provider)}</span>
                   </div>
                 )}
-                {/* DEX Fee for Transfer transactions */}
-                {currentTransactionType === 'transfer' && (
+                {/* DEX Fee for Transfer transactions and external wallet withdrawals */}
+                {(currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) && (
                   <div className="fee-breakdown-row">
                     <span>DEX Fee ({calculateProviderFeePercentage()})</span>
-                    <span>${(parseFloat(calculatedTransactionFees?.provider) || 0).toFixed(2)}</span>
+                    <span>${formatFeeAmount(calculatedTransactionFees?.provider)}</span>
                   </div>
                 )}
                 {/* Buy/Sell transaction specific fees */}
@@ -123,14 +137,14 @@ export default function TransactionSummary({
                     {currentTransactionType === 'buy' && chosenPaymentMethod !== 'diboas_wallet' && calculatedTransactionFees?.payment > 0 && (
                       <div className="fee-breakdown-row">
                         <span>Payment Fee ({calculatePaymentMethodFeePercentage()})</span>
-                        <span>${(parseFloat(calculatedTransactionFees?.payment) || 0).toFixed(2)}</span>
+                        <span>${formatFeeAmount(calculatedTransactionFees?.payment)}</span>
                       </div>
                     )}
                     {/* DEX Fee - for Buy using diBoaS wallet and all Sell transactions */}
                     {((currentTransactionType === 'buy' && chosenPaymentMethod === 'diboas_wallet') || currentTransactionType === 'sell') && calculatedTransactionFees?.dex > 0 && (
                       <div className="fee-breakdown-row">
-                        <span>DEX Fee (1%)</span>
-                        <span>${(parseFloat(calculatedTransactionFees?.dex) || 0).toFixed(2)}</span>
+                        <span>DEX Fee (0.2%)</span>
+                        <span>${formatFeeAmount(calculatedTransactionFees?.dex)}</span>
                       </div>
                     )}
                   </>
