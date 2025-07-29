@@ -6,7 +6,8 @@ import { Search, QrCode, Copy, Clock, Wallet } from 'lucide-react'
 import { 
   getRecentWalletAddresses, 
   saveRecentWalletAddress,
-  detectAddressNetwork
+  detectAddressNetwork,
+  detectAddressNetworkDetailed
 } from '../../utils/walletAddressDatabase.js'
 
 export default function WalletAddressInput({
@@ -21,6 +22,7 @@ export default function WalletAddressInput({
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [_IS_LOADING, _SET_IS_LOADING] = useState(false)
   const [detectedNetwork, setDetectedNetwork] = useState(null)
+  const [networkValidation, setNetworkValidation] = useState(null)
   const inputRef = useRef(null)
   const dropdownRef = useRef(null)
 
@@ -31,8 +33,15 @@ export default function WalletAddressInput({
 
   // Detect network when value changes
   useEffect(() => {
-    const network = detectAddressNetwork(value)
-    setDetectedNetwork(network)
+    if (value && value.trim()) {
+      const network = detectAddressNetwork(value.trim())
+      const validation = detectAddressNetworkDetailed(value.trim())
+      setDetectedNetwork(network)
+      setNetworkValidation(validation)
+    } else {
+      setDetectedNetwork(null)
+      setNetworkValidation(null)
+    }
   }, [value])
 
   // Generate suggestions based on input
@@ -128,7 +137,11 @@ export default function WalletAddressInput({
   }, [])
 
   // Get network badge color
-  const getNetworkBadgeColor = (network) => {
+  const getNetworkBadgeColor = (network, isSupported = true) => {
+    if (!isSupported) {
+      return 'bg-red-100 text-red-700 border-red-200'
+    }
+    
     const colors = {
       'BTC': 'bg-orange-100 text-orange-700 border-orange-200',
       'ETH': 'bg-blue-100 text-blue-700 border-blue-200', 
@@ -156,13 +169,13 @@ export default function WalletAddressInput({
         <Search className="search-icon" />
         
         {/* Network Detection Badge */}
-        {detectedNetwork && value && (
+        {networkValidation && value && (
           <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
             <Badge 
               variant="outline" 
-              className={`text-xs px-2 py-1 ${getNetworkBadgeColor(detectedNetwork)}`}
+              className={`text-xs px-2 py-1 ${getNetworkBadgeColor(networkValidation.network || 'INVALID', networkValidation.isSupported)}`}
             >
-              {detectedNetwork}
+              {networkValidation.network || 'INVALID'}
             </Badge>
           </div>
         )}
@@ -240,6 +253,13 @@ export default function WalletAddressInput({
             </button>
           ))}
         </div>
+      )}
+
+      {/* Network Validation Error */}
+      {networkValidation?.error && (
+        <p className="text-sm text-red-600 mt-2">
+          {networkValidation.error}
+        </p>
       )}
 
       {/* Validation Error */}

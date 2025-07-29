@@ -39,58 +39,46 @@ export const resetToCleanState = () => {
     user: dataManager.getUser()
   })
   
-  // Refresh the page to ensure all components reset
-  if (typeof window !== 'undefined') {
-    window.location.reload()
-  }
+  // Note: Page refresh removed to prevent infinite reload loops
+  // Components will update automatically via DataManager events
 }
 
 /**
- * Add some initial demo data for testing (optional)
+ * Add demo data is no longer used - users start with clean zero state
+ * All balances and data are built through actual user transactions
  */
 export const addDemoData = () => {
-  console.log('📝 Adding demo data for testing...')
-  
-  // Add some balance for testing other transaction types
-  const demoBalance = {
-    totalUSD: 1000,
-    availableForSpending: 1000,
-    investedAmount: 0,
-    breakdown: {
-      BTC: { native: 0, usdc: 0, usdValue: 0 },
-      ETH: { native: 0, usdc: 0, usdValue: 0 },
-      SOL: { native: 0, usdc: 1000, usdValue: 1000 },
-      SUI: { native: 0, usdc: 0, usdValue: 0 }
-    },
-    assets: {},
-    lastUpdated: Date.now()
-  }
-  
-  // Update DataManager state
-  dataManager.state.balance = demoBalance
-  dataManager.persistBalance()
-  dataManager.emit('balance:updated', demoBalance)
-  
-  console.log('✅ Demo balance added: $1000 available for testing other transactions')
+  console.log('📝 Demo data disabled - users start with clean zero state')
+  console.log('💡 All balances are built through actual user transactions (Add, Send, Withdraw, Buy, Sell, Yield strategies)')
+  console.log('✅ Application will start with $0 balance')
 }
 
 /**
  * Check if data is in clean state
+ * Now considers demo data as "clean" to prevent infinite reloads
  */
 export const isCleanState = () => {
   const balance = dataManager.getBalance()
   const transactions = dataManager.getTransactions()
   
-  const isClean = (
-    balance?.totalUSD === 0 &&
-    balance?.availableForSpending === 0 &&
-    balance?.investedAmount === 0 &&
-    transactions.length === 0
+  // Check if we have valid balance data (zero or positive values)
+  const hasValidBalanceData = (
+    balance?.totalUSD >= 0 &&
+    balance?.availableForSpending >= 0 &&
+    balance?.investedAmount >= 0 &&
+    transactions.length >= 0 // Allow any number of transactions
   )
+  
+  const isClean = hasValidBalanceData
   
   console.log('🔍 Clean state check:', {
     isClean,
-    balance,
+    hasValidBalanceData,
+    balance: {
+      totalUSD: balance?.totalUSD,
+      available: balance?.availableForSpending,
+      invested: balance?.investedAmount
+    },
     transactionCount: transactions.length
   })
   
@@ -136,7 +124,7 @@ if (typeof window !== 'undefined') {
   console.log('🛠️ Development helpers available:')
   console.log('- window.resetDiBoaSData() - Reset to clean state')
   console.log('- window.checkCleanState() - Check if data is clean')
-  console.log('- window.addDemoData() - Add demo data (currently empty)')
+  console.log('- window.addDemoData() - Demo data disabled, users start with $0')
   console.log('- window.clearCorruptedData() - Clear corrupted localStorage entries')
 }
 

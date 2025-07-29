@@ -46,6 +46,13 @@ export function safeSetJSON(key, value) {
  * Clear all diBoaS-related localStorage with corruption detection
  */
 export function clearCorruptedDiBoaSData() {
+  // SAFETY: Only run cleanup in development mode to prevent data loss in production
+  const isDevelopment = typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development'
+  if (!isDevelopment) {
+    console.log('🔒 Data cleanup disabled in production mode for safety')
+    return
+  }
+  
   const keys = Object.keys(localStorage)
   const diboasKeys = keys.filter(key => key.startsWith('diboas_'))
   let clearedCount = 0
@@ -62,8 +69,11 @@ export function clearCorruptedDiBoaSData() {
       } catch (_parseError) {
         // If it's not valid JSON and not a simple string, consider it corrupted
         // Allow simple strings (like user settings) and boolean values
+        // IMPORTANT: Be very conservative about what we consider "corrupted"
+        // Only remove data that is clearly malformed, not just non-JSON strings
         if (stored !== 'true' && stored !== 'false' && 
             !stored.match(/^[a-zA-Z0-9_-]+$/) && 
+            stored.includes('undefined') && // Only if it contains literal 'undefined' 
             stored.length > 50) {
           console.warn(`Clearing corrupted localStorage key: ${key}`)
           localStorage.removeItem(key)

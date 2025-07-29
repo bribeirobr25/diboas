@@ -1,0 +1,250 @@
+/* Dashboard Styles - Minimalist Design */
+
+/* Compact Balance Card */
+.compact-balance-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+.balance-label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.balance-display-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.balance-amount-compact {
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+.balance-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+
+.balance-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.balance-item-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.25rem;
+}
+
+.balance-item-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+}
+
+.balance-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.balance-visibility-toggle {
+  color: rgba(255, 255, 255, 0.8);
+  hover: rgba(255, 255, 255, 1);
+  background: transparent;
+  border: none;
+  padding: 0.25rem;
+}
+
+.balance-change-badge {
+  background: rgba(34, 197, 94, 0.9);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+}
+
+/* Market Indicators Styles */
+.market-indicators-container {
+  margin-bottom: 1.5rem;
+}
+
+.market-indicators-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.market-indicators-status-live {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.market-indicators-mobile {
+  display: block;
+}
+
+.market-indicators-desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .market-indicators-mobile {
+    display: none;
+  }
+  
+  .market-indicators-desktop {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.market-indicators-scroll {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.market-indicators-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.market-indicator-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(4px);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.market-indicator-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.market-indicator-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.market-indicator-name {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 0.125rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-indicator-values {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.market-indicator-price {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.market-indicator-change {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.market-indicator-change--positive {
+  color: #16a34a;
+}
+
+.market-indicator-change--negative {
+  color: #dc2626;
+}
+
+.market-indicator-change-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Desktop Categories Layout */
+.desktop-categories-layout {
+  margin-bottom: 2rem;
+}
+
+.desktop-categories-horizontal {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .desktop-categories-horizontal {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .balance-breakdown {
+    padding: 0 0.5rem;
+  }
+  
+  .balance-item {
+    gap: 0.5rem;
+  }
+  
+  .balance-amount-compact {
+    font-size: 1.75rem;
+  }
+  
+  .compact-balance-card .p-4 {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .balance-breakdown {
+    flex-direction: row;
+    align-items: center;
+    gap: 2rem;
+  }
+  
+  .balance-item {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .balance-item-label {
+    margin-bottom: 0;
+  }
+}

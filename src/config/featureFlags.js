@@ -162,6 +162,17 @@ const featureFlags = {
     }
   },
 
+  CATEGORIES_NAVIGATION: {
+    name: 'Categories Navigation',
+    type: FLAG_TYPES.BOOLEAN,
+    description: 'Replace Quick Actions with category-based navigation',
+    environments: {
+      [ENV_TYPES.DEVELOPMENT]: { enabled: true },
+      [ENV_TYPES.STAGING]: { enabled: true },
+      [ENV_TYPES.PRODUCTION]: { enabled: true } // Enable for production as well
+    }
+  },
+
   DARK_MODE: {
     name: 'Dark Mode Theme',
     type: FLAG_TYPES.BOOLEAN,

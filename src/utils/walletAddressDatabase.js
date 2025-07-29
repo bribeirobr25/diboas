@@ -52,7 +52,7 @@ export const detectAddressNetwork = (address) => {
   if (!address) return null
   
   // Bitcoin patterns
-  if (address.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || address.match(/^bc1[a-z0-9]{38,58}$/)) {
+  if (address.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || address.match(/^bc1[a-z0-9]{38,59}$/)) {
     return 'BTC'
   }
   
@@ -72,6 +72,86 @@ export const detectAddressNetwork = (address) => {
   }
   
   return null
+}
+
+/**
+ * Detect network with detailed validation information
+ * @param {string} address - Wallet address
+ * @returns {Object} - Network detection result with validation info
+ */
+export const detectAddressNetworkDetailed = (address) => {
+  if (!address || !address.trim()) {
+    return { network: null, isValid: false, isSupported: false, error: null }
+  }
+
+  const cleanAddress = address.trim()
+  const supportedNetworks = ['BTC', 'ETH', 'SOL', 'SUI']
+  
+  // Supported network patterns
+  const networkPatterns = {
+    'BTC': /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{38,59}$/,
+    'ETH': /^0x[a-fA-F0-9]{40}$/,
+    'SOL': /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
+    'SUI': /^0x[a-fA-F0-9]{64}$/
+  }
+
+  // Check supported networks first
+  for (const [network, pattern] of Object.entries(networkPatterns)) {
+    if (pattern.test(cleanAddress)) {
+      return { 
+        network, 
+        isValid: true, 
+        isSupported: true, 
+        error: null 
+      }
+    }
+  }
+
+  // Check for common unsupported patterns - comprehensive list from TRANSACTIONS.md
+  const unsupportedPatterns = {
+    'TRON': /^T[1-9A-HJ-NP-Za-km-z]{33}$/, // Tron addresses
+    'BNB': /^bnb1[a-z0-9]{38}$/, // Binance Chain addresses
+    'XRP': /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/, // Ripple addresses
+    'ADA': /^addr1[a-z0-9]{50,}$/, // Cardano Shelley addresses
+    'AVAX': /^X-avax[a-zA-Z0-9]{39}$/, // Avalanche X-Chain
+    'DOT': /^1[a-zA-Z0-9]{47}$/, // Polkadot addresses
+    'BCH': /^(bitcoincash:)?[qp][a-z0-9]{41}$|^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/, // Bitcoin Cash
+    'NEAR': /^[a-z0-9]+\.near$|^[a-f0-9]{64}$/, // NEAR Protocol
+    'HBAR': /^0\.0\.\d+$/, // Hedera
+    'CRO': /^cro1[a-z0-9]{38}$/, // Cronos
+    'XLM': /^G[A-Z2-7]{55}$/, // Stellar
+    'ATOM': /^cosmos1[a-z0-9]{38}$/, // Cosmos
+    'COSMOS': /^cosmos1[a-z0-9]{38}$/, // Cosmos (alias)
+    'DOGE': /^D[5-9A-HJ-NP-U][1-9A-HJ-NP-Za-km-z]{32}$/, // Dogecoin
+    'LTC': /^[LM3][a-km-zA-HJ-NP-Z1-9]{26,33}$|^ltc1[a-z0-9]{39,59}$/, // Litecoin
+    'XMR': /^[48][1-9A-HJ-NP-Za-km-z]{94}$/, // Monero
+    'XTZ': /^tz[123][a-zA-Z0-9]{33}$/, // Tezos
+    'ALGO': /^[A-Z2-7]{58}$/, // Algorand
+    'FIL': /^f[013][a-zA-Z0-9]+$/, // Filecoin
+    'KSM': /^[A-HJ-NP-Za-km-z]{47,48}$/, // Kusama
+    'MATIC': /^0x[a-fA-F0-9]{40}$/, // Polygon (same as ETH but different network)
+    'USDT': /^T[1-9A-HJ-NP-Za-km-z]{33}$/ // USDT on TRON
+  }
+
+  // Check for unsupported but valid formats
+  for (const [network, pattern] of Object.entries(unsupportedPatterns)) {
+    if (pattern.test(cleanAddress)) {
+      return { 
+        network, 
+        isValid: true, 
+        isSupported: false, 
+        error: `${network} addresses are not currently supported. Please use BTC, ETH, SOL, or SUI addresses.` 
+      }
+    }
+  }
+
+  // If no pattern matches, it's invalid
+  return { 
+    network: null, 
+    isValid: false, 
+    isSupported: false, 
+    error: 'Invalid wallet address format. Please enter a valid BTC, ETH, SOL, or SUI address.' 
+  }
 }
 
 /**

@@ -25,7 +25,7 @@ import {
   useTransactionFlow
 } from '../hooks/transactions/index.js'
 
-export default function TransactionPage({ transactionType: propTransactionType }) {
+export default function TransactionPage({ transactionType: propTransactionType, category }) {
   // const navigate = useNavigate() // Commented out as not used directly
   const [urlSearchParams] = useSearchParams()
   
@@ -73,7 +73,7 @@ export default function TransactionPage({ transactionType: propTransactionType }
   // const { verifyTwoFACode } = useTransactionTwoFA() // Commented out - implementation pending
 
   // Transaction type configuration with semantic naming
-  const availableTransactionTypeConfigs = [
+  const allTransactionTypeConfigs = [
     { 
       id: 'add', 
       label: 'Add', 
@@ -81,7 +81,8 @@ export default function TransactionPage({ transactionType: propTransactionType }
       description: 'Add money to your diBoaS wallet',
       bgColor: 'bg-green-50', 
       color: 'text-green-700', 
-      borderColor: 'border-green-200' 
+      borderColor: 'border-green-200',
+      category: 'banking'
     },
     { 
       id: 'send', 
@@ -90,7 +91,8 @@ export default function TransactionPage({ transactionType: propTransactionType }
       description: 'Send money to another diBoaS user',
       bgColor: 'bg-blue-50', 
       color: 'text-blue-700', 
-      borderColor: 'border-blue-200' 
+      borderColor: 'border-blue-200',
+      category: 'banking' 
     },
     { 
       id: 'buy', 
@@ -99,7 +101,8 @@ export default function TransactionPage({ transactionType: propTransactionType }
       description: 'Buy cryptocurrency assets',
       bgColor: 'bg-emerald-50', 
       color: 'text-emerald-700', 
-      borderColor: 'border-emerald-200' 
+      borderColor: 'border-emerald-200',
+      category: 'investment' 
     },
     { 
       id: 'sell', 
@@ -108,7 +111,8 @@ export default function TransactionPage({ transactionType: propTransactionType }
       description: 'Sell your crypto assets back to USD',
       bgColor: 'bg-red-50', 
       color: 'text-red-700', 
-      borderColor: 'border-red-200' 
+      borderColor: 'border-red-200',
+      category: 'investment' 
     },
     { 
       id: 'withdraw', 
@@ -117,15 +121,33 @@ export default function TransactionPage({ transactionType: propTransactionType }
       description: 'Withdraw funds to bank or external wallet',
       bgColor: 'bg-indigo-50', 
       color: 'text-indigo-700', 
-      borderColor: 'border-indigo-200' 
+      borderColor: 'border-indigo-200',
+      category: 'banking' 
     }
   ]
 
+  // Filter transaction types by category if category is provided
+  const availableTransactionTypeConfigs = category 
+    ? allTransactionTypeConfigs.filter(config => config.category === category)
+    : allTransactionTypeConfigs
+
   const supportedCryptocurrencyAssets = [
-    { assetId: 'BTC', tickerSymbol: 'BTC', displayName: 'Bitcoin', currencyIcon: '₿', currentMarketPrice: '$94,523.45', themeClasses: { bgColor: 'bg-orange-50', textColor: 'text-orange-700', borderColor: 'border-orange-200' } },
-    { assetId: 'ETH', tickerSymbol: 'ETH', displayName: 'Ethereum', currencyIcon: 'Ξ', currentMarketPrice: '$3,245.67', themeClasses: { bgColor: 'bg-blue-50', textColor: 'text-blue-700', borderColor: 'border-blue-200' } },
-    { assetId: 'SOL', tickerSymbol: 'SOL', displayName: 'Solana', currencyIcon: '◎', currentMarketPrice: '$198.23', themeClasses: { bgColor: 'bg-purple-50', textColor: 'text-purple-700', borderColor: 'border-purple-200' } },
-    { assetId: 'SUI', tickerSymbol: 'SUI', displayName: 'Sui', currencyIcon: 'Ⓢ', currentMarketPrice: '$4.23', themeClasses: { bgColor: 'bg-cyan-50', textColor: 'text-cyan-700', borderColor: 'border-cyan-200' } }
+    // Cryptocurrencies
+    { assetId: 'BTC', tickerSymbol: 'BTC', displayName: 'Bitcoin', currencyIcon: '₿', currentMarketPrice: '$94,523.45', themeClasses: { bgColor: 'bg-orange-50', textColor: 'text-orange-700', borderColor: 'border-orange-200' }, category: 'crypto' },
+    { assetId: 'ETH', tickerSymbol: 'ETH', displayName: 'Ethereum', currencyIcon: 'Ξ', currentMarketPrice: '$3,245.67', themeClasses: { bgColor: 'bg-blue-50', textColor: 'text-blue-700', borderColor: 'border-blue-200' }, category: 'crypto' },
+    { assetId: 'SOL', tickerSymbol: 'SOL', displayName: 'Solana', currencyIcon: '◎', currentMarketPrice: '$198.23', themeClasses: { bgColor: 'bg-purple-50', textColor: 'text-purple-700', borderColor: 'border-purple-200' }, category: 'crypto' },
+    { assetId: 'SUI', tickerSymbol: 'SUI', displayName: 'Sui', currencyIcon: 'Ⓢ', currentMarketPrice: '$4.23', themeClasses: { bgColor: 'bg-cyan-50', textColor: 'text-cyan-700', borderColor: 'border-cyan-200' }, category: 'crypto' },
+    
+    // Tokenized Gold
+    { assetId: 'PAXG', tickerSymbol: 'PAXG', displayName: 'PAX Gold', currencyIcon: '🪙', currentMarketPrice: '$2,687.34', themeClasses: { bgColor: 'bg-yellow-50', textColor: 'text-yellow-700', borderColor: 'border-yellow-200' }, category: 'tokenized' },
+    { assetId: 'XAUT', tickerSymbol: 'XAUT', displayName: 'Tether Gold', currencyIcon: '🥇', currentMarketPrice: '$2,684.12', themeClasses: { bgColor: 'bg-amber-50', textColor: 'text-amber-700', borderColor: 'border-amber-200' }, category: 'tokenized' },
+    
+    // Stock Market Indices
+    { assetId: 'MAG7', tickerSymbol: 'MAG7', displayName: 'Magnificent 7', currencyIcon: '📈', currentMarketPrice: '$512.45', themeClasses: { bgColor: 'bg-indigo-50', textColor: 'text-indigo-700', borderColor: 'border-indigo-200' }, category: 'stocks', description: 'Apple, Microsoft, Google, Amazon, Meta, Tesla, Nvidia' },
+    { assetId: 'SPX', tickerSymbol: 'S&P500', displayName: 'S&P 500 Index', currencyIcon: '📊', currentMarketPrice: '$5,234.18', themeClasses: { bgColor: 'bg-emerald-50', textColor: 'text-emerald-700', borderColor: 'border-emerald-200' }, category: 'stocks' },
+    
+    // Real Estate
+    { assetId: 'REIT', tickerSymbol: 'REIT', displayName: 'Real Estate Fund', currencyIcon: '🏢', currentMarketPrice: '$89.67', themeClasses: { bgColor: 'bg-stone-50', textColor: 'text-stone-700', borderColor: 'border-stone-200' }, category: 'realestate' }
   ]
 
   const availablePaymentMethodOptions = [
@@ -160,11 +182,21 @@ export default function TransactionPage({ transactionType: propTransactionType }
   const calculateNetworkFeePercentage = useCallback(() => {
     // Network fees based on asset/chain - from TRANSACTIONS.md
     if (['buy', 'sell'].includes(currentTransactionType) && selectedCryptocurrencyAsset) {
-      const networkFeeRatesByAsset = { 'BTC': '9%', 'ETH': '0.5%', 'SOL': '0.001%', 'SUI': '0.003%' }
+      const networkFeeRatesByAsset = { 
+        'BTC': '9%', 
+        'ETH': '0.5%', 
+        'SOL': '0.001%', 
+        'SUI': '0.003%',
+        'PAXG': '0.5%', // PAX Gold uses Ethereum network fees
+        'XAUT': '0.5%',  // Tether Gold uses Ethereum network fees
+        'MAG7': '0.001%', // Tokenized stocks on Solana
+        'SPX': '0.001%',  // Tokenized stocks on Solana
+        'REIT': '0.001%'  // Tokenized real estate on Solana
+      }
       return networkFeeRatesByAsset[selectedCryptocurrencyAsset] || '0.001%' // Default to Solana for USDC
     }
-    // For transfer transactions, detect network from recipient address
-    if (currentTransactionType === 'transfer' && recipientWalletAddress) {
+    // For transfer transactions and external wallet withdrawals, detect network from recipient address
+    if ((currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) && recipientWalletAddress) {
       const cleanRecipientAddress = recipientWalletAddress.trim()
       // BTC address detection
       if (cleanRecipientAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || cleanRecipientAddress.match(/^bc1[a-z0-9]{39,59}$/)) {
@@ -185,12 +217,12 @@ export default function TransactionPage({ transactionType: propTransactionType }
     }
     // Default chain is Solana for most transactions
     return '0.001%'
-  }, [currentTransactionType, selectedCryptocurrencyAsset, recipientWalletAddress])
+  }, [currentTransactionType, selectedCryptocurrencyAsset, recipientWalletAddress, chosenPaymentMethod])
 
   const calculateProviderFeePercentage = useCallback(() => {
-    // DEX fee for Sell transactions - always 1%
-    if (currentTransactionType === 'sell') {
-      return '1%' // Fixed 1% DEX fee for all Sell transactions
+    // DEX fee for Buy/Sell transactions with diBoaS wallet - 0.2%
+    if ((currentTransactionType === 'buy' || currentTransactionType === 'sell') && chosenPaymentMethod === 'diboas_wallet') {
+      return '0.2%' // Fixed 0.2% DEX fee for Buy/Sell with diBoaS wallet
     }
     
     // DEX fees for transfer operations - only for cross-chain transfers
@@ -199,17 +231,18 @@ export default function TransactionPage({ transactionType: propTransactionType }
       if (!recipientWalletAddress) return '0%'
       
       // Use the same detection logic as fee calculator
-      if (recipientWalletAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientWalletAddress.match(/^bc1[a-z0-9]{38,58}$/)) {
-        return '0.8%' // BTC
+      const cleanAddress = recipientWalletAddress.trim()
+      if (cleanAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || cleanAddress.match(/^bc1[a-z0-9]{39,59}$/)) {
+        return '0.8%' // BTC - cross-chain DEX fee
       }
-      if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-        return '0.8%' // ETH
+      if (cleanAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+        return '0.8%' // ETH - cross-chain DEX fee
       }
-      if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
-        return '0.8%' // SUI
+      if (cleanAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
+        return '0.8%' // SUI - cross-chain DEX fee
       }
-      if (recipientWalletAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
-        return '0%' // SOL - no DEX fee
+      if (cleanAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
+        return '0%' // SOL - no DEX fee (same chain)
       }
       return '0%' // Invalid or empty address
     }
@@ -320,8 +353,8 @@ export default function TransactionPage({ transactionType: propTransactionType }
         asset: selectedCryptocurrencyAsset || 'USDC'
       }
       
-      // Add recipient for transfer transactions
-      if (currentTransactionType === 'transfer' && recipientWalletAddress) {
+      // Add recipient for transfer and external wallet withdrawal transactions
+      if ((currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) && recipientWalletAddress) {
         feeParams.recipient = recipientWalletAddress
       }
       
@@ -333,19 +366,26 @@ export default function TransactionPage({ transactionType: propTransactionType }
           'ETH': ['SOL', 'ETH'], // From SOL to ETH  
           'SUI': ['SOL', 'SUI'], // From SOL to SUI
           'SOL': ['SOL'], // SOL to SOL
-          'USDC': ['SOL'] // USDC on SOL
+          'USDC': ['SOL'], // USDC on SOL
+          'PAXG': ['SOL', 'ETH'], // PAX Gold on Ethereum via bridge
+          'XAUT': ['SOL', 'ETH'], // Tether Gold on Ethereum via bridge
+          'MAG7': ['SOL'], // Tokenized on Solana
+          'SPX': ['SOL'], // Tokenized on Solana
+          'REIT': ['SOL'] // Tokenized on Solana
         }
         feeParams.chains = assetChainMap[selectedCryptocurrencyAsset] || ['SOL']
-      } else if (currentTransactionType === 'transfer' && recipientWalletAddress) {
-        // For transfers, detect destination chain from address
-        if (recipientWalletAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientWalletAddress.match(/^bc1[a-z0-9]{38,58}$/)) {
+      } else if ((currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) && recipientWalletAddress) {
+        // For transfers and external wallet withdrawals, detect destination chain from address
+        if (recipientWalletAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientWalletAddress.match(/^bc1[a-z0-9]{39,59}$/)) {
           feeParams.chains = ['SOL', 'BTC'] // SOL to BTC
         } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
           feeParams.chains = ['SOL', 'ETH'] // SOL to ETH
         } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
           feeParams.chains = ['SOL', 'SUI'] // SOL to SUI
+        } else if (recipientWalletAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
+          feeParams.chains = ['SOL'] // SOL to SOL
         } else {
-          feeParams.chains = ['SOL'] // SOL to SOL or invalid
+          feeParams.chains = ['SOL'] // Invalid address, default to SOL
         }
       }
       
@@ -449,7 +489,9 @@ export default function TransactionPage({ transactionType: propTransactionType }
         title="Transaction"
         description="Send, receive, and manage your finances"
         showBackButton={true}
-        backTo="/app"
+        backTo={category === 'banking' ? '/category/banking' : 
+               category === 'investment' ? '/category/investment' : 
+               category === 'yield' ? '/category/yield' : '/app'}
       />
 
       <div className="page-container-wide">
@@ -461,6 +503,7 @@ export default function TransactionPage({ transactionType: propTransactionType }
           setTransactionType={setCurrentTransactionType}
           propTransactionType={propTransactionType}
           currentType={selectedTransactionTypeConfig}
+          category={category}
         />
 
         <div className="transaction-form-grid">

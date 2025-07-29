@@ -8,7 +8,8 @@ export default function TransactionTypeSelector({
   transactionType: currentTransactionType,
   setTransactionType: setCurrentTransactionType,
   propTransactionType: propTransactionType,
-  currentType: selectedTransactionTypeConfig
+  currentType: selectedTransactionTypeConfig,
+  category: transactionCategory
 }) {
   const navigationHelper = useNavigate()
 
@@ -17,15 +18,17 @@ export default function TransactionTypeSelector({
     if (!propTransactionType) {
       setCurrentTransactionType(selectedTransactionTypeConfig.id)
     } else {
-      // Navigate to the specific transaction route
+      // Navigate to the specific transaction route with category context
       const transactionTypeRouteMapping = {
-        'add': '/add',
-        'send': '/send', 
-        'receive': '/receive',
-        'buy': '/buy',
-        'sell': '/sell',
+        // Banking transactions
+        'add': transactionCategory === 'banking' ? '/category/banking/add' : '/add',
+        'send': transactionCategory === 'banking' ? '/category/banking/send' : '/send', 
+        'withdraw': transactionCategory === 'banking' ? '/category/banking/withdraw' : '/withdraw',
+        // Investment transactions
+        'buy': transactionCategory === 'investment' ? '/category/investment/buy' : '/buy',
+        'sell': transactionCategory === 'investment' ? '/category/investment/sell' : '/sell',
+        // Legacy
         'transfer': '/transfer',
-        'withdraw': '/withdraw',
         'invest': '/invest'
       }
       navigationHelper(transactionTypeRouteMapping[selectedTransactionTypeConfig.id] || `/transaction?type=${selectedTransactionTypeConfig.id}`)

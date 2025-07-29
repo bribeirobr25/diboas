@@ -37,7 +37,7 @@ class DataManager {
   }
 
   /**
-   * Initialize with completely clean state for testing
+   * Initialize with completely clean state - no mock user data
    */
   initializeCleanState() {
     const userId = 'demo_user_12345'
@@ -45,27 +45,36 @@ class DataManager {
     // Clear any existing data
     this.clearAllData(userId)
     
-    // Set clean initial state
+    // Set clean initial state - no mock balances or transactions
     this.state = {
       user: {
         id: userId,
-        name: 'John Doe',
-        email: 'john@example.com'
+        name: 'New User',
+        email: 'user@example.com'
       },
       balance: {
         totalUSD: 0,
         availableForSpending: 0,
         investedAmount: 0,
+        strategyBalance: 0,
         breakdown: {
           BTC: { native: 0, usdc: 0, usdValue: 0 },
           ETH: { native: 0, usdc: 0, usdValue: 0 },
           SOL: { native: 0, usdc: 0, usdValue: 0 },
-          SUI: { native: 0, usdc: 0, usdValue: 0 }
+          SUI: { native: 0, usdc: 0, usdValue: 0 },
+          PAXG: { native: 0, usdc: 0, usdValue: 0 },
+          XAUT: { native: 0, usdc: 0, usdValue: 0 },
+          MAG7: { native: 0, usdc: 0, usdValue: 0 },
+          SPX: { native: 0, usdc: 0, usdValue: 0 },
+          REIT: { native: 0, usdc: 0, usdValue: 0 }
         },
-        assets: {},
+        assets: {}, // Start with no assets - user will build portfolio through transactions
+        strategies: {},
         lastUpdated: Date.now()
       },
-      transactions: [],
+      finObjectives: this.getCleanFinObjectives(),
+      yieldData: this.getCleanYieldData(),
+      transactions: [], // Start with no transaction history
       isLoading: false,
       lastUpdated: Date.now()
     }
@@ -75,6 +84,435 @@ class DataManager {
     
     // Notify all subscribers
     this.emit('state:initialized', this.state)
+  }
+
+  /**
+   * Update strategy balance for FinObjective DeFi investments
+   * @param {string} strategyId - Unique strategy identifier
+   * @param {number} amount - Amount to add/subtract (negative for withdrawals)
+   * @param {Object} strategyDetails - Strategy metadata
+   */
+  updateStrategyBalance(strategyId, amount, strategyDetails = {}) {
+    if (!this.state.balance.strategies) {
+      this.state.balance.strategies = {}
+    }
+
+    // Initialize strategy if not exists
+    if (!this.state.balance.strategies[strategyId]) {
+      this.state.balance.strategies[strategyId] = {
+        id: strategyId,
+        name: strategyDetails.name || 'Unnamed Strategy',
+        targetAmount: strategyDetails.targetAmount || 0,
+        currentAmount: 0,
+        apy: strategyDetails.apy || 0,
+        status: 'active',
+        createdAt: Date.now(),
+        ...strategyDetails
+      }
+    }
+
+    // Update strategy amount
+    this.state.balance.strategies[strategyId].currentAmount += amount
+    
+    // Update total strategy balance
+    this.state.balance.strategyBalance = Object.values(this.state.balance.strategies)
+      .filter(strategy => strategy.status === 'active')
+      .reduce((sum, strategy) => sum + strategy.currentAmount, 0)
+
+    // Update total balance
+    this.state.balance.totalUSD = this.state.balance.availableForSpending + 
+                                  this.state.balance.investedAmount + 
+                                  this.state.balance.strategyBalance
+
+    this.state.balance.lastUpdated = Date.now()
+    
+    // Persist and emit events
+    this.persistBalance()
+    this.emit('balance:updated', this.state.balance)
+    this.emit('strategy:updated', this.state.balance.strategies[strategyId])
+  }
+
+  /**
+   * Get all active strategies
+   */
+  getActiveStrategies() {
+    if (!this.state.balance.strategies) return []
+    
+    return Object.values(this.state.balance.strategies)
+      .filter(strategy => strategy.status === 'active')
+  }
+
+  /**
+   * Get clean FinObjective configurations (templates only)
+   */
+  getCleanFinObjectives() {
+    return {
+      emergency: {
+        id: 'emergency',
+        title: 'Emergency Fund',
+        description: 'Build a safety net for unexpected expenses',
+        icon: 'Umbrella',
+        color: 'bg-blue-100 text-blue-800',
+        targetAmount: 5000,
+        timeframe: '12 months',
+        riskLevel: 'Low',
+        expectedApy: '4-6%',
+        strategy: 'Stable liquidity protocols',
+        popular: true,
+        strategies: ['USDC Lending', 'Compound', 'Aave'],
+        currentAmount: 0,
+        progress: 0,
+        isActive: false
+      },
+      coffee: {
+        id: 'coffee',
+        title: 'Free Coffee',
+        description: 'Generate enough yield for daily coffee',
+        icon: 'Coffee',
+        color: 'bg-yellow-100 text-yellow-800',
+        targetAmount: 1500,
+        timeframe: '6 months',
+        riskLevel: 'Low',
+        expectedApy: '5-8%',
+        strategy: 'Conservative yield farming',
+        popular: true,
+        strategies: ['Stablecoin Pools', 'Lending Protocols'],
+        currentAmount: 0,
+        progress: 0,
+        isActive: false
+      },
+      vacation: {
+        id: 'vacation',
+        title: 'Dream Vacation',
+        description: 'Save for that perfect getaway',
+        icon: 'Plane',
+        color: 'bg-green-100 text-green-800',
+        targetAmount: 8000,
+        timeframe: '18 months',
+        riskLevel: 'Medium',
+        expectedApy: '8-12%',
+        strategy: 'Balanced DeFi portfolio',
+        popular: true,
+        strategies: ['Liquidity Mining', 'Yield Farming', 'Staking'],
+        currentAmount: 0,
+        progress: 0,
+        isActive: false
+      },
+      car: {
+        id: 'car',
+        title: 'New Car',
+        description: 'Build towards your next vehicle',
+        icon: 'Car',
+        color: 'bg-purple-100 text-purple-800',
+        targetAmount: 25000,
+        timeframe: '36 months',
+        riskLevel: 'Medium',
+        expectedApy: '10-15%',
+        strategy: 'Growth-oriented protocols',
+        popular: false,
+        strategies: ['DeFi Indexes', 'Yield Optimization', 'Liquidity Provision'],
+        currentAmount: 0,
+        progress: 0,
+        isActive: false
+      },
+      house: {
+        id: 'house',
+        title: 'Home Down Payment',
+        description: 'Save for your dream home',
+        icon: 'Home',
+        color: 'bg-indigo-100 text-indigo-800',
+        targetAmount: 50000,
+        timeframe: '60 months',
+        riskLevel: 'Medium-High',
+        expectedApy: '12-18%',
+        strategy: 'Diversified DeFi strategies',
+        popular: false,
+        strategies: ['Multi-Protocol Farming', 'Governance Tokens', 'Restaking'],
+        currentAmount: 0,
+        progress: 0,
+        isActive: false
+      },
+      education: {
+        id: 'education',
+        title: 'Education Fund',
+        description: 'Invest in learning and growth',
+        icon: 'GraduationCap',
+        color: 'bg-red-100 text-red-800',
+        targetAmount: 15000,
+        timeframe: '24 months',
+        riskLevel: 'Medium',
+        expectedApy: '8-14%',
+        strategy: 'Steady growth protocols',
+        popular: false,
+        strategies: ['Education-focused DeFi', 'Skill Token Staking'],
+        currentAmount: 0,
+        progress: 0,
+        isActive: false
+      }
+    }
+  }
+
+  /**
+   * Keep original method for backward compatibility
+   */
+  getDefaultFinObjectives() {
+    return this.getCleanFinObjectives()
+  }
+
+  /**
+   * Get clean yield data
+   */
+  getCleanYieldData() {
+    return {
+      activeStrategies: 0,
+      totalEarning: 0,
+      avgAPY: 0,
+      goalsProgress: 0,
+      lastUpdated: Date.now()
+    }
+  }
+
+  /**
+   * Keep original method for backward compatibility
+   */
+  getDefaultYieldData() {
+    return this.getCleanYieldData()
+  }
+
+  /**
+   * Get risk level configurations
+   */
+  getRiskLevels() {
+    return {
+      Low: { color: 'bg-green-100 text-green-800', description: 'Stable returns, minimal volatility' },
+      Medium: { color: 'bg-yellow-100 text-yellow-800', description: 'Balanced risk-reward ratio' },
+      'Medium-High': { color: 'bg-orange-100 text-orange-800', description: 'Higher returns, increased volatility' },
+      High: { color: 'bg-red-100 text-red-800', description: 'Maximum returns, significant risk' }
+    }
+  }
+
+  /**
+   * Get all FinObjective configurations
+   */
+  getFinObjectives() {
+    return { ...this.state.finObjectives }
+  }
+
+  /**
+   * Get specific FinObjective by ID
+   */
+  getFinObjective(objectiveId) {
+    return this.state.finObjectives[objectiveId] || null
+  }
+
+  /**
+   * Start a FinObjective strategy
+   */
+  startFinObjective(objectiveId, initialAmount = 0) {
+    if (!this.state.finObjectives[objectiveId]) {
+      throw new Error(`FinObjective ${objectiveId} not found`)
+    }
+
+    const objective = this.state.finObjectives[objectiveId]
+    
+    // Update objective status
+    objective.isActive = true
+    objective.currentAmount = initialAmount
+    objective.progress = objective.targetAmount > 0 ? (initialAmount / objective.targetAmount) * 100 : 0
+    objective.startedAt = Date.now()
+
+    // Create strategy in balance tracking
+    this.updateStrategyBalance(objectiveId, initialAmount, {
+      name: objective.title,
+      targetAmount: objective.targetAmount,
+      apy: parseFloat(objective.expectedApy.split('-')[0]) || 0,
+      riskLevel: objective.riskLevel,
+      strategy: objective.strategy
+    })
+
+    // Update yield data
+    this.updateYieldData()
+
+    // Emit events
+    this.emit('finObjective:started', objective)
+    this.emit('finObjectives:updated', this.state.finObjectives)
+
+    return objective
+  }
+
+  /**
+   * Update FinObjective progress
+   */
+  updateFinObjective(objectiveId, additionalAmount) {
+    if (!this.state.finObjectives[objectiveId]) {
+      throw new Error(`FinObjective ${objectiveId} not found`)
+    }
+
+    const objective = this.state.finObjectives[objectiveId]
+    
+    // Update amounts
+    objective.currentAmount += additionalAmount
+    objective.progress = objective.targetAmount > 0 ? Math.min((objective.currentAmount / objective.targetAmount) * 100, 100) : 0
+    objective.lastUpdated = Date.now()
+
+    // Update strategy balance
+    this.updateStrategyBalance(objectiveId, additionalAmount)
+
+    // Check if objective is completed
+    if (objective.progress >= 100 && !objective.completedAt) {
+      objective.completedAt = Date.now()
+      objective.isActive = false
+      this.emit('finObjective:completed', objective)
+    }
+
+    // Update yield data
+    this.updateYieldData()
+
+    // Emit events
+    this.emit('finObjective:updated', objective)
+    this.emit('finObjectives:updated', this.state.finObjectives)
+
+    return objective
+  }
+
+  /**
+   * Stop a FinObjective strategy
+   */
+  stopFinObjective(objectiveId) {
+    if (!this.state.finObjectives[objectiveId]) {
+      throw new Error(`FinObjective ${objectiveId} not found`)
+    }
+
+    const objective = this.state.finObjectives[objectiveId]
+    
+    // Mark as stopped
+    objective.isActive = false
+    objective.stoppedAt = Date.now()
+
+    // Stop the corresponding strategy
+    this.stopStrategy(objectiveId)
+
+    // Update yield data
+    this.updateYieldData()
+
+    // Emit events
+    this.emit('finObjective:stopped', objective)
+    this.emit('finObjectives:updated', this.state.finObjectives)
+
+    return objective
+  }
+
+  /**
+   * Calculate and update yield data based on current strategies
+   */
+  updateYieldData() {
+    const strategies = this.getActiveStrategies()
+    const finObjectives = Object.values(this.state.finObjectives)
+    
+    // Calculate metrics
+    const activeStrategies = strategies.length
+    const totalEarning = strategies.reduce((sum, strategy) => {
+      // Simulate earnings based on strategy amount and APY
+      const timeActive = (Date.now() - (strategy.createdAt || Date.now())) / (1000 * 60 * 60 * 24 * 365) // Years
+      const earnings = strategy.currentAmount * (strategy.apy / 100) * timeActive
+      return sum + earnings
+    }, 0)
+    
+    const avgAPY = strategies.length > 0 
+      ? strategies.reduce((sum, strategy) => sum + (strategy.apy || 0), 0) / strategies.length
+      : 0
+
+    const activeObjectives = finObjectives.filter(obj => obj.isActive)
+    const completedObjectives = finObjectives.filter(obj => obj.progress >= 100)
+    const goalsProgress = activeObjectives.length > 0 
+      ? (completedObjectives.length / finObjectives.length) * 100
+      : 0
+
+    // Update yield data
+    this.state.yieldData = {
+      activeStrategies,
+      totalEarning,
+      avgAPY,
+      goalsProgress,
+      lastUpdated: Date.now()
+    }
+
+    // Emit update
+    this.emit('yieldData:updated', this.state.yieldData)
+  }
+
+  /**
+   * Get current yield data
+   */
+  getYieldData() {
+    return { ...this.state.yieldData }
+  }
+
+  /**
+   * Get popular FinObjectives
+   */
+  getPopularFinObjectives() {
+    return Object.values(this.state.finObjectives).filter(obj => obj.popular)
+  }
+
+  /**
+   * Stop a strategy and move funds back to available balance
+   */
+  stopStrategy(strategyId) {
+    if (!this.state.balance.strategies?.[strategyId]) {
+      console.error(`Strategy ${strategyId} not found`)
+      return false
+    }
+
+    const strategy = this.state.balance.strategies[strategyId]
+    
+    // Check if strategy is already stopped
+    if (strategy.status === 'stopped') {
+      return true // Return true but don't change balances
+    }
+    
+    const strategyAmount = strategy.currentAmount
+
+    // Mark strategy as stopped
+    strategy.status = 'stopped'
+    strategy.stoppedAt = Date.now()
+
+    // Move funds from strategy balance to available balance
+    this.state.balance.strategyBalance -= strategyAmount
+    this.state.balance.availableForSpending += strategyAmount
+
+    // Update total balance (should remain the same)
+    this.state.balance.totalUSD = this.state.balance.availableForSpending + 
+                                  this.state.balance.investedAmount + 
+                                  this.state.balance.strategyBalance
+
+    this.state.balance.lastUpdated = Date.now()
+    
+    // Persist and emit events
+    this.persistBalance()
+    this.emit('balance:updated', this.state.balance)
+    this.emit('strategy:stopped', strategy)
+    
+    return true
+  }
+
+  /**
+   * Get estimated asset price for quantity calculations
+   * This is a simplified version - in production would integrate with price feeds
+   */
+  getEstimatedAssetPrice(asset) {
+    const basePrices = {
+      'BTC': 43250,
+      'ETH': 2680,
+      'SOL': 98.75,
+      'SUI': 1.85,
+      'PAXG': 2687.34,
+      'XAUT': 2689.45,
+      'MAG7': 485.23,
+      'SPX': 5125.45,
+      'REIT': 245.67
+    }
+    return basePrices[asset] || 100
   }
 
   /**
@@ -259,10 +697,16 @@ class DataManager {
           
           // Update asset tracking for invested assets
           if (!this.state.balance.assets[asset]) {
-            this.state.balance.assets[asset] = { amount: 0, usdValue: 0, investedAmount: 0 }
+            this.state.balance.assets[asset] = { amount: 0, usdValue: 0, investedAmount: 0, quantity: 0 }
           }
           this.state.balance.assets[asset].usdValue += netInvestmentAmount
           this.state.balance.assets[asset].investedAmount += netInvestmentAmount
+          
+          // Update quantity tracking (simplified calculation for now)
+          // In production, this would use actual asset prices
+          const estimatedPrice = this.getEstimatedAssetPrice(asset)
+          const quantityPurchased = netInvestmentAmount / estimatedPrice
+          this.state.balance.assets[asset].quantity += quantityPurchased
           break
         }
           
@@ -278,6 +722,12 @@ class DataManager {
           if (this.state.balance.assets[asset]) {
             this.state.balance.assets[asset].usdValue = Math.max(0, this.state.balance.assets[asset].usdValue - numericAmount)
             this.state.balance.assets[asset].investedAmount = Math.max(0, this.state.balance.assets[asset].investedAmount - numericAmount)
+            
+            // Update quantity tracking
+            const estimatedPrice = this.getEstimatedAssetPrice(asset)
+            const quantitySold = numericAmount / estimatedPrice
+            this.state.balance.assets[asset].quantity = Math.max(0, this.state.balance.assets[asset].quantity - quantitySold)
+            
             if (this.state.balance.assets[asset].investedAmount === 0) {
               delete this.state.balance.assets[asset]
             }
@@ -286,8 +736,10 @@ class DataManager {
         }
       }
 
-      // Recalculate total balance: Total = Available + Invested
-      this.state.balance.totalUSD = this.state.balance.availableForSpending + this.state.balance.investedAmount
+      // Recalculate total balance: Total = Available + Invested + Strategy
+      this.state.balance.totalUSD = this.state.balance.availableForSpending + 
+                                    this.state.balance.investedAmount + 
+                                    this.state.balance.strategyBalance
       this.state.balance.lastUpdated = Date.now()
       
       // Persist updated balance
@@ -352,6 +804,8 @@ class DataManager {
       paymentMethod: transactionData.paymentMethod,
       fees: transactionData.fees || {},
       createdAt: transactionData.createdAt || new Date().toISOString(),
+      // Category information for filtering
+      category: transactionData.category || this.getTransactionCategory(transactionData.type),
       submittedAt: transactionData.submittedAt,
       confirmedAt: transactionData.confirmedAt,
       failedAt: transactionData.failedAt,
@@ -540,6 +994,25 @@ class DataManager {
   }
 
   /**
+   * Get transaction category based on type
+   */
+  getTransactionCategory(type) {
+    const categoryMap = {
+      'add': 'banking',
+      'send': 'banking',
+      'receive': 'banking',
+      'withdraw': 'banking',
+      'buy': 'investment',
+      'sell': 'investment',
+      'transfer': 'banking',
+      'yield': 'yield',
+      'stake': 'yield',
+      'unstake': 'yield'
+    }
+    return categoryMap[type] || 'banking'
+  }
+
+  /**
    * Generate transaction description
    */
   generateTransactionDescription(transactionData) {
@@ -576,8 +1049,13 @@ class DataManager {
       case 'BTC':
         return `${randomHex()}${randomHex()}${randomHex()}${randomHex()}`.substring(0, 64)
       case 'ETH':
+      case 'PAXG':
+      case 'XAUT':
         return `0x${randomHex()}${randomHex()}${randomHex()}${randomHex()}`.substring(0, 66)
       case 'SOL':
+      case 'MAG7':
+      case 'SPX':
+      case 'REIT':
       default:
         return `${randomHex()}${randomHex()}${randomHex()}${randomHex()}${randomHex()}`.substring(0, 88)
       case 'SUI':
@@ -593,7 +1071,12 @@ class DataManager {
       'BTC': 'https://blockstream.info/tx/',
       'ETH': 'https://etherscan.io/tx/',
       'SOL': 'https://solscan.io/tx/',
-      'SUI': 'https://suiexplorer.com/txblock/'
+      'SUI': 'https://suiexplorer.com/txblock/',
+      'PAXG': 'https://etherscan.io/tx/',
+      'XAUT': 'https://etherscan.io/tx/',
+      'MAG7': 'https://solscan.io/tx/',
+      'SPX': 'https://solscan.io/tx/',
+      'REIT': 'https://solscan.io/tx/'
     }
     
     const baseUrl = explorers[asset] || explorers['SOL']

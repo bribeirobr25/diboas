@@ -24,17 +24,13 @@ import {
 import { useNavigate } from 'react-router-dom'
 import SimpleMarketIndicators from './SimpleMarketIndicators.jsx'
 import PageHeader from './shared/PageHeader.jsx'
+import CategoryDashboard from './categories/CategoryDashboard.jsx'
 import { QUICK_ACTIONS, createTransactionNavigator } from '../utils/navigationHelpers.js'
 import { useWalletBalance } from '../hooks/useTransactions.jsx'
 import { useDataManagerSubscription, useSafeDataManager } from '../hooks/useDataManagerSubscription.js'
-import { 
-  calculateDisplayAmountWithSign, 
-  formatRelativeTimeFromTimestamp,
-  generateHumanReadableTransactionDescription,
-  shouldSplitTransactionInAdvancedMode,
-  createSplitTransactionsForAdvancedMode
-} from '../utils/transactionDisplayHelpers'
+import { useDashboardTransactionDisplay } from '../hooks/useTransactionDisplay.js'
 import { useUserSettings } from '../utils/userSettings.js'
+import { useFeatureFlag } from '../config/featureFlags.js'
 
 // PERFORMANCE: Memoized transaction item component with semantic naming
 const DashboardTransactionItem = memo(({ transactionDisplayData, onTransactionClick }) => (
@@ -48,14 +44,14 @@ const DashboardTransactionItem = memo(({ transactionDisplayData, onTransactionCl
         {transactionDisplayData.icon}
       </div>
       <div className="transaction-item__details">
-        <p className="transaction-item__description">{transactionDisplayData.description}</p>
-        <p className="transaction-item__meta">{transactionDisplayData.time}</p>
+        <p className="transaction-item__description">{transactionDisplayData.description || transactionDisplayData.humanReadableDescription}</p>
+        <p className="transaction-item__meta">{transactionDisplayData.time || transactionDisplayData.relativeTimeDisplay}</p>
       </div>
     </div>
     <span className={`transaction-item__amount ${
       transactionDisplayData.type === 'received' ? 'transaction-item__amount--positive' : 'transaction-item__amount--negative'
     }`}>
-      {transactionDisplayData.amount}
+      {transactionDisplayData.amount || transactionDisplayData.formattedAmount}
     </span>
   </div>
 ))
@@ -80,6 +76,7 @@ export default function AppDashboard() {
   const navigate = useNavigate()
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
   const { settings } = useUserSettings()
+  const isCategoriesEnabled = useFeatureFlag('CATEGORIES_NAVIGATION')
   
   // Get real wallet balance with semantic destructuring
   const { balance: currentWalletBalance, getBalance: refreshWalletBalance, isLoading: isWalletBalanceLoading } = useWalletBalance()
@@ -101,6 +98,9 @@ export default function AppDashboard() {
   
   const [dashboardTransactionHistory, setDashboardTransactionHistory] = useState([])
   const [isTransactionHistoryLoading, setIsTransactionHistoryLoading] = useState(true)
+  
+  // Use shared transaction display logic
+  const dashboardTransactionDisplayList = useDashboardTransactionDisplay(dashboardTransactionHistory)
   
   // PERFORMANCE: Debounced transaction update to prevent rapid re-renders
   const updateDashboardTransactionsDebounced = useCallback(() => {
@@ -184,57 +184,27 @@ export default function AppDashboard() {
   
   
 
-  // PERFORMANCE: Convert transaction history to dashboard display format
-  const dashboardTransactionDisplayList = useMemo(() => {
+  // Enhanced transaction display list with icon support and empty state handling
+  const enhancedTransactionDisplayList = useMemo(() => {
     if (!dashboardTransactionHistory.length) {
       return [{
         id: 'empty-state',
         type: 'sent',
         description: 'No recent transactions',
-        amount: '$0.00',
-        time: '',
+        formattedAmount: '$0.00',
+        relativeTimeDisplay: '',
         icon: <DollarSign className="w-4 h-4 text-gray-400" />
       }]
     }
     
-    // Process transactions with advanced mode support
-    let processedTransactions = dashboardTransactionHistory
-    
-    // If advanced mode is enabled, split qualifying transactions
-    if (settings.showAdvancedTransactionDetails) {
-      processedTransactions = dashboardTransactionHistory.flatMap(transaction => {
-        if (shouldSplitTransactionInAdvancedMode(transaction.type, transaction.paymentMethod)) {
-          return createSplitTransactionsForAdvancedMode(transaction)
-        }
-        return transaction
-      })
-    }
-    
-    return processedTransactions.map(rawTransactionData => ({
-      id: rawTransactionData.id,
-      type: ['add', 'receive', 'buy', 'sell'].includes(rawTransactionData.type) ? 'received' : 'sent',
-      description: generateHumanReadableTransactionDescription(
-        rawTransactionData.type,
-        rawTransactionData.amount,
-        rawTransactionData.asset,
-        rawTransactionData.paymentMethod,
-        rawTransactionData.fromAsset,
-        rawTransactionData.fromAmount,
-        rawTransactionData.toAsset,
-        rawTransactionData.toAmount
-      ),
-      amount: calculateDisplayAmountWithSign(
-        rawTransactionData.type, 
-        rawTransactionData.amount, 
-        rawTransactionData.netAmount,
-        rawTransactionData.paymentMethod,
-        rawTransactionData.toAsset,
-        rawTransactionData.toAmount
-      ),
-      time: formatRelativeTimeFromTimestamp(rawTransactionData.timestamp),
-      icon: generateTransactionIconElement(rawTransactionData.type || rawTransactionData.originalType, rawTransactionData.paymentMethod)
+    return dashboardTransactionDisplayList.map(transactionData => ({
+      ...transactionData,
+      icon: generateTransactionIconElement(
+        transactionData.transactionCategory || transactionData.type, 
+        transactionData.paymentMethod
+      )
     }))
-  }, [dashboardTransactionHistory, generateTransactionIconElement, settings.showAdvancedTransactionDetails])
+  }, [dashboardTransactionDisplayList, generateTransactionIconElement])
 
   // PERFORMANCE: Memoize portfolio assets data based on real wallet balance
   const dashboardPortfolioAssetsData = useMemo(() => {
@@ -295,109 +265,103 @@ export default function AppDashboard() {
           <SimpleMarketIndicators />
         </div>
 
-        {/* Balance Card */}
-        <Card className="base-card interactive-card" onClick={() => navigate('/account')}>
-          <CardContent className="summary-card">
-            <div className="flex-between mb-md">
-              <div>
-                <p className="field-label text-blue-100">Total Balance</p>
-                <div className="balance-display">
+        {/* Minimalist Balance Card */}
+        <Card className="compact-balance-card interactive-card" onClick={() => navigate('/account')}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="balance-label">Total Balance</p>
+                <div className="balance-display-compact">
                   {isWalletBalanceLoading ? (
                     <div className="flex items-center space-x-2">
                       <LoadingSpinner size="sm" variant="white" />
                       <SkeletonBalance className="bg-white/20" />
                     </div>
                   ) : (
-                    <>
-                      <h2 className="balance-amount balance-amount--large mr-3">
-                        {isBalanceVisible ? 
-                          `$${currentWalletBalance?.totalUSD?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
-                          '••••••••'
-                        }
-                      </h2>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setIsBalanceVisible(!isBalanceVisible)
-                        }}
-                        className="button-ghost text-white hover:bg-white/20"
-                      >
-                        {isBalanceVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
-                    </>
+                    <h2 className="balance-amount-compact">
+                      {isBalanceVisible ? 
+                        `$${currentWalletBalance?.totalUSD?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
+                        '••••••••'
+                      }
+                    </h2>
                   )}
                 </div>
               </div>
-              <div className="text-right">
-                <Badge className="bg-green-500 text-white mb-2">
-                  +2.4% today
+              
+              <div className="balance-breakdown">
+                <div className="balance-item">
+                  <span className="balance-item-label">Available</span>
+                  <span className="balance-item-value">
+                    {isWalletBalanceLoading ? '...' : (isBalanceVisible ? 
+                      `$${currentWalletBalance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}` : 
+                      '••••'
+                    )}
+                  </span>
+                </div>
+                <div className="balance-item">
+                  <span className="balance-item-label">Invested</span>
+                  <span className="balance-item-value">
+                    {isWalletBalanceLoading ? '...' : (isBalanceVisible ? 
+                      `$${(currentWalletBalance?.investedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 
+                      '••••'
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="balance-actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsBalanceVisible(!isBalanceVisible)
+                  }}
+                  className="balance-visibility-toggle"
+                >
+                  {isBalanceVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+                <Badge className="balance-change-badge">
+                  +2.4%
                 </Badge>
-                <p className="text-blue-100 text-xs">Click for details</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="field-label text-blue-100">Available</p>
-                {isWalletBalanceLoading ? (
-                  <SkeletonBalance className="bg-white/20" />
-                ) : (
-                  <p className="balance-amount">
-                    {isBalanceVisible ? 
-                      `$${currentWalletBalance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` : 
-                      '••••••••'
-                    }
-                  </p>
-                )}
-              </div>
-              <div>
-                <p className="field-label text-blue-100">Invested</p>
-                {isWalletBalanceLoading ? (
-                  <SkeletonBalance className="bg-white/20" />
-                ) : (
-                  <p className="balance-amount">
-                    {isBalanceVisible ? 
-                      `$${(currentWalletBalance?.investedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
-                      '••••••••'
-                    }
-                  </p>
-                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <Card className="base-card">
-          <CardHeader>
-            <CardTitle className="card-title">Quick Actions</CardTitle>
-            <CardDescription>
-              Manage your finances with just one click
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid-3-cols">
-              {QUICK_ACTIONS.map((quickActionConfig) => {
-                const IconComponent = quickActionConfig.icon === 'Plus' ? Plus : quickActionConfig.icon === 'Send' ? Send : TrendingUp
-                return (
-                  <Button
-                    key={quickActionConfig.type}
-                    variant="outline"
-                    className={`button-base button-secondary ${quickActionConfig.colorClass}`}
-                    onClick={() => navigateToTransactionType(quickActionConfig.type)}
-                  >
-                    <div>
-                      <IconComponent className="w-5 h-5" />
-                    </div>
-                    <span className="font-medium">{quickActionConfig.label}</span>
-                  </Button>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Category Dashboard or Quick Actions */}
+        {isCategoriesEnabled ? (
+          <CategoryDashboard className="mb-8 desktop-categories-layout" />
+        ) : (
+          <Card className="base-card">
+            <CardHeader>
+              <CardTitle className="card-title">Quick Actions</CardTitle>
+              <CardDescription>
+                Manage your finances with just one click
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid-3-cols">
+                {QUICK_ACTIONS.map((quickActionConfig) => {
+                  const IconComponent = quickActionConfig.icon === 'Plus' ? Plus : quickActionConfig.icon === 'Send' ? Send : TrendingUp
+                  return (
+                    <Button
+                      key={quickActionConfig.type}
+                      variant="outline"
+                      className={`button-base button-secondary ${quickActionConfig.colorClass}`}
+                      onClick={() => navigateToTransactionType(quickActionConfig.type)}
+                    >
+                      <div>
+                        <IconComponent className="w-5 h-5" />
+                      </div>
+                      <span className="font-medium">{quickActionConfig.label}</span>
+                    </Button>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Portfolio Overview */}
@@ -463,7 +427,7 @@ export default function AppDashboard() {
                       <SkeletonTransaction />
                     </>
                   ) : (
-                    dashboardTransactionDisplayList.map((transactionDisplayData) => (
+                    enhancedTransactionDisplayList.map((transactionDisplayData) => (
                       <DashboardTransactionItem 
                         key={transactionDisplayData.id}
                         transactionDisplayData={transactionDisplayData}

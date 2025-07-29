@@ -1,49 +1,127 @@
 /**
- * Component Tests for ErrorBoundary
- * Tests error handling and fallback UI rendering
+ * Comprehensive Test Suite for ErrorBoundary Component
+ * Tests error handling, recovery, navigation, and user experience
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import ErrorBoundary from '../shared/ErrorBoundary.jsx'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import '@testing-library/jest-dom'
+import ErrorBoundary, { withErrorBoundary, useErrorHandler } from '../shared/ErrorBoundary.jsx'
 
-// Component that throws an error for testing
-const ThrowError = ({ shouldThrow = false }) => {
+// Mock child component that can throw errors
+const ThrowError = ({ shouldThrow = false, errorMessage = 'Test error' }) => {
   if (shouldThrow) {
-    throw new Error('Test error')
+    throw new Error(errorMessage)
   }
-  return <div>No error</div>
+  return <div data-testid="child-component">Child rendered successfully</div>
 }
 
-// Component that works normally
-const NormalComponent = () => <div>Normal component</div>
+// Mock child component for HOC testing
+const MockComponent = ({ testProp }) => (
+  <div data-testid="wrapped-component">Wrapped component with prop: {testProp}</div>
+)
 
 describe('ErrorBoundary Component', () => {
+  let mockNavigate
+  let originalConsoleError
+  let originalConsoleWarn
+
   beforeEach(() => {
-    vi.clearAllMocks()
-    // Clear console errors to avoid noise in tests
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockNavigate = vi.fn()
+    
+    // Mock console methods to avoid test output noise
+    originalConsoleError = console.error
+    originalConsoleWarn = console.warn
+    console.error = vi.fn()
+    console.warn = vi.fn()
+    
+    // Mock navigator.userAgent
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'Mozilla/5.0 Test Browser',
+      writable: true
+    })
+    
+    // Mock window.location
+    delete window.location
+    window.location = {
+      pathname: '/app',
+      href: 'http://localhost:3000/app'
+    }
+  })
+
+  afterEach(() => {
+    console.error = originalConsoleError
+    console.warn = originalConsoleWarn
+    vi.restoreAllMocks()
   })
   
-  describe('Normal Operation', () => {
+  describe('Error Catching and Display', () => {
     it('should render children when no error occurs', () => {
       render(
         <ErrorBoundary>
-          <NormalComponent />
+          <ThrowError shouldThrow={false} />
         </ErrorBoundary>
       )
-      
-      expect(screen.getByText('Normal component')).toBeInTheDocument()
+
+      expect(screen.getByTestId('child-component')).toBeInTheDocument()
+      expect(screen.getByText('Child rendered successfully')).toBeInTheDocument()
     })
-    
-    it('should not interfere with normal component rendering', () => {
-      const { container } = render(
+
+    it('should catch and display error boundary UI when child throws', () => {
+      render(
         <ErrorBoundary>
-          <div data-testid="normal-content">Working correctly</div>
+          <ThrowError shouldThrow={true} errorMessage="Test component error" />
         </ErrorBoundary>
       )
-      
-      expect(container.querySelector('[data-testid="normal-content"]')).toBeInTheDocument()
+
+      expect(screen.getByText('Oops! Something went wrong')).toBeInTheDocument()
+      expect(screen.getByText('We encountered an unexpected error. Don\'t worry, your data is safe.')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /back to dashboard/i })).toBeInTheDocument()
+    })
+
+    it('should display diBoaS logo in error state', () => {
+      render(
+        <ErrorBoundary>
+          <ThrowError shouldThrow={true} />
+        </ErrorBoundary>
+      )
+
+      const logo = screen.getByAltText('diBoaS Logo')
+      expect(logo).toBeInTheDocument()
+      expect(logo).toHaveAttribute('src', expect.stringContaining('diboas-logo.png'))
+    })
+
+    it('should show development error details in development mode', () => {
+      const originalEnv = process.env.NODE_ENV
+      process.env.NODE_ENV = 'development'
+
+      render(
+        <ErrorBoundary>
+          <ThrowError shouldThrow={true} errorMessage="Detailed test error" />
+        </ErrorBoundary>
+      )
+
+      expect(screen.getByText('Development Error Details:')).toBeInTheDocument()
+      expect(screen.getByText('Detailed test error')).toBeInTheDocument()
+
+      process.env.NODE_ENV = originalEnv
+    })
+
+    it('should not show development details in production mode', () => {
+      const originalEnv = process.env.NODE_ENV
+      process.env.NODE_ENV = 'production'
+
+      render(
+        <ErrorBoundary>
+          <ThrowError shouldThrow={true} errorMessage="Production error" />
+        </ErrorBoundary>
+      )
+
+      expect(screen.queryByText('Development Error Details:')).not.toBeInTheDocument()
+      expect(screen.queryByText('Production error')).not.toBeInTheDocument()
+
+      process.env.NODE_ENV = originalEnv
     })
   })
   
