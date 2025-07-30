@@ -36,11 +36,14 @@ export default function TransactionPage({ transactionType: propTransactionType, 
   // Support both prop-based routing (new RESTful) and query parameter routing (legacy)
   const initialTransactionType = propTransactionType || urlSearchParams.get('type') || 'add'
   
+  // Get asset from URL parameters (for buy/sell transactions from investment category)
+  const assetFromUrl = urlSearchParams.get('asset')
+  
   // Core transaction state with semantic naming
   const [currentTransactionType, setCurrentTransactionType] = useState(initialTransactionType)
   const [transactionAmountInput, setTransactionAmountInput] = useState('')
   const [recipientWalletAddress, setRecipientWalletAddress] = useState('')
-  const [selectedCryptocurrencyAsset, setSelectedCryptocurrencyAsset] = useState('USD')
+  const [selectedCryptocurrencyAsset, setSelectedCryptocurrencyAsset] = useState(assetFromUrl || 'USD')
   const [chosenPaymentMethod, setChosenPaymentMethod] = useState('')
   const [isRecipientAddressFieldVisible, setIsRecipientAddressFieldVisible] = useState(false)
   
@@ -56,7 +59,16 @@ export default function TransactionPage({ transactionType: propTransactionType, 
     if (['add', 'withdraw', 'send', 'transfer'].includes(currentTransactionType)) {
       setSelectedCryptocurrencyAsset('USD')
     }
-  }, [currentTransactionType])
+    // For buy/sell transactions, set asset from URL if available
+    else if (['buy', 'sell'].includes(currentTransactionType) && assetFromUrl) {
+      setSelectedCryptocurrencyAsset(assetFromUrl)
+    }
+    // Prevent Buy USD - default to first crypto asset if USD is selected for buy
+    else if (currentTransactionType === 'buy' && selectedCryptocurrencyAsset === 'USD' && !assetFromUrl) {
+      // Default to BTC for buy transactions when no asset specified in URL
+      setSelectedCryptocurrencyAsset('BTC')
+    }
+  }, [currentTransactionType, assetFromUrl])
   
   // Transaction system hooks with semantic destructuring
   const { balance: currentWalletBalance } = useWalletBalance()

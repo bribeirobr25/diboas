@@ -180,6 +180,14 @@ export const useTransactionValidation = () => {
       if (['buy', 'sell', 'invest'].includes(type) && !asset) {
         errors.asset = { message: 'Asset selection is required', isValid: false }
       }
+      
+      // Prevent Buy USD transactions
+      if (type === 'buy' && asset === 'USD') {
+        errors.asset = { 
+          message: 'Cannot buy USD. Please select a cryptocurrency or tokenized asset', 
+          isValid: false 
+        }
+      }
 
       setValidationErrors(errors)
       const result = { isValid: Object.keys(errors).length === 0, errors }

@@ -252,6 +252,11 @@ export class TransactionEngine {
         return { isValid: false, error: 'Asset selection is required' }
       }
 
+      // Prevent Buy USD transactions - critical business rule
+      if (type === 'buy' && asset === 'USD') {
+        return { isValid: false, error: 'Cannot buy USD. Please select a cryptocurrency or tokenized asset' }
+      }
+
       if (!this.isValidAsset(asset, type)) {
         return { isValid: false, error: `Invalid asset for ${type} transaction` }
       }
