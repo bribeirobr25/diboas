@@ -1,3 +1,5 @@
+import logger from './logger'
+
 /**
  * Mock user database for diBoaS username validation and autocomplete
  * This simulates a real user database with search capabilities
@@ -77,7 +79,7 @@ export const getRecentUsernames = () => {
       return Array.isArray(parsed) ? parsed.slice(0, 3) : []
     }
   } catch (error) {
-    console.error('Error loading recent usernames:', error)
+    logger.error('Error loading recent usernames:', error)
   }
   return []
 }
@@ -95,6 +97,6 @@ export const saveRecentUsername = (username) => {
   try {
     localStorage.setItem(RECENT_USERNAMES_KEY, JSON.stringify(updated))
   } catch (error) {
-    console.error('Error saving recent username:', error)
+    logger.error('Error saving recent username:', error)
   }
 }

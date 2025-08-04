@@ -8,6 +8,7 @@ import { getApiConfig, getEnvironmentConfig, validateEnvironment } from '../conf
 import { isFeatureEnabled } from '../config/featureFlags.js'
 import { credentialManager, CREDENTIAL_TYPES } from '../utils/secureCredentialManager.js'
 import { checkGeneralRateLimit } from '../utils/advancedRateLimiter.js'
+import logger from '../utils/logger'
 
 /**
  * API Error class for standardized error handling
@@ -35,7 +36,7 @@ class ApiClient {
     // Validate environment on initialization
     const validation = validateEnvironment()
     if (!validation.isValid) {
-      console.error('Environment validation failed:', validation.issues)
+      logger.error('Environment validation failed:', validation.issues)
       if (validation.environment === 'production') {
         throw new Error('Cannot start in production with invalid configuration')
       }
@@ -74,7 +75,7 @@ class ApiClient {
         this.envConfig.environment
       )
     } catch (error) {
-      console.warn('Failed to initialize secure credentials:', error.message)
+      logger.warn('Failed to initialize secure credentials:', error.message)
       // SECURITY: Never use hardcoded fallback credentials
       if (this.envConfig.environment === 'development') {
         throw new Error('API credentials not configured. Please set VITE_API_KEY environment variable.')
@@ -250,7 +251,7 @@ class ApiClient {
   handleError(error, endpoint, config) {
     // Log errors based on environment
     if (this.envConfig.debugMode) {
-      console.error(`API Error [${this.envConfig.name}]:`, {
+      logger.error(`API Error [${this.envConfig.name}]:`, {
         endpoint,
         error: error.message,
         config

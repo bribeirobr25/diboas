@@ -284,7 +284,12 @@ export default function TransactionProgressScreen({
               {fees && (
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">Total Fees:</span>
-                  <span className="font-medium">${fees.total?.toFixed(2) || '0.00'}</span>
+                  <span className="font-medium">${(() => {
+                    // Handle different fee data structures
+                    const totalFee = fees.totalFees || fees.total || fees.totalFee || 0
+                    const feeNumber = parseFloat(totalFee) || 0
+                    return feeNumber.toFixed(2)
+                  })()}</span>
                 </div>
               )}
               <div className="border-t pt-2 mt-2">
@@ -381,7 +386,7 @@ export default function TransactionProgressScreen({
                     <div className="border-t pt-2">
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>Total Fees:</span>
-                        <span>${fees.total?.toFixed(2) || '0.00'}</span>
+                        <span>${fees.totalFees?.toFixed(2) || fees.total?.toFixed(2) || '0.00'}</span>
                       </div>
                     </div>
                     
@@ -389,7 +394,7 @@ export default function TransactionProgressScreen({
                       <div className="flex justify-between font-semibold">
                         <span>Net Amount:</span>
                         <span className={config.color}>
-                          ${(parseFloat(transactionData.amount) - parseFloat(fees.total || 0)).toFixed(2)}
+                          ${(parseFloat(transactionData.amount) - parseFloat(fees.totalFees || fees.total || 0)).toFixed(2)}
                         </span>
                       </div>
                     </div>

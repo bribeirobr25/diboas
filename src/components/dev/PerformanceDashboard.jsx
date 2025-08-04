@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
+import logger from '../../utils/logger'
 import { 
   Activity, 
   Clock, 
@@ -42,7 +43,7 @@ export default function PerformanceDashboard() {
       const report = seoReporting.generateReport()
       setSeoReport(report)
     } catch (error) {
-      console.error('Failed to load performance metrics:', error)
+      logger.error('Failed to load performance metrics:', error)
     }
   }
 

@@ -380,7 +380,7 @@ export const seoMonitoring = {
       try {
         report.structuredData.push(JSON.parse(script.textContent))
       } catch (e) {
-        console.warn('Invalid structured data:', e)
+        logger.warn('Invalid structured data:', e)
       }
     })
 
@@ -393,6 +393,7 @@ export const seoMonitoring = {
  */
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import logger from './logger'
 
 export const useSEO = (seoConfig) => {
   const location = useLocation()

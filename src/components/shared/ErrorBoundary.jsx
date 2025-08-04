@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 import diBoaSLogo from '../../assets/diboas-logo.png'
+import logger from '../../utils/logger'
 
 /**
  * Error Boundary component to catch and handle React component errors
@@ -26,7 +27,7 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log error details for debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    logger.error('ErrorBoundary caught an error:', error, errorInfo)
     
     this.setState({
       error: error,
@@ -50,11 +51,11 @@ class ErrorBoundary extends React.Component {
     }
 
     // In production, send to error monitoring service like Sentry
-    console.warn('Error logged:', errorData)
+    logger.warn('Error logged:', errorData)
   }
 
   handleRetry = () => {
-    console.log('🔄 ErrorBoundary: Retry button clicked, attempting to recover...')
+    logger.debug('🔄 ErrorBoundary: Retry button clicked, attempting to recover...')
     
     this.setState(prevState => ({
       hasError: false,
@@ -63,7 +64,7 @@ class ErrorBoundary extends React.Component {
       retryCount: prevState.retryCount + 1
     }), () => {
       // Callback after state update to ensure clean recovery
-      console.log('✅ ErrorBoundary: State reset complete, retry count:', this.state.retryCount)
+      logger.debug('✅ ErrorBoundary: State reset complete, retry count:', this.state.retryCount)
       
       // Small delay to ensure React processes the state change
       setTimeout(() => {
@@ -185,7 +186,7 @@ export function useErrorHandler() {
   return (error, errorInfo) => {
     // This would ideally trigger the error boundary
     // For now, we'll just log and potentially redirect
-    console.error('Manual error trigger:', error, errorInfo)
+    logger.error('Manual error trigger:', error, errorInfo)
     
     // In a real implementation, you might dispatch to a global error state
     // or use a library like react-error-boundary

@@ -8,6 +8,7 @@ import { mockOnChainStatusProvider, TRANSACTION_STATUS } from '../onchain/OnChai
 import dataManager from '../DataManager.js'
 import { generateSecureTransactionId } from '../../utils/secureRandom.js'
 import { logSecureEvent } from '../../utils/securityLogging.js'
+import logger from '../../utils/logger'
 
 /**
  * Enhanced transaction execution with on-chain confirmation gating
@@ -111,6 +112,7 @@ export class OnChainTransactionManager {
       await this.addToTransactionHistory(pendingTransaction)
 
       // Step 4: Start monitoring for confirmation
+      logger.debug('🔄 Starting confirmation monitoring for transaction:', transactionId)
       this.startConfirmationMonitoring(transactionId)
 
       return {
@@ -150,15 +152,28 @@ export class OnChainTransactionManager {
    * @param {string} transactionId - Transaction ID to monitor
    */
   startConfirmationMonitoring(transactionId) {
+    logger.debug('🎯 Starting confirmation monitoring for:', transactionId)
+    
     const pollForConfirmation = async () => {
       const pendingTx = this.pendingTransactions.get(transactionId)
-      if (!pendingTx) return // Transaction was cleaned up
+      if (!pendingTx) {
+        logger.debug('⚠️ Transaction not found in pending transactions:', transactionId)
+        return // Transaction was cleaned up
+      }
 
       try {
         const onChainStatus = this.onChainProvider.getTransactionStatus(transactionId)
         
+        logger.debug('📊 On-chain status check:', {
+          transactionId,
+          status: onChainStatus?.status,
+          confirmations: onChainStatus?.confirmations,
+          hasStatus: !!onChainStatus
+        })
+        
         if (!onChainStatus) {
           // No status yet, continue polling
+          logger.debug('⏳ No on-chain status yet, continuing to poll in 2s')
           setTimeout(pollForConfirmation, 2000)
           return
         }
@@ -170,22 +185,26 @@ export class OnChainTransactionManager {
 
         if (onChainStatus.status === TRANSACTION_STATUS.CONFIRMED) {
           // SUCCESS: Transaction confirmed on blockchain
+          logger.debug('🎉 Transaction confirmed, processing completion:', transactionId)
           await this.handleTransactionConfirmed(transactionId)
         } else if (onChainStatus.status === TRANSACTION_STATUS.FAILED) {
           // FAILURE: Transaction failed on blockchain
+          logger.debug('❌ Transaction failed on blockchain:', transactionId)
           await this.handleTransactionFailed(transactionId, onChainStatus.error)
         } else {
           // Still pending/confirming, continue polling
+          logger.debug('🔄 Transaction still pending/confirming, continuing to poll:', onChainStatus.status)
           setTimeout(pollForConfirmation, 2000)
         }
 
       } catch (error) {
-        console.error('Error monitoring transaction confirmation:', error)
+        logger.error('💥 Error monitoring transaction confirmation:', error)
         setTimeout(pollForConfirmation, 2000) // Continue polling despite error
       }
     }
 
     // Start polling after initial delay
+    logger.debug('⏰ Setting initial polling timer for transaction:', transactionId)
     setTimeout(pollForConfirmation, 1000)
   }
 
@@ -233,7 +252,7 @@ export class OnChainTransactionManager {
       }, 300000)
 
     } catch (error) {
-      console.error('Error handling transaction confirmation:', error)
+      logger.error('Error handling transaction confirmation:', error)
       
       // If balance update fails after confirmation, this is critical
       await logSecureEvent('TRANSACTION_BALANCE_UPDATE_FAILED', pendingTx.userId, {
@@ -290,7 +309,7 @@ export class OnChainTransactionManager {
       }, 300000)
 
     } catch (error) {
-      console.error('Error handling transaction failure:', error)
+      logger.error('Error handling transaction failure:', error)
     }
   }
 
@@ -327,7 +346,7 @@ export class OnChainTransactionManager {
       })
 
     } catch (error) {
-      console.error('Error updating user balances:', error)
+      logger.error('Error updating user balances:', error)
       throw error
     }
   }
@@ -371,7 +390,7 @@ export class OnChainTransactionManager {
       })
 
     } catch (error) {
-      console.error('Error adding transaction to history:', error)
+      logger.error('Error adding transaction to history:', error)
       throw error
     }
   }

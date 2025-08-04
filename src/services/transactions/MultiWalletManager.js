@@ -4,6 +4,7 @@
  */
 
 import { safeGetJSON, safeSetJSON } from '../../utils/localStorageHelper.js'
+import logger from '../../utils/logger'
 
 export class MultiWalletManager {
   constructor() {
@@ -391,7 +392,7 @@ export class MultiWalletManager {
    * Helper methods for balance operations
    */
   async addBalance(userId, chain, asset, amount) {
-    console.log(`Adding ${amount} ${asset} to ${chain} wallet for user ${userId}`)
+    logger.debug(`Adding ${amount} ${asset} to ${chain} wallet for user ${userId}`)
     
     // Get current balances
     const currentBalances = this.getStoredBalances(userId)
@@ -414,7 +415,7 @@ export class MultiWalletManager {
   }
 
   async subtractBalance(userId, chain, asset, amount) {
-    console.log(`Subtracting ${amount} ${asset} from ${chain} wallet for user ${userId}`)
+    logger.debug(`Subtracting ${amount} ${asset} from ${chain} wallet for user ${userId}`)
     
     // Get current balances
     const currentBalances = this.getStoredBalances(userId)
@@ -436,19 +437,19 @@ export class MultiWalletManager {
 
   async executeAssetSwap(userId, chain, fromAsset, fromAmount, toAsset) {
     // Simulate asset swap
-    console.log(`Swapped ${fromAmount} ${fromAsset} to ${toAsset} on ${chain}`)
+    logger.debug(`Swapped ${fromAmount} ${fromAsset} to ${toAsset} on ${chain}`)
   }
 
   async executeBridge(userId, fromChain, toChain, asset, amount) {
     // Simulate cross-chain bridge
-    console.log(`Bridged ${amount} ${asset} from ${fromChain} to ${toChain}`)
+    logger.debug(`Bridged ${amount} ${asset} from ${fromChain} to ${toChain}`)
   }
 
   async executeAssetPurchase(userId, asset, amount, fees = null) {
     // For asset purchases: subtract USDC from available, add asset to invested
     const purchaseTotal = parseFloat(amount) + parseFloat(fees?.total || 0)
     
-    console.log(`Purchasing ${amount} USD worth of ${asset} (total cost: ${purchaseTotal})`)
+    logger.debug(`Purchasing ${amount} USD worth of ${asset} (total cost: ${purchaseTotal})`)
     
     // Subtract USDC from available balance (including fees)
     await this.subtractBalance(userId, 'SOL', 'USDC', purchaseTotal)
@@ -461,7 +462,7 @@ export class MultiWalletManager {
     // For asset sales: subtract asset from invested, add USDC to available
     const netAmount = parseFloat(amount) - parseFloat(fees?.total || 0)
     
-    console.log(`Selling ${amount} USD worth of ${asset} (net proceeds: ${netAmount})`)
+    logger.debug(`Selling ${amount} USD worth of ${asset} (net proceeds: ${netAmount})`)
     
     // Remove asset from invested portfolio
     await this.removeAssetFromPortfolio(userId, asset, amount)
@@ -473,7 +474,7 @@ export class MultiWalletManager {
   async executeExternalTransfer(userId, chain, amount, fees = null) {
     // Simulate external transfer by subtracting amount + fees from USDC balance
     const transferTotal = parseFloat(amount) + parseFloat(fees?.total || 0)
-    console.log(`Transferred ${amount} USDC to external ${chain} wallet (total cost: ${transferTotal})`)
+    logger.debug(`Transferred ${amount} USDC to external ${chain} wallet (total cost: ${transferTotal})`)
     await this.subtractBalance(userId, 'SOL', 'USDC', transferTotal)
   }
 
@@ -498,7 +499,7 @@ export class MultiWalletManager {
     // Add to existing amount or create new
     storedBalances.SOL.assets[asset] = (storedBalances.SOL.assets[asset] || 0) + assetAmount
     
-    console.log(`Added ${assetAmount} ${asset} to portfolio (USD value: $${usdAmount})`)
+    logger.debug(`Added ${assetAmount} ${asset} to portfolio (USD value: $${usdAmount})`)
     this.storeBalances(userId, storedBalances)
   }
 
@@ -509,7 +510,7 @@ export class MultiWalletManager {
     const storedBalances = this.getStoredBalances(userId)
     
     if (!storedBalances.SOL?.assets?.[asset]) {
-      console.warn(`Asset ${asset} not found in portfolio`)
+      logger.warn(`Asset ${asset} not found in portfolio`)
       return
     }
     
@@ -525,7 +526,7 @@ export class MultiWalletManager {
       delete storedBalances.SOL.assets[asset]
     }
     
-    console.log(`Removed ${assetAmount} ${asset} from portfolio (USD value: $${usdAmount})`)
+    logger.debug(`Removed ${assetAmount} ${asset} from portfolio (USD value: $${usdAmount})`)
     this.storeBalances(userId, storedBalances)
   }
 
@@ -568,12 +569,12 @@ export class MultiWalletManager {
    * Add transaction to history
    */
   addTransactionToHistory(userId, transactionData) {
-    console.log('🔄 Adding transaction to history:', { userId, transactionData })
+    logger.debug('🔄 Adding transaction to history:', { userId, transactionData })
     
     const historyKey = `diboas_transaction_history_${userId}`
     
     let existingHistory = safeGetJSON(historyKey, [])
-    console.log('📚 Existing history length:', existingHistory.length)
+    logger.debug('📚 Existing history length:', existingHistory.length)
     
     const transaction = {
       id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
@@ -597,7 +598,7 @@ export class MultiWalletManager {
     }
     
     const success = safeSetJSON(historyKey, existingHistory)
-    console.log('💾 Transaction save result:', { success, transaction, newHistoryLength: existingHistory.length })
+    logger.debug('💾 Transaction save result:', { success, transaction, newHistoryLength: existingHistory.length })
     
     // Dispatch custom event for same-tab updates
     window.dispatchEvent(new CustomEvent('diboas-transaction-completed', {

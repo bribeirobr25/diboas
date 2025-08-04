@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
+import logger from '../../utils/logger'
 import { 
   Loader2, CheckCircle, XCircle, Clock, ExternalLink, 
   ArrowDownLeft, ArrowUpRight, Send, ArrowRight, 
@@ -15,6 +16,169 @@ import { useNavigate } from 'react-router-dom'
 import { useOnChainStatus } from '../../hooks/useOnChainStatus.js'
 import { TRANSACTION_STATUS } from '../../services/onchain/OnChainStatusProvider.js'
 import diBoaSLogo from '../../assets/diboas-logo.png'
+import { dataManager } from '../../services/DataManager.js'
+
+/**
+ * Transaction Error Screen Component with Auto-Dismiss and Failed Transaction Storage
+ */
+function TransactionErrorScreen({ 
+  errorMsg, 
+  currentStepIndex, 
+  config, 
+  transactionData, 
+  flowData, 
+  flowError, 
+  renderExplorerLink, 
+  navigate 
+}) {
+  const [countdown, setCountdown] = useState(3)
+  const [isRedirecting, setIsRedirecting] = useState(false)
+
+  // Get the specific step that failed
+  const failedStep = config.steps[currentStepIndex] || config.steps[0]
+  
+  // Determine which step of the process failed based on error message
+  const getFailedStepFromError = (error) => {
+    const errorMessage = error?.toLowerCase() || ''
+    
+    if (errorMessage.includes('validation') || errorMessage.includes('invalid')) {
+      return { stepIndex: 0, stepName: config.steps[0] }
+    } else if (errorMessage.includes('broadcast') || errorMessage.includes('network') || errorMessage.includes('submit')) {
+      return { stepIndex: 1, stepName: config.steps[1] }
+    } else if (errorMessage.includes('confirmation') || errorMessage.includes('blockchain')) {
+      return { stepIndex: 2, stepName: config.steps[2] }
+    } else {
+      return { stepIndex: 3, stepName: config.steps[3] }
+    }
+  }
+
+  const failedStepInfo = getFailedStepFromError(errorMsg)
+
+  // Store failed transaction in history and auto-dismiss
+  useEffect(() => {
+    // Store failed transaction in Recent Activities with Failed status
+    const storeFailedTransaction = async () => {
+      try {
+        logger.debug('📝 Storing failed transaction in history:', {
+          transactionData,
+          flowData,
+          error: errorMsg
+        })
+
+        await dataManager.addTransaction({
+          id: `failed_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+          type: transactionData?.type || 'unknown',
+          amount: transactionData?.amount || 0,
+          currency: transactionData?.currency || 'USD',
+          status: 'failed',
+          description: `Failed ${config.name}: ${failedStepInfo.stepName}`,
+          recipient: transactionData?.recipient,
+          paymentMethod: transactionData?.paymentMethod,
+          timestamp: Date.now(),
+          error: errorMsg,
+          failedStep: failedStepInfo.stepName,
+          failedStepIndex: failedStepInfo.stepIndex
+        })
+
+        logger.debug('✅ Failed transaction stored successfully')
+      } catch (error) {
+        logger.error('❌ Failed to store failed transaction:', error)
+      }
+    }
+
+    // Store the failed transaction
+    storeFailedTransaction()
+
+    // Start countdown timer
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          setIsRedirecting(true)
+          setTimeout(() => {
+            navigate('/app')
+          }, 500)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [transactionData, flowData, errorMsg, config, failedStepInfo, navigate])
+
+  return (
+    <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 pointer-events-none">
+      <Card className="w-full max-w-md mx-4 bg-white shadow-2xl border border-gray-300 pointer-events-auto">
+        <CardContent className="p-6 bg-white">
+          <div className="text-center">
+            <div className="mb-4">
+              <XCircle className="w-16 h-16 text-red-500 mx-auto" />
+            </div>
+            
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Transaction Failed
+            </h2>
+            
+            <div className="mb-4">
+              <p className="text-gray-600 text-sm mb-2">
+                {config.name} failed during:
+              </p>
+              <p className="text-red-600 font-medium text-sm">
+                "{failedStepInfo.stepName}"
+              </p>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start">
+                <Shield className="w-5 h-5 text-green-600 mt-0.5 mr-3 flex-shrink-0" />
+                <div className="text-left">
+                  <p className="text-sm font-medium text-green-800 mb-1">
+                    Your funds are safe
+                  </p>
+                  <p className="text-xs text-green-700">
+                    No changes were made to your balance. The transaction was stopped before any funds were moved.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Error details */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-gray-600 text-left">
+                <span className="font-medium">Error details:</span><br />
+                {errorMsg}
+              </p>
+            </div>
+
+            {renderExplorerLink()}
+
+            {/* Auto-redirect countdown */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-500">
+                {isRedirecting ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Returning to dashboard...
+                  </span>
+                ) : (
+                  `Returning to dashboard in ${countdown} seconds...`
+                )}
+              </p>
+            </div>
+            
+            <Button
+              onClick={() => navigate('/app')}
+              className="w-full"
+              disabled={isRedirecting}
+            >
+              Return to Dashboard Now
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 // Transaction configurations with on-chain aware steps
 const TRANSACTION_CONFIGS = {
@@ -126,17 +290,17 @@ export default function EnhancedTransactionProgressScreen({
   } = useOnChainStatus(transactionId, {
     onConfirmed: (status) => {
       // Transaction confirmed on blockchain
-      console.log('🎉 Transaction confirmed on blockchain:', status)
+      logger.debug('🎉 Transaction confirmed on blockchain:', status)
     },
     onFailed: (status) => {
       // Transaction failed on blockchain
-      console.log('❌ Transaction failed on blockchain:', status)
+      logger.debug('❌ Transaction failed on blockchain:', status)
     }
   })
 
   // Debug logging
   useEffect(() => {
-    console.log('🔍 Progress Screen Debug:', {
+    logger.debug('🔍 Progress Screen Debug:', {
       transactionId,
       onChainStatus: onChainStatus,
       flowState,
@@ -145,13 +309,27 @@ export default function EnhancedTransactionProgressScreen({
     })
   }, [transactionId, onChainStatus, flowState, isConfirmed, isFailed])
 
+  // Debug logging for transaction simulation status
+  useEffect(() => {
+    logger.debug('🎯 Transaction Status Simulation Check:', {
+      transactionId,
+      flowState,
+      onChainStatus: onChainStatus?.status,
+      txHash: onChainStatus?.txHash,
+      confirmations: onChainStatus?.confirmations,
+      isOnChainLoading,
+      onChainError
+    })
+  }, [transactionId, flowState, onChainStatus, isOnChainLoading, onChainError])
+
   // Auto-progress timer for when transaction is confirmed but on-chain status is delayed
   useEffect(() => {
     if (flowState === 'pending_blockchain' && !onChainStatus && !autoProgressTimer) {
+      logger.debug('⏱️ Setting auto-progress timer for pending blockchain transaction')
       // After 5 seconds of being in pending_blockchain state without on-chain status,
       // auto-progress to completing steps
       const timer = setTimeout(() => {
-        console.log('🔄 Auto-progressing transaction due to delayed on-chain status')
+        logger.debug('🔄 Auto-progressing transaction due to delayed on-chain status')
         // Navigate back to dashboard as transaction was likely successful
         navigate('/app')
       }, 8000) // 8 seconds to allow for confirmation
@@ -161,6 +339,7 @@ export default function EnhancedTransactionProgressScreen({
     
     // Clear timer if we get on-chain status or state changes
     if ((onChainStatus || flowState !== 'pending_blockchain') && autoProgressTimer) {
+      logger.debug('⏹️ Clearing auto-progress timer - got on-chain status or state changed')
       clearTimeout(autoProgressTimer)
       setAutoProgressTimer(null)
     }
@@ -362,52 +541,16 @@ export default function EnhancedTransactionProgressScreen({
 
   // Handle different states
   if (currentStatus === 'failed') {
-    const errorMsg = onChainError || flowError?.message || 'Transaction failed'
-    
-    return (
-      <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 pointer-events-none">
-        <Card className="w-full max-w-md mx-4 bg-white shadow-2xl border border-gray-300 pointer-events-auto">
-          <CardContent className="p-6 bg-white">
-            <div className="text-center">
-              <div className="mb-4">
-                <XCircle className="w-16 h-16 text-red-500 mx-auto" />
-              </div>
-              
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Transaction Failed
-              </h2>
-              
-              <p className="text-gray-600 mb-4">
-                {errorMsg}
-              </p>
-
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <div className="flex items-start">
-                  <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-red-800 mb-1">
-                      Your funds are safe
-                    </p>
-                    <p className="text-xs text-red-700">
-                      No changes were made to your balance since the transaction failed on the blockchain.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {renderExplorerLink()}
-              
-              <Button
-                onClick={() => navigate('/app')}
-                className="w-full"
-              >
-                Return to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+    return <TransactionErrorScreen 
+      errorMsg={onChainError || flowError?.message || 'Transaction failed'}
+      currentStepIndex={currentStepIndex}
+      config={config}
+      transactionData={transactionData}
+      flowData={flowData}
+      flowError={flowError}
+      renderExplorerLink={renderExplorerLink}
+      navigate={navigate}
+    />
   }
 
   if (currentStatus === 'completed') {

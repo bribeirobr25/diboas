@@ -8,6 +8,7 @@ import { AlertTriangle, RefreshCw, Home, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { secureLogger } from '../../utils/secureLogger.js'
+import logger from '../../utils/logger'
 
 class FinancialErrorBoundary extends React.Component {
   constructor(props) {
@@ -120,7 +121,7 @@ class FinancialErrorBoundary extends React.Component {
     }
 
     // This would integrate with your error reporting system
-    console.log('Error report:', errorReport)
+    logger.debug('Error report:', errorReport)
     
     // Copy error ID to clipboard for user
     navigator.clipboard?.writeText(this.state.errorId).then(() => {

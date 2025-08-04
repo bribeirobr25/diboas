@@ -188,6 +188,14 @@ export const useTransactionValidation = () => {
           isValid: false 
         }
       }
+      
+      // Payment method validation for Add transactions
+      if (type === 'add' && !transactionData.paymentMethod) {
+        errors.paymentMethod = { 
+          message: 'Please select a payment method to add funds', 
+          isValid: false 
+        }
+      }
 
       setValidationErrors(errors)
       const result = { isValid: Object.keys(errors).length === 0, errors }

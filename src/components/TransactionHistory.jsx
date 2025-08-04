@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { Input } from '@/components/ui/input.jsx'
+import logger from '../utils/logger'
 import { 
   ArrowUpRight,
   ArrowDownLeft,
@@ -140,11 +141,11 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
     try {
       const allTransactions = getTransactions()
       const history = limit ? allTransactions.slice(0, limit) : allTransactions
-      console.log('📋 Loaded transactions from DataManager:', history.length, 'transactions')
-      console.log('📋 Transaction statuses:', history.map(tx => ({ id: tx.id.substring(0, 8), status: tx.status })))
+      logger.debug('📋 Loaded transactions from DataManager:', history.length, 'transactions')
+      logger.debug('📋 Transaction statuses:', history.map(tx => ({ id: tx.id.substring(0, 8), status: tx.status })))
       setTransactions(history)
     } catch (error) {
-      console.error('Failed to load transaction history:', error)
+      logger.error('Failed to load transaction history:', error)
     } finally {
       setIsLoading(false)
     }
@@ -152,12 +153,12 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
 
   // Subscribe to transaction updates
   useDataManagerSubscription('transaction:added', () => {
-    console.log('📋 Transaction added, reloading history')
+    logger.debug('📋 Transaction added, reloading history')
     loadTransactions()
   }, [loadTransactions])
   
   useDataManagerSubscription('transaction:updated', (updatedTransaction) => {
-    console.log('📋 Transaction updated:', updatedTransaction.id, 'status:', updatedTransaction.status)
+    logger.debug('📋 Transaction updated:', updatedTransaction.id, 'status:', updatedTransaction.status)
     loadTransactions()
   }, [loadTransactions])
 

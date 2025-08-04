@@ -36,9 +36,17 @@ export const useFeeCalculator = () => {
         dex: feeData.dex?.toFixed(2) || '0.00',
         routing: feeData.routing?.toFixed(2) || '0.00',
         gas: feeData.gas?.toFixed(2) || '0.00',
-        total: feeData.total?.toFixed(2) || '0.00'
+        total: feeData.total?.toFixed(2) || '0.00',
+        // Ensure consistency between field names
+        totalFees: feeData.total?.toFixed(2) || '0.00',
+        totalFee: feeData.total?.toFixed(2) || '0.00'
       })
-      return feeData
+      // Return fee data with consistent field names for component compatibility
+      return {
+        ...feeData,
+        totalFees: feeData.total,
+        totalFee: feeData.total
+      }
     } catch (err) {
       setError(err)
       throw err

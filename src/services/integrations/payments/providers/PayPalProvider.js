@@ -3,6 +3,8 @@
  * PayPal payments integration
  */
 
+import { centralizedFeeCalculator } from '../../../../utils/feeCalculations.js'
+
 export class PayPalProvider {
   constructor(config) {
     this.config = config
@@ -289,19 +291,26 @@ export class PayPalProvider {
   }
 
   /**
-   * Calculate PayPal fees
+   * Calculate PayPal fees using centralized calculator
    */
   async calculateFees(paymentData) {
     try {
       const { amount, paymentMethod = 'paypal_balance' } = paymentData
-      const paypalFee = amount * 0.029 // 2.9%
-      const fixedFee = 0.30
+      
+      // Use centralized fee calculator for PayPal fees
+      const fees = centralizedFeeCalculator.calculateFees({
+        type: 'add', // Assuming this is for add transactions
+        amount,
+        asset: 'SOL',
+        paymentMethod: 'paypal',
+        chains: ['SOL']
+      })
 
       return {
         success: true,
-        paypalFee: paypalFee.toFixed(2),
-        fixedFee: fixedFee.toFixed(2),
-        totalFee: (paypalFee + fixedFee).toFixed(2),
+        paypalFee: fees.providerFee.toFixed(2),
+        fixedFee: '0.30', // PayPal fixed fee (kept for compatibility)
+        totalFee: (fees.providerFee + 0.30).toFixed(2),
         currency: 'USD'
       }
     } catch (error) {

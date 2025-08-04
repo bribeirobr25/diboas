@@ -9,6 +9,7 @@ import { defaultFeeCalculator } from '../utils/feeCalculations.js'
 import { useAuth } from './useIntegrations.jsx'
 import { dataManager } from '../services/DataManager.js'
 import { onChainTransactionManager } from '../services/transactions/OnChainTransactionManager.js'
+import logger from '../utils/logger'
 // import { getWalletManager } from './transactions/transactionSingletons.js'
 
 // Main transaction hook moved to ./transactions/useTransactions.js
@@ -136,6 +137,25 @@ export const useWalletBalance = () => {
         
         if (!checks.sufficient) {
           checks.deficit = amount - invested
+        }
+        return checks
+      }
+
+      // For strategy transactions: check available balance (similar to buy with diBoaS wallet)
+      if (transactionType === 'start_strategy') {
+        if (paymentMethod === 'diboas_wallet') {
+          // Strategy funding: Check Available Balance
+          const available = currentBalance?.availableForSpending || 0
+          checks.sufficient = available >= amount
+          checks.availableBalance = available
+          
+          if (!checks.sufficient) {
+            checks.deficit = amount - available
+          }
+        } else {
+          // Strategy with external payment: External payment, no balance check needed
+          checks.sufficient = true
+          checks.availableBalance = 999999 // External payment source
         }
         return checks
       }
@@ -523,6 +543,12 @@ export const useTransactionFlow = () => {
       throw new Error('No transaction to confirm')
     }
 
+    logger.debug('🚀 Starting transaction confirmation:', {
+      flowState,
+      transactionType: flowData.transaction?.type,
+      amount: flowData.transaction?.amount
+    })
+
     try {
       setFlowState('processing')
       
@@ -536,11 +562,16 @@ export const useTransactionFlow = () => {
         userId: 'current_user' // TODO: Get actual user ID from auth context
       }
       
+      logger.debug('📤 Executing transaction with on-chain manager:', transactionWithFees)
+      
       // Execute transaction with on-chain confirmation gating
       const result = await onChainTransactionManager.executeTransaction(transactionWithFees)
       
+      logger.debug('📥 Transaction execution result:', result)
+      
       if (result.success) {
         // Transaction successfully submitted to blockchain
+        logger.debug('✅ Transaction submitted successfully, setting pending_blockchain state')
         setFlowData({ 
           ...flowData, 
           result: {
@@ -560,10 +591,12 @@ export const useTransactionFlow = () => {
         }
       } else {
         // Transaction submission failed
+        logger.error('❌ Transaction submission failed:', result.error)
         throw new Error(result.error || 'Transaction submission failed')
       }
       
     } catch (error) {
+      logger.error('💥 Transaction confirmation error:', error)
       setFlowError(error)
       setFlowState('error')
       throw error

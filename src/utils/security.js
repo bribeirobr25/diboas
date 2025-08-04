@@ -1,3 +1,5 @@
+import logger from './logger'
+
 /**
  * Security Utilities
  * Provides secure ID generation and other security-related functions
@@ -165,7 +167,7 @@ export class SecureStorage {
       localStorage.setItem(this.prefix + key, JSON.stringify(data))
       return true
     } catch (error) {
-      console.warn('Failed to store secure data:', error)
+      logger.warn('Failed to store secure data:', error)
       return false
     }
   }
@@ -185,7 +187,7 @@ export class SecureStorage {
       
       return data.value
     } catch (error) {
-      console.warn('Failed to retrieve secure data:', error)
+      logger.warn('Failed to retrieve secure data:', error)
       return null
     }
   }
@@ -195,7 +197,7 @@ export class SecureStorage {
       localStorage.removeItem(this.prefix + key)
       return true
     } catch (error) {
-      console.warn('Failed to remove secure data:', error)
+      logger.warn('Failed to remove secure data:', error)
       return false
     }
   }
@@ -206,7 +208,7 @@ export class SecureStorage {
       keys.forEach(key => localStorage.removeItem(key))
       return true
     } catch (error) {
-      console.warn('Failed to clear secure data:', error)
+      logger.warn('Failed to clear secure data:', error)
       return false
     }
   }

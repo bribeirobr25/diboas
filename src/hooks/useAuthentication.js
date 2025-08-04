@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { checkAuthRateLimit } from '../utils/advancedRateLimiter.js'
+import logger from '../utils/logger'
 
 /**
  * Authentication error types for user-friendly messages
@@ -248,7 +249,7 @@ export function useAuthentication() {
    * Handles authentication errors with user-friendly messages
    */
   const handleAuthError = (error) => {
-    console.error('Authentication error:', error)
+    logger.error('Authentication error:', error)
     
     let errorType = AUTH_ERRORS.UNKNOWN
     let customMessage = null

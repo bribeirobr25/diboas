@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Search, QrCode, Copy, Clock, User } from 'lucide-react'
 import { searchUsernames, getRecentUsernames, saveRecentUsername } from '../../utils/userDatabase.js'
+import logger from '../../utils/logger'
 
 export default function DiBoaSUsernameInput({
   value,
@@ -41,7 +42,7 @@ export default function DiBoaSUsernameInput({
         isRecent: recentUsernames.includes(username) 
       }))
     } catch (error) {
-      console.error('Error searching usernames:', error)
+      logger.error('Error searching usernames:', error)
       return []
     } finally {
       setIsLoading(false)

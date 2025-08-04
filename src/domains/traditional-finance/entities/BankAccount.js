@@ -4,6 +4,7 @@
  */
 
 import Money from '../../shared/value-objects/Money.js'
+import logger from '../../../utils/logger'
 
 export class BankAccount {
   constructor(accountId, userId, accountNumber, routingNumber, bankName, accountType = 'CHECKING') {
@@ -319,7 +320,7 @@ export class BankAccount {
       throw new Error('Crypto module not available')
     } catch (_) {
       // Ultimate fallback (should not be used in production)
-      console.warn('⚠️  Using weak random ID generation. Install crypto module.')
+      logger.warn('⚠️  Using weak random ID generation. Install crypto module.')
       return `ach_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`
     }
   }

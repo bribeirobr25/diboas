@@ -11,6 +11,7 @@ import { assetDataService } from '../../services/assetDataService.js'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
+import logger from '../../utils/logger'
 import { 
   TrendingUp,
   TrendingDown,
@@ -161,7 +162,7 @@ export default function InvestmentCategory() {
         
         setAssetPriceData(assetDataMap)
       } catch (error) {
-        console.error('Error fetching asset data:', error)
+        logger.error('Error fetching asset data:', error)
       } finally {
         setLoading(false)
       }

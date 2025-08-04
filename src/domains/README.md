@@ -1,40 +1,35 @@
-# OneFi Domain Architecture Implementation
+# Domain Structure
 
-This directory implements Domain-Driven Design for the OneFi platform, separating Traditional Finance, Crypto, and DeFi concerns.
+This directory contains the domain model following Domain-Driven Design (DDD) principles.
 
-## 📁 Directory Structure
+## Domain Boundaries
 
+### Core Domains
+- **Account**: User accounts, authentication, and profiles
+- **Balance**: Wallet balances and financial state
+- **Transaction**: All transaction types and processing
+- **Strategy**: Investment strategies and goals
+- **Market**: Market data and pricing
+
+### Supporting Domains
+- **Notification**: User notifications and alerts
+- **Analytics**: Performance tracking and reporting
+- **Integration**: External service integrations
+
+## Structure
+
+Each domain follows this structure:
 ```
-domains/
-├── shared/                    # Shared Kernel (common across all domains)
-│   ├── entities/             # User, Account, Portfolio (base)
-│   ├── value-objects/        # Money, Currency, Address
-│   ├── events/              # Base domain events
-│   └── services/            # Cross-domain services
-│
-├── traditional-finance/       # Traditional Finance Bounded Context
-│   ├── entities/             # BankAccount, Investment, CreditCard
-│   ├── services/             # BankingService, PaymentService
-│   ├── repositories/         # AccountRepository, TransactionRepository
-│   └── events/              # FundsTransferred, PaymentProcessed
-│
-├── crypto/                   # Cryptocurrency Bounded Context
-│   ├── entities/             # Wallet, CryptoAsset, Trade
-│   ├── services/             # TradingService, CustodyService
-│   ├── repositories/         # WalletRepository, TradeRepository
-│   └── events/              # TradeExecuted, WalletConnected
-│
-└── defi/                     # DeFi Protocols Bounded Context
-    ├── entities/             # LiquidityPool, YieldFarm, Stake
-    ├── services/             # ProtocolService, YieldService
-    ├── repositories/         # PoolRepository, StakeRepository
-    └── events/              # PoolEntered, YieldHarvested
+domain/
+├── models/       # Domain entities and value objects
+├── repositories/ # Data access interfaces
+├── services/     # Domain services
+├── events/       # Domain events
+└── index.js      # Public API
 ```
 
-## 🏗️ Implementation Example
-
-See individual domain README files for detailed implementation:
-- [Shared Domain](./shared/README.md)
-- [Traditional Finance](./traditional-finance/README.md)
-- [Crypto Domain](./crypto/README.md)
-- [DeFi Domain](./defi/README.md)
+## Principles
+- Domain logic is isolated from infrastructure
+- Each domain has clear boundaries
+- Dependencies flow inward (infrastructure → application → domain)
+- Domain events communicate between bounded contexts

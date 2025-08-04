@@ -363,8 +363,8 @@ export class BaseProviderRegistry {
     this.stopHealthMonitoring()
     this.providers.clear()
     this.providerConfigs.clear()
+    this.providerStats.clear()
     this.fallbackChain = []
-    this.healthChecker.providers.clear()
   }
 
   /**

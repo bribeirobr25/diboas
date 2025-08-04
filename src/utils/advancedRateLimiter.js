@@ -1,9 +1,11 @@
 /**
  * Advanced Rate Limiting System for diBoaS FinTech Application
  * Implements multiple rate limiting strategies with security focus
+ * Enhanced with SecurityManager integration
  */
 
 import secureLogger from './secureLogger.js'
+import { securityManager, SECURITY_EVENT_TYPES } from '../security/SecurityManager.js'
 
 /**
  * Rate limiting tiers based on operation sensitivity
@@ -106,6 +108,15 @@ export class AdvancedRateLimiter {
         maxRequests: tier.maxRequests,
         windowMs: tier.windowMs,
         ...context
+      })
+      
+      // Integrate with SecurityManager
+      securityManager.logSecurityEvent(SECURITY_EVENT_TYPES.RATE_LIMIT_EXCEEDED, {
+        identifier,
+        tier: tier.name,
+        requests: validRequests.length,
+        maxRequests: tier.maxRequests,
+        severity: this.getSeverityLevel(tier.name, validRequests.length - tier.maxRequests)
       })
 
       return {
@@ -304,6 +315,30 @@ export class AdvancedRateLimiter {
   getTierFromKey(key) {
     const tierName = key.split(':')[1]
     return Object.values(RATE_LIMIT_TIERS).find(tier => tier.name === tierName)
+  }
+
+  /**
+   * Get severity level based on tier and excess requests
+   */
+  getSeverityLevel(tierName, excessRequests) {
+    const severityMap = {
+      'authentication': 'high',
+      'transaction': 'critical',
+      'password': 'critical',
+      'balance': 'medium',
+      'general': 'low'
+    }
+    
+    const baseSeverity = severityMap[tierName] || 'low'
+    
+    // Escalate severity based on excess requests
+    if (excessRequests > 10) {
+      return 'critical'
+    } else if (excessRequests > 5) {
+      return baseSeverity === 'low' ? 'medium' : 'high'
+    }
+    
+    return baseSeverity
   }
 
   /**

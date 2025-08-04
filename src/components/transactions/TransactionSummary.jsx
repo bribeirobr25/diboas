@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
+import logger from '../../utils/logger'
 
 // Fee formatting utility - shows 2 decimals for standard display
 const formatFeeAmount = (amount) => {
@@ -116,8 +117,8 @@ export default function TransactionSummary({
                   <span>Network Fee ({calculateNetworkFeePercentage()})</span>
                   <span>${formatFeeAmount(calculatedTransactionFees?.network)}</span>
                 </div>
-                {/* Provider Fee - for Add/Withdraw to traditional payment methods */}
-                {(isOnRampTransaction || (isOffRampTransaction && chosenPaymentMethod !== 'external_wallet')) && currentTransactionType !== 'send' && (
+                {/* Provider Fee - for Add/Buy/Withdraw to traditional payment methods */}
+                {((isOnRampTransaction || (currentTransactionType === 'buy' && chosenPaymentMethod !== 'diboas_wallet')) || (isOffRampTransaction && chosenPaymentMethod !== 'external_wallet')) && currentTransactionType !== 'send' && (
                   <div className="fee-breakdown-row">
                     <span>Provider Fee ({calculateProviderFeePercentage()})</span>
                     <span>${formatFeeAmount(calculatedTransactionFees?.provider)}</span>
@@ -127,19 +128,12 @@ export default function TransactionSummary({
                 {(currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) && (
                   <div className="fee-breakdown-row">
                     <span>DEX Fee ({calculateProviderFeePercentage()})</span>
-                    <span>${formatFeeAmount(calculatedTransactionFees?.provider)}</span>
+                    <span>${formatFeeAmount(calculatedTransactionFees?.dex)}</span>
                   </div>
                 )}
-                {/* Buy/Sell transaction specific fees */}
+                {/* DEX Fee for Buy/Sell transactions */}
                 {['buy', 'sell'].includes(currentTransactionType) && (
                   <>
-                    {/* Payment Fee - only for Buy with external payment methods */}
-                    {currentTransactionType === 'buy' && chosenPaymentMethod !== 'diboas_wallet' && calculatedTransactionFees?.payment > 0 && (
-                      <div className="fee-breakdown-row">
-                        <span>Payment Fee ({calculatePaymentMethodFeePercentage()})</span>
-                        <span>${formatFeeAmount(calculatedTransactionFees?.payment)}</span>
-                      </div>
-                    )}
                     {/* DEX Fee - for Buy using diBoaS wallet and all Sell transactions */}
                     {((currentTransactionType === 'buy' && chosenPaymentMethod === 'diboas_wallet') || currentTransactionType === 'sell') && calculatedTransactionFees?.dex > 0 && (
                       <div className="fee-breakdown-row">
@@ -160,7 +154,7 @@ export default function TransactionSummary({
                 const transactionAmountNumber = parseFloat(transactionAmountInput) || 0;
                 const totalFeesNumber = parseFloat(calculatedTransactionFees.total) || 0;
                 const netTransactionTotal = transactionAmountNumber - totalFeesNumber;
-                console.log('TransactionSummary: amount=', transactionAmountNumber, 'fees=', totalFeesNumber, 'net total=', netTransactionTotal);
+                logger.debug('TransactionSummary: amount=', transactionAmountNumber, 'fees=', totalFeesNumber, 'net total=', netTransactionTotal);
                 return netTransactionTotal.toFixed(2);
               })() : transactionAmountInput || '0.00'}</span>
             </div>

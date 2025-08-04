@@ -339,10 +339,20 @@ The platform embodies this philosophy by making complex financial operations fee
 
 ## Documentation
 
-- [Transaction System Documentation](./docs/TRANSACTIONS.md) - Comprehensive transaction implementation guide
-- [API Documentation] - Integration endpoints and data formats  
-- [Component Library] - UI component usage and examples
-- [Deployment Guide] - Production deployment instructions
+### Core Documentation
+- [Development Guide](./docs/DEVELOPMENT.md) - Comprehensive development setup and workflows
+- [Architecture Guide](./docs/ARCHITECTURE.md) - System architecture and design patterns
+- [Transaction System](./docs/TRANSACTIONS.md) - Transaction implementation and workflows
+- [Security Guide](./docs/SECURITY.md) - Security implementation and best practices
+- [Performance Guide](./docs/PERFORMANCE.md) - Performance optimization and monitoring
+- [Accessibility Guide](./docs/ACCESSIBILITY.md) - Accessibility standards and implementation
+- [Testing Guide](./docs/TESTING.md) - Testing strategies and implementation
+
+### Technical References
+- [Integration Guide](./docs/INTEGRATIONS.md) - Third-party integrations and providers
+- [Feature Flags](./docs/FEATURE_FLAGS_ENVIRONMENTS.md) - Environment configuration
+- [Technology Stack](./docs/TECH.md) - Technical specifications and dependencies
+- [Changelog](./CHANGELOG.md) - Version history and migration guides
 
 ## Future Roadmap
 

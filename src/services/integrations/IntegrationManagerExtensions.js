@@ -1,3 +1,5 @@
+import logger from '../../utils/logger'
+
 /**
  * Integration Manager Extensions for Transaction System
  * Adds transaction capabilities to the existing integration manager
@@ -64,7 +66,7 @@ export function extendIntegrationManager(integrationManager) {
         const { initializeTransactionProviders } = await import('../transactions/index.js')
         await initializeTransactionProviders(this)
       } catch (error) {
-        console.warn('Transaction providers not available:', error.message)
+        logger.warn('Transaction providers not available:', error.message)
       }
     }
   }

@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
+import logger from '../../utils/logger'
 import { 
   CheckCircle, 
   Clock, 
@@ -59,7 +60,7 @@ export default function TransactionStatusCard({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Failed to copy hash:', err)
+      logger.error('Failed to copy hash:', err)
     }
   }
 

@@ -1,3 +1,5 @@
+import logger from './logger'
+
 /**
  * Security Logging Utilities
  * Secure and structured logging for security-sensitive events
@@ -18,13 +20,13 @@ export const logSecureEvent = async (eventType, userId, data = {}, metadata = {}
     
     // In development/test, just log to console
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-      console.log(`[SECURITY] ${eventType}`, logEntry)
+      logger.debug(`[SECURITY] ${eventType}`, logEntry)
       return logEntry
     }
     
     return logEntry
   } catch (error) {
-    console.error('Error in security logging:', error)
+    logger.error('Error in security logging:', error)
     return null
   }
 }

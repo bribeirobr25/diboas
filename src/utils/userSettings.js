@@ -1,3 +1,5 @@
+import logger from './logger'
+
 /**
  * User Settings Management
  * Handles user preferences including advanced transaction display mode
@@ -27,7 +29,7 @@ class UserSettingsManager {
         return { ...defaultSettings, ...JSON.parse(storedSettings) }
       }
     } catch (error) {
-      console.error('Failed to load user settings:', error)
+      logger.error('Failed to load user settings:', error)
     }
     return { ...defaultSettings }
   }
@@ -41,7 +43,7 @@ class UserSettingsManager {
         detail: this.settings 
       }))
     } catch (error) {
-      console.error('Failed to save user settings:', error)
+      logger.error('Failed to save user settings:', error)
     }
   }
 

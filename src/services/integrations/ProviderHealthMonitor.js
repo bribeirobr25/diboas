@@ -1,3 +1,5 @@
+import logger from '../../utils/logger'
+
 /**
  * Provider Health Monitor
  * Monitors the health and performance of all integration providers
@@ -36,11 +38,11 @@ export class ProviderHealthMonitor {
       try {
         await this.runHealthChecks()
       } catch (error) {
-        console.error('Health check failed:', error)
+        logger.error('Health check failed:', error)
       }
     }, this.config.checkInterval)
 
-    console.log('Provider health monitoring started')
+    logger.debug('Provider health monitoring started')
   }
 
   /**
@@ -54,7 +56,7 @@ export class ProviderHealthMonitor {
       this.checkInterval = null
     }
 
-    console.log('Provider health monitoring stopped')
+    logger.debug('Provider health monitoring stopped')
   }
 
   /**
@@ -196,14 +198,14 @@ export class ProviderHealthMonitor {
       timestamp: new Date()
     }
 
-    console.warn('Provider health alert:', alert)
+    logger.warn('Provider health alert:', alert)
     
     // Notify listeners
     this.listeners.forEach(listener => {
       try {
         listener(alert)
       } catch (error) {
-        console.error('Health monitor listener error:', error)
+        logger.error('Health monitor listener error:', error)
       }
     })
   }
@@ -225,7 +227,7 @@ export class ProviderHealthMonitor {
       try {
         listener(event)
       } catch (error) {
-        console.error('Health monitor listener error:', error)
+        logger.error('Health monitor listener error:', error)
       }
     })
   }

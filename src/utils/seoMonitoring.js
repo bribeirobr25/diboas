@@ -1,3 +1,5 @@
+import logger from './logger'
+
 /**
  * SEO Monitoring and Analytics Utilities
  * Provides comprehensive SEO performance tracking and optimization
@@ -41,7 +43,7 @@ export const coreWebVitals = {
     }).catch(() => {
       // Web Vitals library not available - this is normal in development
       if (import.meta.env.DEV) {
-        console.info('Web Vitals library not available (development mode)')
+        logger.info('Web Vitals library not available (development mode)')
       }
     })
   },
@@ -53,7 +55,7 @@ export const coreWebVitals = {
 
     // Log to console in development
     if (import.meta.env.DEV) {
-      console.log(`[CWV] ${name}:`, {
+      logger.debug(`[CWV] ${name}:`, {
         value: `${value}ms`,
         delta: `${delta}ms`,
         rating: metric.rating,
@@ -390,16 +392,16 @@ export const seoReporting = {
       
       const report = seoReporting.generateReport()
       console.group('📊 SEO Report')
-      console.log('Overall Grade:', report.summary.overallGrade)
-      console.log('SEO Score:', `${report.seo.score}/100 (${report.seo.grade})`)
-      console.log('Performance Score:', `${report.performance.score}/100 (${report.performance.grade})`)
-      console.log('Priority Actions:', report.summary.priorityActions)
-      console.log('Total Issues:', report.summary.totalIssues)
+      logger.debug('Overall Grade:', report.summary.overallGrade)
+      logger.debug('SEO Score:', `${report.seo.score}/100 (${report.seo.grade})`)
+      logger.debug('Performance Score:', `${report.performance.score}/100 (${report.performance.grade})`)
+      logger.debug('Priority Actions:', report.summary.priorityActions)
+      logger.debug('Total Issues:', report.summary.totalIssues)
       
       if (report.recommendations.length > 0) {
         console.group('🔧 Recommendations')
         report.recommendations.forEach(rec => {
-          console.log(`[${rec.impact}] ${rec.message}`)
+          logger.debug(`[${rec.impact}] ${rec.message}`)
         })
         console.groupEnd()
       }

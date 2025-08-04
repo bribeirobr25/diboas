@@ -5,6 +5,7 @@
 
 import { AuthResult } from '../AuthResult.js'
 import { AuthError } from '../AuthError.js'
+import logger from '../../../../utils/logger'
 
 export class EmailAuthProvider {
   constructor(config) {
@@ -337,7 +338,7 @@ export class EmailAuthProvider {
     await new Promise(resolve => setTimeout(resolve, 500))
 
     // In real implementation, this would send an email
-    console.log(`[MOCK] Password reset email sent to: ${email}`)
+    logger.debug(`[MOCK] Password reset email sent to: ${email}`)
     
     return { 
       success: true, 

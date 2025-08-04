@@ -6,6 +6,7 @@
 import { useState, useEffect, useContext, createContext, useCallback } from 'react'
 import { featureFlagManager, FEATURE_FLAGS } from '../config/featureFlags.js'
 import { getEnvironmentInfo } from '../config/environments.js'
+import logger from '../utils/logger'
 
 /**
  * Feature Flag Context for providing user context throughout the app
@@ -239,7 +240,7 @@ export function useFeatureFlagAnalytics() {
     // Only track in production with analytics enabled
     if (envInfo.environment === 'production' && envInfo.enableAnalytics) {
       // In a real app, this would send to analytics service
-      console.info(`Feature flag analytics: ${flagName} - ${action}`, {
+      logger.info(`Feature flag analytics: ${flagName} - ${action}`, {
         userContext,
         timestamp: Date.now(),
         environment: envInfo.environment,

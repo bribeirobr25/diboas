@@ -18,12 +18,22 @@ export const useWalletBalance = () => {
     // Set initial balance from DataManager state
     const currentBalance = dataManager.getBalance()
     if (currentBalance) {
-      setBalance(currentBalance)
+      const mappedBalance = {
+        ...currentBalance,
+        available: currentBalance.availableForSpending,
+        strategy: currentBalance.strategyBalance || 0
+      }
+      setBalance(mappedBalance)
     }
 
     // Subscribe to balance updates
     const unsubscribeBalance = dataManager.subscribe('balance:updated', (newBalance) => {
-      setBalance(newBalance)
+      const mappedBalance = {
+        ...newBalance,
+        available: newBalance.availableForSpending,
+        strategy: newBalance.strategyBalance || 0
+      }
+      setBalance(mappedBalance)
     })
 
     const unsubscribeLoading = dataManager.subscribe('balance:loading', (loading) => {
@@ -46,8 +56,14 @@ export const useWalletBalance = () => {
     if (!user) {
       // Return current balance from DataManager for demo
       const currentBalance = dataManager.getBalance()
-      setBalance(currentBalance)
-      return currentBalance
+      // Map to consistent interface for strategy wizard
+      const mappedBalance = {
+        ...currentBalance,
+        available: currentBalance.availableForSpending, // Map for wizard compatibility
+        strategy: currentBalance.strategyBalance || 0
+      }
+      setBalance(mappedBalance)
+      return mappedBalance
     }
 
     try {
@@ -56,13 +72,23 @@ export const useWalletBalance = () => {
         // In a real implementation, this would trigger a blockchain refresh
         // For demo, we just return the current state
         const currentBalance = dataManager.getBalance()
-        setBalance(currentBalance)
-        return currentBalance
+        const mappedBalance = {
+          ...currentBalance,
+          available: currentBalance.availableForSpending,
+          strategy: currentBalance.strategyBalance || 0
+        }
+        setBalance(mappedBalance)
+        return mappedBalance
       }
       
       const currentBalance = dataManager.getBalance()
-      setBalance(currentBalance)
-      return currentBalance
+      const mappedBalance = {
+        ...currentBalance,
+        available: currentBalance.availableForSpending,
+        strategy: currentBalance.strategyBalance || 0
+      }
+      setBalance(mappedBalance)
+      return mappedBalance
     } catch (err) {
       setError(err)
       throw err

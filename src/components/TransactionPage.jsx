@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import logger from '../utils/logger'
 
 // Components
 import PageHeader from './shared/PageHeader.jsx'
@@ -237,8 +238,36 @@ export default function TransactionPage({ transactionType: propTransactionType, 
       return '0.2%' // Fixed 0.2% DEX fee for Buy/Sell with diBoaS wallet
     }
     
+    // DEX fees for external wallet withdrawals - depends on destination chain
+    if (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet') {
+      // Detect network from recipient address
+      if (!recipientWalletAddress) return '0%'
+      
+      const cleanAddress = recipientWalletAddress.trim()
+      
+      // Check BTC addresses first (to avoid confusion with SOL addresses starting with 1)
+      if (cleanAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || cleanAddress.match(/^bc1[a-z0-9]{39,59}$/)) {
+        return '0.5%' // BTC - cross-chain DEX fee
+      }
+      // ETH address
+      if (cleanAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+        return '0.5%' // ETH - cross-chain DEX fee
+      }
+      // SUI address
+      if (cleanAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
+        return '0.5%' // SUI - cross-chain DEX fee
+      }
+      // SOL address - no DEX fee (same chain)
+      if (cleanAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
+        return '0%' // SOL - no DEX fee
+      }
+      
+      // Default to 0.5% for unknown addresses (assumed cross-chain)
+      return '0.5%'
+    }
+    
     // DEX fees for transfer operations - only for cross-chain transfers
-    if (currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) {
+    if (currentTransactionType === 'transfer') {
       // Detect network from recipient address
       if (!recipientWalletAddress) return '0%'
       
@@ -315,19 +344,45 @@ export default function TransactionPage({ transactionType: propTransactionType, 
   // Event handlers
   const handleTransactionStart = useCallback(async () => {
     try {
+      // Calculate the correct chains parameter for the transaction flow
+      let chains = ['SOL'] // Default to SOL
+      
+      // Update chains based on transaction type (same logic as fee calculation)
+      if (currentTransactionType === 'buy' || currentTransactionType === 'sell') {
+        // For buy/sell, network fee should be based on the target asset's native chain
+        const assetChainMap = {
+          'BTC': ['BTC'], 'ETH': ['ETH'], 'SUI': ['SUI'], 'SOL': ['SOL'],
+          'USDC': ['SOL'], 'PAXG': ['ETH'], 'XAUT': ['ETH'], 
+          'MAG7': ['SOL'], 'SPX': ['SOL'], 'REIT': ['SOL']
+        }
+        chains = assetChainMap[selectedCryptocurrencyAsset] || ['SOL']
+      } else if ((currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) && recipientWalletAddress) {
+        // For transfers and external wallet withdrawals, detect destination chain from address
+        if (recipientWalletAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientWalletAddress.match(/^bc1[a-z0-9]{39,59}$/)) {
+          chains = ['BTC']
+        } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+          chains = ['ETH']
+        } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
+          chains = ['SUI']
+        } else if (recipientWalletAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
+          chains = ['SOL']
+        }
+      }
+      
       const transactionRequestData = await executeCompleteTransactionFlow({
         type: currentTransactionType,
         amount: parseFloat(transactionAmountInput),
         recipient: recipientWalletAddress,
         asset: selectedCryptocurrencyAsset,
-        paymentMethod: chosenPaymentMethod
+        paymentMethod: chosenPaymentMethod,
+        chains: chains // Include the correct chains parameter
       })
       
       if (transactionRequestData.requiresTwoFA) {
         // Handle 2FA requirement - implementation pending
       }
     } catch (error) {
-      console.error('Transaction failed:', error)
+      logger.error('Transaction failed:', error)
       // Error will be handled by TransactionProgressScreen via flowError
     }
   }, [currentTransactionType, transactionAmountInput, recipientWalletAddress, selectedCryptocurrencyAsset, chosenPaymentMethod, executeCompleteTransactionFlow])
@@ -338,7 +393,7 @@ export default function TransactionPage({ transactionType: propTransactionType, 
       // Don't navigate immediately - let the flow state transition to 'completed' 
       // and show the success screen first
     } catch (error) {
-      console.error('Transaction confirmation failed:', error)
+      logger.error('Transaction confirmation failed:', error)
       // Error will be handled by TransactionProgressScreen via flowError
     }
   }, [confirmPendingTransaction])
@@ -351,7 +406,7 @@ export default function TransactionPage({ transactionType: propTransactionType, 
   //       await handleTransactionConfirm()
   //     }
   //   } catch (error) {
-  //     console.error('2FA verification failed:', error)
+  //     logger.error('2FA verification failed:', error)
   //   }
   // }, [verifyTwoFACode, handleTransactionConfirm])
 
@@ -374,30 +429,32 @@ export default function TransactionPage({ transactionType: propTransactionType, 
       
       // Update chains based on transaction type
       if (currentTransactionType === 'buy' || currentTransactionType === 'sell') {
-        // Map assets to their native chains
+        // For buy/sell, network fee should be based on the target asset's native chain
+        // The fee calculator uses chains[0] for network fee calculation
         const assetChainMap = {
-          'BTC': ['SOL', 'BTC'], // From SOL to BTC
-          'ETH': ['SOL', 'ETH'], // From SOL to ETH  
-          'SUI': ['SOL', 'SUI'], // From SOL to SUI
-          'SOL': ['SOL'], // SOL to SOL
-          'USDC': ['SOL'], // USDC on SOL
-          'PAXG': ['SOL', 'ETH'], // PAX Gold on Ethereum via bridge
-          'XAUT': ['SOL', 'ETH'], // Tether Gold on Ethereum via bridge
-          'MAG7': ['SOL'], // Tokenized on Solana
-          'SPX': ['SOL'], // Tokenized on Solana
-          'REIT': ['SOL'] // Tokenized on Solana
+          'BTC': ['BTC'], // BTC network fees for BTC transactions
+          'ETH': ['ETH'], // ETH network fees for ETH transactions
+          'SUI': ['SUI'], // SUI network fees for SUI transactions
+          'SOL': ['SOL'], // SOL network fees for SOL transactions
+          'USDC': ['SOL'], // USDC uses SOL network
+          'PAXG': ['ETH'], // PAX Gold uses Ethereum network
+          'XAUT': ['ETH'], // Tether Gold uses Ethereum network
+          'MAG7': ['SOL'], // Tokenized stocks use Solana
+          'SPX': ['SOL'], // Tokenized stocks use Solana
+          'REIT': ['SOL'] // Tokenized real estate uses Solana
         }
         feeParams.chains = assetChainMap[selectedCryptocurrencyAsset] || ['SOL']
       } else if ((currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) && recipientWalletAddress) {
         // For transfers and external wallet withdrawals, detect destination chain from address
+        // Use destination chain as primary for network fee calculation
         if (recipientWalletAddress.match(/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/) || recipientWalletAddress.match(/^bc1[a-z0-9]{39,59}$/)) {
-          feeParams.chains = ['SOL', 'BTC'] // SOL to BTC
+          feeParams.chains = ['BTC'] // BTC network fees
         } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-          feeParams.chains = ['SOL', 'ETH'] // SOL to ETH
+          feeParams.chains = ['ETH'] // ETH network fees
         } else if (recipientWalletAddress.match(/^0x[a-fA-F0-9]{64}$/)) {
-          feeParams.chains = ['SOL', 'SUI'] // SOL to SUI
+          feeParams.chains = ['SUI'] // SUI network fees
         } else if (recipientWalletAddress.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
-          feeParams.chains = ['SOL'] // SOL to SOL
+          feeParams.chains = ['SOL'] // SOL network fees
         } else {
           feeParams.chains = ['SOL'] // Invalid address, default to SOL
         }
@@ -447,33 +504,8 @@ export default function TransactionPage({ transactionType: propTransactionType, 
     return <TransactionDetailsPage transactionId={transactionId} />
   }
 
-  // Show transaction progress screen if in progress
-  if (transactionFlowState === 'processing' || transactionFlowState === 'confirming' || transactionFlowState === 'completed' || transactionFlowState === 'pending' || transactionFlowState === 'pending_blockchain') {
-    
-    // Use enhanced progress screen when we have a transaction ID (indicates on-chain transaction)
-    const hasOnChainTransaction = transactionFlowData?.transactionId
-    
-    if (hasOnChainTransaction) {
-      return (
-        <EnhancedTransactionProgressScreen
-          transactionData={{
-            type: currentTransactionType,
-            amount: transactionAmountInput,
-            recipient: recipientWalletAddress,
-            asset: selectedCryptocurrencyAsset,
-            paymentMethod: chosenPaymentMethod
-          }}
-          transactionId={transactionFlowData.transactionId}
-          onConfirm={handleTransactionConfirm}
-          onCancel={() => resetTransactionFlow()}
-          flowState={transactionFlowState}
-          flowData={transactionFlowData}
-          flowError={transactionFlowError}
-        />
-      )
-    }
-    
-    // Use legacy progress screen for non-on-chain transactions
+  // Show confirmation screen if transaction is ready to confirm
+  if (transactionFlowState === 'confirming') {
     return (
       <TransactionProgressScreen
         transactionData={{
@@ -483,11 +515,29 @@ export default function TransactionPage({ transactionType: propTransactionType, 
           asset: selectedCryptocurrencyAsset,
           paymentMethod: chosenPaymentMethod
         }}
-        isCompleted={transactionFlowState === 'completed'}
-        isError={transactionFlowState === 'error'}
-        errorMessage={transactionFlowError?.message || ''}
-        fees={transactionFlowData?.fees}
-        result={transactionFlowData?.result}
+        flowState={transactionFlowState}
+        fees={transactionFlowData?.fees || calculatedTransactionFees}
+        onConfirm={handleTransactionConfirm}
+        onCancel={() => resetTransactionFlow()}
+      />
+    )
+  }
+
+  // Show transaction progress screen if in progress
+  if (transactionFlowState === 'processing' || transactionFlowState === 'completed' || transactionFlowState === 'pending' || transactionFlowState === 'pending_blockchain' || transactionFlowState === 'error' || transactionFlowState === 'failed') {
+    
+    // Always use enhanced progress screen for all transactions
+    // This eliminates the double progress page issue by skipping the basic TransactionProgressScreen
+    return (
+      <EnhancedTransactionProgressScreen
+        transactionData={{
+          type: currentTransactionType,
+          amount: transactionAmountInput,
+          recipient: recipientWalletAddress,
+          asset: selectedCryptocurrencyAsset,
+          paymentMethod: chosenPaymentMethod
+        }}
+        transactionId={transactionFlowData?.transactionId}
         onConfirm={handleTransactionConfirm}
         onCancel={() => resetTransactionFlow()}
         flowState={transactionFlowState}

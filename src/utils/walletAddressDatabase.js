@@ -1,3 +1,5 @@
+import logger from './logger'
+
 /**
  * Mock wallet address database for Transfer transaction autocomplete
  * This simulates real wallet addresses across different networks
@@ -224,7 +226,7 @@ export const getRecentWalletAddresses = () => {
       return Array.isArray(parsed) ? parsed.slice(0, 3) : []
     }
   } catch (error) {
-    console.error('Error loading recent wallet addresses:', error)
+    logger.error('Error loading recent wallet addresses:', error)
   }
   return []
 }
@@ -250,7 +252,7 @@ export const saveRecentWalletAddress = (address) => {
   try {
     localStorage.setItem(RECENT_ADDRESSES_KEY, JSON.stringify(updated))
   } catch (error) {
-    console.error('Error saving recent wallet address:', error)
+    logger.error('Error saving recent wallet address:', error)
   }
 }
 

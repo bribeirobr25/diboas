@@ -1,3 +1,5 @@
+import logger from '../utils/logger'
+
 /**
  * Environment Configuration System for diBoaS
  * Provides clean separation between development, staging, and production environments
@@ -133,35 +135,43 @@ const environmentConfigs = {
 }
 
 /**
- * API Base URLs per environment
+ * API Base URLs per environment - Updated for subdomain architecture
  */
 const apiConfigs = {
   [API_ENVIRONMENTS.LOCAL]: {
     baseUrl: 'http://localhost:3001/api',
-    authUrl: 'http://localhost:3001/auth',
+    authUrl: 'http://localhost:3002/auth',
     wsUrl: 'ws://localhost:3001',
-    cdnUrl: 'http://localhost:3001/assets'
+    cdnUrl: 'http://localhost:3001/assets',
+    appUrl: 'http://localhost:5173',
+    docsUrl: 'http://localhost:5173/docs'
   },
   
   [API_ENVIRONMENTS.DEV]: {
     baseUrl: 'https://api-dev.diboas.com/api',
     authUrl: 'https://auth-dev.diboas.com',
     wsUrl: 'wss://ws-dev.diboas.com',
-    cdnUrl: 'https://cdn-dev.diboas.com'
+    cdnUrl: 'https://cdn-dev.diboas.com',
+    appUrl: 'https://app-dev.diboas.com',
+    docsUrl: 'https://docs-dev.diboas.com'
   },
   
   [API_ENVIRONMENTS.STAGING]: {
-    baseUrl: 'https://api-staging.diboas.com/api',
-    authUrl: 'https://auth-staging.diboas.com',
-    wsUrl: 'wss://ws-staging.diboas.com',
-    cdnUrl: 'https://cdn-staging.diboas.com'
+    baseUrl: 'https://api.staging.diboas.com/api',
+    authUrl: 'https://auth.staging.diboas.com',
+    wsUrl: 'wss://ws.staging.diboas.com',
+    cdnUrl: 'https://cdn.staging.diboas.com',
+    appUrl: 'https://app.staging.diboas.com',
+    docsUrl: 'https://docs.staging.diboas.com'
   },
   
   [API_ENVIRONMENTS.PRODUCTION]: {
     baseUrl: 'https://api.diboas.com/api',
     authUrl: 'https://auth.diboas.com',
     wsUrl: 'wss://ws.diboas.com',
-    cdnUrl: 'https://cdn.diboas.com'
+    cdnUrl: 'https://cdn.diboas.com',
+    appUrl: 'https://app.diboas.com',
+    docsUrl: 'https://docs.diboas.com'
   }
 }
 
@@ -173,7 +183,7 @@ export const getEnvironmentConfig = () => {
   const config = environmentConfigs[currentEnv]
   
   if (!config) {
-    console.warn(`Unknown environment: ${currentEnv}, falling back to development`)
+    logger.warn(`Unknown environment: ${currentEnv}, falling back to development`)
     return environmentConfigs[ENV_TYPES.DEVELOPMENT]
   }
   
@@ -188,7 +198,7 @@ export const getApiConfig = () => {
   const apiConfig = apiConfigs[envConfig.apiEnvironment]
   
   if (!apiConfig) {
-    console.warn(`Unknown API environment: ${envConfig.apiEnvironment}, falling back to local`)
+    logger.warn(`Unknown API environment: ${envConfig.apiEnvironment}, falling back to local`)
     return apiConfigs[API_ENVIRONMENTS.LOCAL]
   }
   
@@ -237,7 +247,7 @@ export const getCredentials = () => {
     
     // Allow missing credentials in development for easier local setup
     if (env === ENV_TYPES.DEVELOPMENT && (!creds.apiKey || !creds.clientId || !creds.encryptionKey)) {
-      console.warn('⚠️  Missing development credentials. Some features may not work.')
+      logger.warn('⚠️  Missing development credentials. Some features may not work.')
       return {
         apiKey: creds.apiKey || null,
         clientId: creds.clientId || null,

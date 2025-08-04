@@ -6,14 +6,15 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
 ## 1. Balance System
 
 ### 1.1 Balance Structure
-**Total Balance**: Available Balance + Invested Balance
+**Total Balance**: Available Balance + Invested Balance + Strategy Balance
 **Available Balance**: USDC only (liquid funds ready for spending)
-**Invested Balance**: All non-USDC assets (BTC, ETH, SOL, SUI, Tokenized Gold, Stocks, FinObjective DeFi investments)
+**Invested Balance**: All non-USDC assets (BTC, ETH, SOL, SUI, Tokenized Gold, Stocks, Goal Strategies)
+**Strategy Balance**: All non-USDC assets used inside Goal Strategy and connected to DeFi platforms including the Yield and PNL information
 
 ### 1.2 Balance Categories
-**Available for Spending**: USDC balance that can be used for withdrawals, sends, buy and FinObjective DeFi investments
-**Invested Amount**: Value of all cryptocurrency, tokenized assets and FinObjective DeFi investments
-**Asset Tracking**: Individual tracking of each asset type with FIAT values
+**Available Amount**: USDC on Solana chain that can be used for sends, withdrawals, buy assets and launch Goal Strategies
+**Invested Amount**: value of all cryptocurrency and tokenized assets bought by the user. In this case should also exist an Asset Tracking. **Asset Tracking**: Individual tracking of each asset type with FIAT values
+**Strategy Amount**: value of all launched Goal Strategy including updating Yield and PNL. In this case should also exist an Strategy Tracking. ***Strategy Tracking*: Individual tracking of each running Strategy with FIAT values, including Yield and PNL
 
 ## 2. Authentication System
 
@@ -25,7 +26,7 @@ diBoaS Transactions enable seamless On/Off-Ramp and multi-chain operations with 
   - Web3: MetaMask, Phantom wallet integration
 
 ### 2.2 Wallet Creation
-**Auto-generation**: 4 non-custodial wallets created during signup
+**Auto-generation**: 4 non-custodial wallets created during signup, including sing up via web3 wallets
 **Supported Chains**: BTC, ETH Layer 1, SOL, SUI
   - Create SOL wallet 1st, and as soon as it is ready open the app. The other wallets can keep being created on the background while the user can already navigate through the platform
 **User Experience**: Single unified "diBoaS wallet" interface
@@ -39,13 +40,13 @@ This is the category allowing users to perform bank like operations: Add/Deposit
 
 #### 3.1.1 Add/Deposit (On-Ramp or On-Chain via External Wallet) ✅
 **Purpose**: Allow users to add money into diBoaS platform via On-Ramp (Convert fiat to crypto and add to diBoaS wallet) or On-Chain (using an external wallet sending assets into diBoaS wallet via diBoaS publick key)
-**Provider**: 3rd party payment service provider and any SWAP or Bridging Platform
+**Provider**: 3rd party payment service provider as well as 3rd party DEX providers allowing Swap or Bridge operations
 
 **Payment Methods**:
   - **On-Ramp**: Credit/Debit Card, Bank Account, Apple Pay, Google Pay, PayPal
     - Availability depends on 3rd party Provider geo-location allowance 
-  - **On-Chain**: BTC, ETH Layer 1, SOL and SUI
-    - Available via any SWAP or Bridging Platform
+  - **On-Chain**: Bitcoin (assets BTC, USDT), Ethereum Layer 1 (assets ETH, USDT, USDC), Solana (assets SOL, USDC, USDT) and Sui (assets SUI, USDT and USDC)
+    - Available via DEX platforms providing Swap or Bridge operations
 
 **Money Flow**:
   - From = selected payment method (transaction amount)
@@ -54,6 +55,7 @@ This is the category allowing users to perform bank like operations: Add/Deposit
 **Balance Impact**:
   - Available Balance = current + (transaction amount - fees)
   - Invested Balance = current (no change)
+  - Strategy Balance = current (no change)
 
 **Technical Details**:
   - **On-Ramp**:
@@ -75,21 +77,24 @@ This is the category allowing users to perform bank like operations: Add/Deposit
   - Only applicable for On-Ramp
   - **diBoaS fee**: 0.09% of fiat transaction amount
   - **Network fee**: Solana network fee, comes from Payment Provider
-    - 0.001% (mockup service for now) - NO minimum applied
+    - For now let's use a mockup service to simulate the Payment Provider communication with the following values:
+      - 0.001% - NO minimum applied
   - **Provider fees**: Variable by payment method (comes from Payment Provider):
-    - Apple Pay: 0.5%, Google Pay: 0.5% (mockup service for now)
-    - Credit Card: 1%, Bank: 1% (mockup service for now)
-    - PayPal: 3% (mockup service for now)
+    - For now let's use a mockup service to simulate the Payment Provider communication with the following values:
+      - Apple Pay: 0.5%, Google Pay: 0.5%
+      - Credit Card: 1%, Bank: 1%
+      - PayPal: 3%
 
 #### 3.1.2 Withdraw (Off-Ramp or On-Chain via External Wallet) ✅
 **Purpose**: Allow users to withdraw money from diBoaS platform either converting them into fiat or sending to an external wallet
-**Provider**: 3rd party payment service provider, DEX or SWAP or Bridging platform
+**Provider**: 3rd party payment service provider or DEX platforms providing Swap or Bridge operations
 
 **Output Methods**:
   - **Off-Ramp** = Credit/Debit Card, Bank Account, Apple Pay, Google Pay, PayPal
     - Availability depends on 3rd party Provider geo-location allowance
   - **On-Chain** = external wallet addresses on supported chains
-    - Availability BTC, ETH Layer 1, SOL and SUI
+    - Bitcoin (assets BTC, USDT), Ethereum Layer 1 (assets ETH, USDT, USDC), Solana (assets SOL, USDC, USDT) and Sui (assets SUI, USDT and USDC)
+    - Available via DEX platforms providing Swap or Bridge operations
 
 **Money Flow**:
   - From = diBoaS wallet Available Balance (transaction amount)
@@ -98,6 +103,7 @@ This is the category allowing users to perform bank like operations: Add/Deposit
 **Balance Impact**:
   - Available Balance = current - transaction amount
   - Invested Balance = current (no change)
+  - Strategy Balance = current (no change)
 
 **Technical Details**:
   - **Off-Ramp**
@@ -106,7 +112,7 @@ This is the category allowing users to perform bank like operations: Add/Deposit
     - **Minimum**: $5
     - **Validation**: Requires payment method selection and sufficient available balance
     - **KYC**: Handled by 3rd party off-ramp provider
-    - **Balance Check**: Available balance only (cannot use invested funds)
+    - **Balance Check**: Available balance only (cannot use invested balance or strategy balance)
     - **Warning**: Irreversible transaction warning displayed
   - **On-Chain**
     - **Default Chain**: Solana
@@ -114,23 +120,26 @@ This is the category allowing users to perform bank like operations: Add/Deposit
     - **Minimum**: $5
     - **Validation**: Requires selecting the payment method = external wallet, then adding a valid wallet address that is automatically recognized on SOL, BTC, ETH or SUI and sufficient available balance
     - **KYC**: Not applicable
-    - **Balance Check**: Available balance only (cannot use invested funds)
+    - **Balance Check**: Available balance only (cannot use invested balance or strategy balance)
     - **Warning**: Irreversible transaction warning displayed
   
 **Fee Structure**:
   - **diBoaS fee**: 0.9% of fiat transaction amount
-  - **Network fee**: Based on selected asset comes from Market Data Provider (NO minimums):
-    - BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003% (mockup service for now)
-  - **Payment fee**: For external payments, varies by method
-    - Apple Pay: 1%, Google Pay: 1% (mockup service for now)
-    - Credit Card: 2%, Bank: 2% (mockup service for now)
-    - PayPal: 4% (mockup service for now)
-  - **DEX fee**: only for On-Chain transactions, comes from DEX, Swap, Bridge provider
-    - 0.8% (mockup service for now)
+  - **Network fee**: Based on selected asset comes from DEX provider (NO minimums)
+    - For now let's use a mockup service to simulate the DEX Provider communication with the following values:
+      - BTC: 1%, ETH: 0.5%, SOL: 0.0001%, SUI: 0.0005%
+  - **Payment fee**: For external payments, comes from Payment providers and varies by method
+    - For now let's use a mockup service to simulate the Payment Provider communication with the following values:
+      - Apple Pay: 3%, Google Pay: 3%
+      - Credit Card: 2%, Bank: 2%
+      - PayPal: 4%
+  - **DEX fee**: only for On-Chain transactions, comes from DEX provider
+    - For now let's use a mockup service to simulate the DEX Provider communication with the following values:
+      - 0.8%
 
 #### 3.1.3 Send (P2P Transfer) ✅
 **Purpose**: On-chain transfers between diBoaS users
-**Provider**: Market Data Provider
+**Provider**: 3rd party DEX platforms providing Swap or Bridge operations
 
 **Output Methods**:
   - diBoaS wallet Available Balance
@@ -142,6 +151,7 @@ This is the category allowing users to perform bank like operations: Add/Deposit
 **Balance Impact**:
   - Available Balance = current - transaction amount
   - Invested Balance = current (no change)
+  - Strategy Balance = current (no change)
 
 **Technical Details**:
   - **Chain**: Solana
@@ -149,14 +159,15 @@ This is the category allowing users to perform bank like operations: Add/Deposit
   - **Minimum**: $5
   - **Validation**: Requires valid user input selection and sufficient available balance
   - **KYC**: not applicable
-  - **Balance Check**: Available balance only (cannot use invested funds)
+  - **Balance Check**: Available balance only (cannot use invested balance or strategy balance)
   - **User Input**: diBoaS username (@username format) + amount
   - **Warning**: Irreversible transaction warning displayed
 
 **Fee Structure**:
   - **diBoaS fee**: 0.09% of fiat transaction amount
-  - **Network fee**: Solana Network Fee (comes from Market Data Provider)
-    - 0.001% (mockup service for now) - NO minimum applied
+  - **Network fee**: Solana Network Fee (comes from DEX Provider)
+    - For now let's use a mockup service to simulate the DEX Provider communication with the following values:
+      - 0.0001% - NO minimum applied
   - **Provider fee**: Not Applicable (P2P transaction)
 
 ### 3.2 Investing Category (Buy and Sell Transactions)
@@ -183,9 +194,11 @@ This is the category allowing users to easily invest into Crypto, Stocks, Gold, 
   - **Buy On-Ramp** (external payment methods):
     - Available Balance = current (no change)
     - Invested Balance = current + (transaction amount - fees)
+    - Strategy Balance = current (no change)
   - **Buy On-Chain** (diBoaS wallet):
     - Available Balance = current - transaction amount
     - Invested Balance = current + (transaction amount - fees)
+    - Strategy Balance = current (no change)
 
 **Technical Details**:
   - **Chain - Network Detection**: Based on selected asset's native network
@@ -201,14 +214,12 @@ This is the category allowing users to easily invest into Crypto, Stocks, Gold, 
 
 **Fee Structure**:
   - **diBoaS fee**: 0.09% of fiat transaction amount
-  - **Network fee**: Based on selected asset comes from Market Data Provider (NO minimums):
-    - BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003% (mockup service for now)
-  - **Payment fee**: For external payments, varies by method (same as Add transaction)
-  - **DEX fee**: only for On-Chain transactions, comes from DEX, Swap, Bridge provider
-    - 1% (mockup service for now)
+  - **Network fee**: Based on selected asset comes from DEX provider (same as Withdraw)
+  - **Payment fee**: For external payments, comes from Payment providers and varies by method (same as Add Transaction)
+  - **DEX fee**: only for On-Chain transactions, comes from DEX provider (same as Withdraw)
 
 #### 3.2.2 Sell Assets ✅
-**Purpose**: Convert cryptocurrency assets to USDC
+**Purpose**: Convert cryptocurrency assets to USDC on Solana chain
 **Provider**: Market Data Provider + 3rd party DEX, Swap and Bridging providers
 
 **Payment Methods**:
@@ -221,6 +232,7 @@ This is the category allowing users to easily invest into Crypto, Stocks, Gold, 
 **Balance Impact**:
 - Available Balance = current + (transaction amount - fees)
 - Invested Balance = current - transaction amount
+- Strategy Balance = current (no changes)
 
 **Technical Details**:
 - **Chain - Network Detection**: Based on selected asset's native network
@@ -238,169 +250,212 @@ This is the category allowing users to easily invest into Crypto, Stocks, Gold, 
 
 **Fee Structure**:
   - **diBoaS fee**: 0.09% of fiat transaction amount
-  - **Network fee**: Based on asset being sold, comes from Market Data Provider (NO minimums):
-    - BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003% (mockup service for now)
-  - **DEX fee**: comes from the 3rd party DEX, Swap and Bridging Provider
-    - 1% for all Sell transactions (mockup service for now)
+  - **Network fee**: Based on selected asset comes from DEX provider (same as Withdraw)
+  - **DEX fee**: only for On-Chain transactions, comes from DEX provider (same as Withdraw)
 
-### 3.3 FinObjective DeFi Investments (Create, Start and Stop objective driven strategies)
-This is the category allowing users to create, star and stop objective driven investment strategies to grow their wealth and get consistent yielding via DeFi Strategies.
+### 3.3 Goal Strategies (Create, Start and Stop objective driven strategies)
+This is the category allowing users to create, start/launch and stop Goal Strategies to grow their wealth and get consistent yielding via DeFi. Goal Strategies use a goal-oriented approach where each strategy is designed around specific financial objectives like Emergency Fund, Dream Vacation, or Custom Goals.
 
-#### 3.3.1 Use Template and Start Objective Strategy
-**Purpose**: allow users to easily start building wealthy with template objective driven strategies
-**Provider**: Market Data Provider + 3rd party DeFi providers
+#### 3.3.1 Goal Strategies System Architecture
+**Core Components**:
+  - **YieldCategory**: Main landing page displaying all available strategy templates and created strategies by the user with a status badge and current portfolio overview
+  - **StrategyConfig**: Multi-step wizard for configuring templates and new strategies (template selection or new → customization → risk selection → launch strategy)  
+  - **StrategyManager**: Dashboard for managing active strategies with performance tracking and controls
+
+**Data Management**:
+  - **Centralized State**: DataManager handles all Goal Strategies state with event-driven updates
+  - **Balance Integration**: Separate Strategy Balance tracking alongside Available and Invested balances
+  - **Real-time Updates**: Components subscribe to state changes for live portfolio updates
+
+**Navigation Flow**:
+```
+App Dashboard → Yield Category → Configure Strategy → Strategy Manager
+     ↑              ↓               ↓                    ↓
+Portfolio Overview → Template Selection → Risk/Timeline Config → Active Management
+```
+**Strategy Status**:
+  - **New**: strategies that were never used by the user
+  - **Active**: strategies that were launched by the user
+  - **Used**: strategies that were already launched and stopped by the user
+
+#### 3.3.2 Use Template and Start/Launch Goal Strategies
+**Purpose**: Allow users to easily start building wealth with template Goal Strategies using pre-configured DeFi protocols optimized for specific goals
+**Provider**: 3rd party DEX platforms + 3rd party DeFi platforms (Aave, Compound, Uniswap, DeFi Tuna, etc.)
+
+**Available Templates**:
+  - **Emergency Fund**: Conservative stablecoin lending (8-12% APY, Low Risk)
+  - **Free Coffee**: Short-term yield farming for daily expenses (9-15% APY, Low Risk)  
+  - **Dream Vacation**: Balanced liquidity pools (12-18% APY, Medium Risk)
+  - **New Car**: Growth-oriented protocols (12-18% APY, Medium Risk)
+  - **Home Down Payment**: Diversified DeFi strategies (15-27% APY, High Risk)
+  - **Education Fund**: Steady growth protocols (12-18% APY, Medium Risk)
 
 **Payment Methods**:
-  - **External On-Ramp**: Credit/Debit Card, Bank Account, Apple Pay, Google Pay, PayPal
-    - Availability depends on 3rd party Provider geo-location allowance 
-  - **Internal On-Chain**: diBoaS Wallet (using available balance)
+  - **Only On-Chain**: diBoaS Wallet (automatically selected, no user selection needed)
   
 **Money Flow**:
-  - **External On-Ramp**:
-    - From = selected payment method (transaction amount)
-    - To = diBoaS wallet Strategy Balance (transaction amount - fees)
-  - **Internal On-Chain**:
-    - From = diBoaS Wallet Available Balance or Invested Balance (transaction amount)
+  - **Internal On-Chain from Available Balance**:
+    - From = diBoaS Wallet Available Balance (transaction amount)
     - To = diBoaS wallet Strategy Balance (transaction amount - fees)
 
 **Balance Impact**:
-  - **Buy On-Ramp** (external payment methods):
-    - Available Balance = current (no change)
-    - Invested Balance = current (no change)
-    - Strategy Balance = current + (transaction amount - fees)
-  - **Buy On-Chain** (diBoaS wallet Available Balance):
+  - **Start/Launch with Available Balance**:
     - Available Balance = current - transaction amount
     - Invested Balance = current (no change)
     - Strategy Balance = current + (transaction amount - fees)
-  - **Buy On-Chain** (diBoaS wallet Invested Balance):
-    - Available Balance = current (no change)
-    - Invested Balance = current - transaction amount
-    - Strategy Balance = current + (transaction amount - fees)
 
 **Technical Details**:
-  - **Templates**: Emergency Funds, Free Coffee, Home Down Payment, Dream Vacation, New Car, Education Fund
-  - **Chain - Network Detection**: Based on selected Strategy
-  - **Assets**: BTC, ETH Layer 1, SOL, SUI native network
-  - **Minimum**: $10
-  - **Validation**: Requires payment method selection + only for On-Chain it needs sufficient available balance or invested balance + correct asset depending on the selected strategy
-  - **KYC**: only for Buy On-Ramp and handle by 3rd party payment providers
-  - **Balance Check**: Only for diBoaS Wallet payments (uses available or invested balance)
-  - **User Input**: Objective Details (Title and Description) + image (template or upload one) + target amount + timeframe (weeks or months) + Risk Level Strategy selection + recurrent payment amount + payment method + start
-    - All fields can be edited by the user. That means the user can accept the template as it is or complete customize it into something completely new.
-  - **Warning**: Informing the user is responsible for their choices and informing that investing carry risks
-  - **Asset Storage**: Added to Strategy balance and asset tracking, stored on one of the 4 wallets created according to the correct chain
-  - **Ethereum Specific Case**: For now just supporting ETH layer 1
+  - **Template Customization**: Users can modify all template parameters
+  - **Multi-Step Configuration**: 
+    - Step 1 = Name, Image
+    - Step 2 = How much you have to invest (start amount and add more over time amount and period - every week, every 2 weeks, every month, every 3 months, twice an year, once an year)
+    - Step 3 = What do you want to achieve (amount at an specific date, or amount per day, per month or per year)
+    - Step 4 = Dialog showing diBoaS is searching the best investment options to make your goal achievable. The messages should be shown for 3 seconds or until it receives a information that the search for applicable strategies is over
+      - in the background what needs to happens is:
+        - take all the step 1, 2 and 3 data into consideration
+        - calculate how much in terms of % it is needed to achieve the step 3 with step 2 data
+        - check all DeFi strategies available inside diBoaS that matches the calculation made
+        - create a list of all strategies that matches or at least comes close to match the calculation
+    - Step 5 = Show a list of strategies ordered from top match with the user's step 2 and 3 data
+      - what can be done to improve the UX and not let the user waiting to long without shogin data is just show the first strategy matching the criterias and keep searching for more showing this information at the screen to the user
+      - Still on Step 5 when the list is done, allow users to select the strategy he wants from the list.
+      - there should also be an option to expand the strategy showing more detailed information
+    - Step 6 = Then a Resume page showing all ifnormation and asking the user to review and Launch the strategy
+    - Step 7 = After the strategy is launched it shows with a running badge at the Yield page with a similar detail page in case the user clicks on it, just like the asset detailed page from investment. But with the data related tot he strategy and the defi platform with a Stop button
+    - Step 8 = When stopping a strategy the running badge should be removed from the strategy at the Yield page
+  - **Chain - Network Detection**: Based on selected strategy's DeFi protocols
+  - **Supported Assets**: BTC, ETH Layer 1, SOL, SUI native networks
+  - **Minimum Investment**: $10
+  - **Validation**: Requires sufficient balance verification for On-Chain payments
+  - **KYC**: not applicable
+  - **Balance Check**: Real-time validation against available balance
+  - **Risk Level Configuration**:
+    - **Conservative**: 8-12% APY, Stablecoin staking, low-risk lending
+    - **Moderate**: 12-18% APY, Liquidity pools, yield farming
+    - **Aggressive**: 15-27% APY, High-yield farming, leveraged positions
+  - **Strategy Composition**: Each risk level maps to specific DeFi protocol combinations
+  - **Warning**: Comprehensive risk disclosure about DeFi investments and potential losses
+  - **Asset Storage**: Funds deployed across multiple DeFi protocols based on strategy composition
+  - **Recent Activities and Transaction History**: When Launching and Stopping a strategy the transaction should be stored at the Recent Activities and Transaction History.
+  - **Ethereum Specific Case**: Currently supporting ETH Layer 1 only
 
 **Fee Structure**:
-  - **diBoaS fee**: 0.09% of fiat transaction amount
-  - **Network fee**: Based on selected strategies comes from Market Data Provider (NO minimums):
-    - BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003% (mockup service for now)
-  - **Payment fee**: For external payments, varies by method (same as Add transaction)
-  - **DeFi fee**: comes from the DeFi provider for the selected strategy
-    - 1% (mockup service for now)
+  - **diBoaS fee**: 0.09% of transaction amount
+  - **Network fee**: Based on selected strategy's primary chain (same as buy transaction):
+  - **DEX fee**: it will come from DEX providers (same as buy transactions)
+  - **DeFi fee**: it will come from DeFi providers (same as start/launch transaction)
+    - For now let's use a mockup service to simulate the DeFi Provider communication with the following values:
+      - 0.7% - For Solana providers
+      - 0.9% - For Sui providers
+      - 1.2% - For Ethereum Layer 1 providers
+      - 1.5% - For Bitcoin providers
 
-**Extra Details**:
-  - **Yielding and APY**: the Yielding value and APY will come from the DeFi 3rd party provider applying the selected strategy
-  - **Strategy Status**: strategies can be Active, Not Active or Stopped (Active are all strategies the user selected and started). Only the active strategies will contribute to a Yielding, APY and Goals Progress tracking
-  - **Goals Progress**: this will be related to each strategy showing how far or close a strategy is to achieve the target
-  - P.S.: All above information is tracked using the diBoaS Strategy Balance
+**Strategy Management Features**:
+  - **Real-time APY Tracking**: Live performance monitoring from DeFi protocols
+  - **Progress Visualization**: Goal completion percentage with projected timeline
+  - **Strategy Status**: Active, Paused, Near Completion, Completed
+  - **Performance Metrics**: Total earned, monthly earnings, APY vs expected
+  - **Rebalancing**: Automated optimization based on market conditions
+  - **Compound Rewards**: Automatic reinvestment of earned yields
 
-#### 3.3.2 Create and Start Objective Strategy
-**Purpose**: allow users to create their own objective driven strategy
-**Provider**: Market Data Provider + 3rd party DeFi provider
+#### 3.3.3 Stop and Claim Funds from Goal Strategies
+**Purpose**: Stop active strategies and claim funds, moving them from diBoaS Strategy Balance to Available Balance in USDC on Solana chain with comprehensive exit strategy management
+**Provider**: 3rd party DEX platform with Swap and Bridging operations + DeFi platforms
 
-**Payment Methods**:
-  - Same as 3.3.1 Use Template Objective Strategy
-  
-**Money Flow**:
-  - Same as 3.3.1 Use Template Objective Strategy
-
-**Balance Impact**:
-  - Same as 3.3.1 Use Template Objective Strategy
-
-**Technical Details**:
-  - Same as 3.3.1 Use Template Objective Strategy
-
-**Fee Structure**:
-  - Same as 3.3.1 Use Template Objective Strategy
-
-**Extra Details**:
-  - Same as 3.3.1 Use Template Objective Strategy
-
-#### 3.3.3 Stop and Claim Funds Objective Strategy
-**Purpose**: Stop strategies and Claim funds moving it from diBoaS Strategy Balance to Available Balance in USDC at Solana chain
-**Provider**: Market Data Provider + 3rd party DEX, Swap and Bridging providers + DeFi provider
+**Stop Strategy Options**:
+  - **Full Exit**: Stop strategy and withdraw entire balance
+  - **Goal Achievement**: Automatic stop when target amount is reached and withdraw entire balance
 
 **Payment Methods**:
   - diBoaS Wallet (automatically selected, no user selection needed)
 
 **Money Flow**:
-    - From = diBoaS wallet Strategy Balance (transaction amount)
-    - To = diBoaS wallet Available Balance (transaction amount - fees)
+  - From = diBoaS wallet Strategy Balance (full amount related to the stopped strategy including earned yields from that strategy)
+  - To = diBoaS wallet Available Balance (transaction amount - fees)
 
 **Balance Impact**:
-- Available Balance = current + (transaction amount - fees)
-- Strategy Balance = current - transaction amount
+  - Available Balance = current + (total strategy value - fees)
+  - Invested Balance = current (no change)
+  - Strategy Balance = current - total strategy value
 
 **Technical Details**:
-- **Chain - Network Detection**: Based on selected Strategy
-- **Assets**:
-  - Selling = BTC, ETH, SOL, SUI native network
-  - Receiving USDC on Solana network
-  - **Minimum**: Stop and selling all
-  - **Validation**: Requires Strategy selection + status = Active + Strategy value > 0
-  - **KYC**: not applicable
-  - **Balance Check**: Cannot sell more than Strategy amount for that specific selected Strategy
-  - **User Input**: Strategy Selection + Stop and Withdraw
-  - **Payment Method**: Automatically set to diBoaS Wallet Available Balance with the entire balance invested on that strategy (hidden from UI)
+  - **Chain - Network Detection**: Based on strategy's DeFi protocol composition
+  - **Asset Liquidation**:
+    - Source = Various DeFi protocols (Aave, Compound, Uniswap, etc.)
+    - Destination = USDC on Solana network
+  - **Exit Strategy**: Smart liquidation across multiple protocols to minimize slippage
+  - **Minimum**: Must stop entire strategy
+  - **Validation**: 
+    - Strategy must be Active status
+    - Strategy balance must be > 0
+    - User confirmation required for irreversible action
+  - **KYC**: Not applicable
+  - **Balance Check**: Cannot exceed Strategy balance for selected strategy
+  - **User Interface**: 
+    - Strategy selection from active strategies list
+    - Performance summary showing total earned
+    - Fee breakdown before confirmation
+    - Final confirmation with strategy performance recap
+  - **Processing Time**: Varies by DeFi protocols involved (2-30 minutes)
+  - **Payment Method**: Automatically uses diBoaS Wallet (hidden from UI)
 
 **Fee Structure**:
-  - **diBoaS fee**: 0.09% of fiat transaction amount
-  - **Network fee**: Based on strategy being stopped because of the chain, comes from Market Data Provider (NO minimums):
-    - BTC: 9%, ETH: 0.5%, SOL: 0.001%, SUI: 0.003% (mockup service for now)
-  - **DeFi fee**: comes from the 3rd party DeFi provider
-    - 1% for all Sell transactions (mockup service for now)
+  - **diBoaS fee**: 0.09% of transaction amount
+  - **Network fee**: Based on selected strategy's primary chain (same as sell transaction):
+  - **DEX fee**: it will come from DEX providers (same as sell transactions)
+  - **DeFi fee**: it will come from DeFi providers (same as start/launch transaction)
 
-**Extra Details**:
-  - **Yielding and APY**: when stopped the Strategy keeps its last Yielding and APY data and goes to a Strategy History. However, it is no longer considered to contribute to the Overall dashboard data with a sumup or Yielding and APY
-  - **Strategy Status**: strategies set as Stopped are automatically removed from the list of active strategies and entering the Strategy History
-  - **Goals Progress**: this is another information that is stored with the last data when stopping the strategy, allowing users to visit the Strategies History and check all information on how that strategy has played out
-  - P.S.: All above information is tracked using the diBoaS Strategy Balance
+**Strategy Lifecycle Management**:
+  - **Performance Archive**: Final performance metrics saved to strategy history
+    - Total earned, final APY, duration, goal completion percentage
+  - **Strategy Status Transition**: Active → Stopped → Archived
+  - **Historical Data**: Complete transaction history and performance timeline preserved
+  - **Goal Achievement Tracking**: Records whether strategy met original objective
+  - **Tax Reporting**: Generate transaction summary for tax reporting purposes (future implementation)
+  - **Strategy Analytics**: Detailed breakdown of performance vs projections
+
+**Post-Stop Features**:
+  - **Share on Socials**: Generate an image by user request with main information about the strategy to share on Socials (hide amounts just share %)
+  - **Strategy History**: Access historical performance data and transaction records
+  - **Restart Capability**: Option to restart similar strategy with lessons learned
+  - **Performance Insights**: Analysis of what worked well vs original projections
+  - **Template Creation**: Convert successful custom strategies into reusable templates
 
 ## 4. Fee Calculation System
 
 ### 4.1 Network Fees
-**Source** - it comes from 3rd parties, sometimes from Market Data Provider other times from Payment Providers
+**Source** - it comes from 3rd parties, from Payment Providers, DEX providers and DeFi providers
 **NO MINIMUM FEES APPLIED** - Users pay exactly the amount retrieved from the 3rd party providers.
 **Mockup Service For Now**
-  - **BTC**: 9% of transaction amount
+  - **BTC**: 1% of transaction amount
   - **ETH**: 0.5% of transaction amount
-  - **SOL**: 0.001% of transaction amount
-  - **SUI**: 0.003% of transaction amount
+  - **SOL**: 0.0001% of transaction amount
+  - **SUI**: 0.0003% of transaction amount
 
 ### 4.2 diBoaS Fees
-**0.09%** for: Add, Send, Buy, Sell, FinObjective DeFi investments
+**0.09%** for: Add, Send, Buy, Sell, Start/Launch, Stop
 **0.9%** for: Withdraw
 
-### 4.3 Payment Provider Fees
+### 4.3 Payment, DEX and DeFi Provider Fees
 **On/Off-Ramp (Add/Withdraw)**: Comes from 3rd Party Payment providers
 **Mockup Service For Now**
-  - Apple Pay: Add 0.5%, Withdraw 1%
-  - Credit Card/Bank: Add 1%, Withdraw 2%
-  - Google Pay: Add 0.5%, Withdraw 1%
-  - PayPal: Add 3%, Withdraw 4%
+  - Apple Pay: 0.5%, Google Pay: 0.5%
+  - Credit Card: 1%, Bank: 1%
+  - PayPal: 3%
 
-**DEX Fees (Buy/Sell)**: Comes from 3rd Party DEX, SWAP or Bridging providers
+**DEX Fees**: Comes from 3rd Party DEX with Swap or Bridging operations
 **Mockup Service For Now**
-  - 0.8% DEX fee for all Transfer transactions that are not using SOLANA wallets
-  - 1% DEX fee for all Buy/Sell transactions
-  - Additional Payment Provider Fees if using external payment methods for Buy
+  - For now let's use a mockup service to simulate the DEX Provider communication with the following values:
+    - 0.8% DEX fee for all transactions that has DEX fees and are not using SOLANA wallets
+    - For Solana wallets or chain, DEX fee = 0%
 
-**DeFi Fees (FinObjective DeFi Investments)**: Comes from 3rd Party DeFi providers
+**DeFi Fees (only Start and Stop transactions)**: Comes from 3rd Party DeFi providers
 **Mockup Service For Now**
-  - 1% DeFi fee for all Start transactions
-  - 1% DeFi fee for all Stop transactions
-  - Additional Payment Provider Fees if using external payment methods for Start
+  - For now let's use a mockup service to simulate the DeFi Provider communication with the following values:
+    - 0.7% - For Solana providers
+    - 0.9% - For Sui providers
+    - 1.2% - For Ethereum Layer 1 providers
+    - 1.5% - For Bitcoin providers
 
 ### 4.4 Fee Display Structure
 **Formatting Standards**:
@@ -411,24 +466,25 @@ This is the category allowing users to create, star and stop objective driven in
 
 **Buy Transactions**:
   - **Payment Fee**: Only for external payment methods
-  - **DEX Fee**: only when buying using diBoaS wallet
+  - **DEX Fee**: behavior and % as defined at 4.3 topic
   - **Network Fee**: Based on selected asset's chain
 
 **Sell Transactions**:
-  - **DEX Fee**: 1% applied to all assets (uses diBoaS Wallet automatically)
-  - **Network Fee**: Based on asset being sold
+  - **DEX Fee**: behavior and % as defined at 4.3 topic
+  - **Network Fee**: Based on selected asset's chain
   - **Payment Method**: Automatically uses diBoaS Wallet (hidden from user interface)
 
 **Start Strategy Transactions**:
-  - **Payment Fee**: Only for external payment methods
-  - **DeFi Fee**: based on DeFi provider for that strategy
+  - **DEX Fee**: behavior and % as defined at 4.3 topic
+  - **DeFi Fee**: behavior and % as defined at 4.3 topic
   - **Network Fee**: Based on selected strategy chain
-
-**Sell Transactions**:
-  - **DEX Fee**: 1% applied to all stopped strategies (uses diBoaS Wallet automatically)
-  - **Network Fee**: Based on strategy being stopped
   - **Payment Method**: Automatically uses diBoaS Wallet (hidden from user interface)
-  - **DeFi Fee**: based on DeFi provider for that strategy
+
+**Stop Transactions**:
+  - **DEX Fee**: behavior and % as defined at 4.3 topic
+  - **DeFi Fee**: behavior and % as defined at 4.3 topic
+  - **Network Fee**: Based on selected strategy chain
+  - **Payment Method**: Automatically uses diBoaS Wallet (hidden from user interface)
 
 **Other Transactions**:
   - **Provider Fee**: Combined provider costs
@@ -449,9 +505,9 @@ Transaction button is disabled until ALL required fields are filled and validate
 - **Send**: Transaction Amount + Recipient + Sufficient Available Balance  
 - **Buy On-Ramp**: Transaction Amount + Asset + External Payment Method
 - **Buy On-Chain**: Transaction Amount + Asset + diBoaS Wallet + Sufficient Available Balance
-- **Sell**: Transaction Amount + Asset + Sufficient Invested Balance (payment method auto-selected)
-- **Start Strategy**: all objective driven strategy fields filled and selected + payment method selected + Sufficient Available or Invested Balance
-- **Stop Strategy**: strategy is active
+- **Sell**: Transaction Amount + Asset + diBoaS wallet method auto-selected
+- **Start Strategy**: all objective driven strategy fields filled and selected + diBoaS wallet method auto-selected + Sufficient Available Balance
+- **Stop Strategy**: strategy is active + strategy is identified in the Strategy Balance + all funds related to the strategy will be withdraw + send money to diBoaS wallet method auto-selected at Available Balance
 
 **Real-time Balance Validation**:
 - Transaction button automatically disabled when amount exceeds available balance
@@ -460,13 +516,13 @@ Transaction button is disabled until ALL required fields are filled and validate
 - Enhanced validation checks run on every input change
 
 ### 5.2 Balance Validation Logic
-**Available Balance**: USDC only, used for spending transactions, buying assets and FinObjective DeFi investments
-**Invested Balance**: All non-USDC assets, used for selling transactions and Start FinObjective DeFi investments
+**Available Balance**: USDC only, used for spending transactions, buying assets and Goal Strategies
+**Invested Balance**: All non-USDC assets, used for selling transactions and Start Goal Strategies
 **Strict Enforcement**: 
   - Withdraw, Send cannot exceed available balance
   - Buy On-Chain cannot exceed available balance
   - Sell cannot exceed invested balance for specific asset
-  - Start On-Chain cannot exceed available balance or invested balance
+  - Start On-Chain cannot exceed available balance
   - Stop cannot exceed strategy balance for specific strategy
 **Error Messages**: Clear feedback when limits exceeded
 **Real-time**: Validation updates as user types
@@ -485,23 +541,24 @@ Transaction button is disabled until ALL required fields are filled and validate
 **Enhanced Confirmation Screen**: Shows detailed from/to information
   - **Dynamic From/To Fields**: Automatically generated based on transaction type
   - **Add**: From Payment Method → To diBoaS Wallet Available Balance
-  - **Withdraw**: From diBoaS Wallet Available Balance → To Payment Method
-  - **Send**: From diBoaS Wallet Available Balance → To Another diBoaS User
-  - **Transfer**: From diBoaS Wallet Available Balance → To External Wallet
-  - **Buy**: From Payment Method/diBoaS Wallet → To diBoaS Wallet Invested Balance
+  - **Withdraw**: From diBoaS Wallet Available Balance → To Payment Method or External Wallet
+  - **Send**: From diBoaS Wallet Available Balance → To Another diBoaS User Available balance
+  - **Buy**: From Payment Method or diBoaS Wallet Available Balance → To diBoaS Wallet Invested Balance
   - **Sell**: From diBoaS Wallet Invested Balance → To diBoaS Wallet Available Balance
+  - **Start/Launch**: From diBoaS Wallet Available Balance → To diBoaS Wallet Strategy Balance
+  - **Stop**: From diBoaS Wallet Strategy Balance → To diBoaS Wallet Available Balance
 **Success Summary**: Shows transaction details and updated balance
-  - Waits for On-Chain Success confirmation
+  - Waits for Payment Providers or DEX or DeFi Success confirmation
 **Not Yet Summary**: Shows after 3 seconds if no success/error
   - Mentions transaction is ongoing, funds deposited when succeeded
   - Returns to dashboard after 3 seconds
   - Mockup timing: 2 seconds (5 seconds for BTC)
 **Error Handling**: Clear error messages with retry options
-  - Waits for On-Chain Error confirmation
+  - Waits for Payment Providers or DEX or DeFi error message
 
 ### 6.2 Irreversible Transaction Warnings
 **Send Transactions**: Warning about accuracy of recipient information
-**Transfer Transactions**: Warning about external wallet address accuracy
+**Withdraw to External Wallet**: Warning about external wallet address accuracy
 **UI Treatment**: Amber warning boxes with alert icons
 
 ### 6.3 Real-time Updates
@@ -538,8 +595,7 @@ Transaction button is disabled until ALL required fields are filled and validate
 **Network Detection**: Dynamic fee calculation based on detected networks
 **No Minimums**: Exact percentage calculations without artificial floors
 **Separate Fee Types**: Payment fees and DEX fees calculated separately
-**UI Treatment**:: show fees with 3 decimals rounding the last number.
-  - For fees with many decimals use 0.0numberdecimalsFIRSTTWONUMBERS_AFTER_0
+**UI Treatment**:: show fees with 2 decimals rounding the last number.
 
 ### 7.3 Balance Management System
 **Centralized DataManager**: Single source of truth for balance state
@@ -573,7 +629,7 @@ Transaction button is disabled until ALL required fields are filled and validate
 **Scope**: On-Chain Transaction Status validation before transfering funds
   - **diBoaS fees**: Only deposit diBoaS fees when the transaction returns Success from On-Chain Transaction status
     - **diBoaS deposit account**: it will be a wallet address on Solana network to receive the fees
-  - **user's funds**: Only update the Available Balance or Invested Balance as well as the asset list or FinObjective DeFi Investments after the On-Chain success message
+  - **user's funds**: Only update the Available Balance or Invested Balance as well as the asset list or Goal Strategies after the On-Chain success message
   - **On-Chain transaction link** add the transaction link into the transaction history together with the transaction data, not only for successful transactions, but also for failed transactions
     - For failed transaction do NOT change the funds o the Available Balance or Invested Balance and add an information that the funds were not changed in the transaction history with the data of the failed transaction
   - **P.S.:** For now there should be a mockup service simulating this On-Chain answer
@@ -686,7 +742,7 @@ transaction link = https://suivision.xyz/txblock/7r3zvFqvZNUavgXRVSp1uyaAoJvYCgP
 - Real payment provider APIs (On/Off-ramp)
 - DEX integration for asset swapping
 - Bridge services for cross-chain operations
-- DeFi integration for FinObjective DeFi Investments
+- DeFi integration for Goal Strategies
 - KYC/AML service integration
 - Real-time price feeds for assets
 

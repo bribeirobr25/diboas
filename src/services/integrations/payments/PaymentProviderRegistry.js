@@ -7,6 +7,7 @@ import { BaseProviderRegistry } from '../BaseProviderRegistry.js'
 import { PaymentResult } from './PaymentResult.js'
 import { PaymentError } from './PaymentError.js'
 import { Money } from '../../../domains/shared/value-objects/Money.js'
+import logger from '../../../utils/logger'
 
 export class PaymentProviderRegistry extends BaseProviderRegistry {
   constructor() {
@@ -369,7 +370,7 @@ export class PaymentProviderRegistry extends BaseProviderRegistry {
     try {
       return this.safeEvaluateExpression(evaluableCondition, context)
     } catch (error) {
-      console.warn('Payment routing condition evaluation failed:', error.message)
+      logger.warn('Payment routing condition evaluation failed:', error.message)
       return false
     }
   }

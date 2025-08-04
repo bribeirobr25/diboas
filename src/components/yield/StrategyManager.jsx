@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
+import logger from '../../utils/logger'
 import { 
   ArrowLeft,
   TrendingUp,
@@ -118,7 +119,7 @@ export default function StrategyManager() {
   useEffect(() => {
     if (isNewStrategy) {
       // Show success message for new strategy creation
-      console.log('New strategy created successfully!')
+      logger.debug('New strategy created successfully!')
     }
   }, [isNewStrategy])
 

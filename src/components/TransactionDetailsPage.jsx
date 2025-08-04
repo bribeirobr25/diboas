@@ -8,6 +8,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
+import logger from '../utils/logger'
 import { 
   ArrowLeft,
   ExternalLink,
@@ -137,7 +138,7 @@ export default function TransactionDetailsPage({ transactionId: propTransactionI
       }
     } catch (err) {
       setError('Failed to load transaction details')
-      console.error('Error loading transaction:', err)
+      logger.error('Error loading transaction:', err)
     } finally {
       setLoading(false)
     }
@@ -148,7 +149,7 @@ export default function TransactionDetailsPage({ transactionId: propTransactionI
       await navigator.clipboard.writeText(text)
       // You could add a toast notification here
     } catch (err) {
-      console.error('Failed to copy:', err)
+      logger.error('Failed to copy:', err)
     }
   }
 
@@ -204,7 +205,7 @@ export default function TransactionDetailsPage({ transactionId: propTransactionI
               {error || 'Transaction Not Found'}
             </h2>
             <p className="text-gray-600 mb-4">
-              The transaction you're looking for could not be found or loaded.
+              The transaction you&apos;re looking for could not be found or loaded.
             </p>
             <Button onClick={() => navigate('/app')}>
               Return to Dashboard

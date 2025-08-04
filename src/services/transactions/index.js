@@ -1,3 +1,5 @@
+import logger from '../../utils/logger'
+
 /**
  * Transaction System Integration
  * Extends the main integration manager with transaction capabilities
@@ -22,7 +24,7 @@ export async function initializeTransactionProviders(integrationManager) {
       const { extendIntegrationManager } = await import('../integrations/IntegrationManagerExtensions.js')
       extendIntegrationManager(integrationManager)
     } catch (error) {
-      console.warn('Could not extend integration manager:', error.message)
+      logger.warn('Could not extend integration manager:', error.message)
     }
     
     // Initialize trading registry
@@ -74,10 +76,10 @@ export async function initializeTransactionProviders(integrationManager) {
     // Register bridge registry with integration manager
     integrationManager.registerRegistry('bridge', bridgeRegistry)
 
-    console.log('Transaction providers initialized successfully')
+    logger.debug('Transaction providers initialized successfully')
     return { success: true }
   } catch (error) {
-    console.error('Failed to initialize transaction providers:', error)
+    logger.error('Failed to initialize transaction providers:', error)
     throw error
   }
 }

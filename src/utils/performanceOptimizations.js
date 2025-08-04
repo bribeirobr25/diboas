@@ -4,6 +4,7 @@
  */
 
 import { useMemo, useCallback, useRef, useEffect, useState } from 'react'
+import logger from './logger'
 
 /**
  * Money Object Pool for performance optimization
@@ -279,7 +280,7 @@ export const performanceMonitor = {
     
     // Log slow renders in development
     if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development' && duration > 16) {
-      console.warn(`Slow render detected: ${componentName} took ${duration.toFixed(2)}ms`)
+      logger.warn(`Slow render detected: ${componentName} took ${duration.toFixed(2)}ms`)
     }
     
     return result
@@ -372,7 +373,7 @@ export const bundleOptimization = {
     try {
       return await importFunction()
     } catch (error) {
-      console.error('Dynamic import failed:', error)
+      logger.error('Dynamic import failed:', error)
       throw error
     }
   },

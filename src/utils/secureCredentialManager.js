@@ -5,6 +5,7 @@
 
 import { secureStorage } from './secureStorage.js'
 import secureLogger from './secureLogger.js'
+import logger from './logger'
 
 /**
  * Credential types for different API services
@@ -138,7 +139,7 @@ class SecureCredentialManager {
     
     // Warn if using production credentials in non-production
     if (environment !== 'production' && envVar.includes('PROD')) {
-      console.warn('WARNING: Using production credentials in non-production environment')
+      logger.warn('WARNING: Using production credentials in non-production environment')
     }
 
     return credential
@@ -152,7 +153,7 @@ class SecureCredentialManager {
       const key = `credential_${type}`
       return await secureStorage.getSecureItem(key, this.encryptionKey)
     } catch (error) {
-      console.warn('Failed to retrieve stored credential:', error.message)
+      logger.warn('Failed to retrieve stored credential:', error.message)
       return null
     }
   }
@@ -193,7 +194,7 @@ class SecureCredentialManager {
       
       // Simulate secure endpoint call
       // In real implementation, this would use client certificates or other secure auth
-      console.warn('Credential endpoint not implemented - using fallback')
+      logger.warn('Credential endpoint not implemented - using fallback')
       return null
       
     } catch (error) {
@@ -245,7 +246,7 @@ class SecureCredentialManager {
       }
       
       // Last resort - but warn about insecurity
-      console.warn('SECURITY WARNING: Using weak random generation for encryption key')
+      logger.warn('SECURITY WARNING: Using weak random generation for encryption key')
       const timestamp = Date.now().toString()
       const weakRandom = Math.random().toString(36)
       return `diboas-cred-key-WEAK-${btoa(timestamp + weakRandom).slice(0, 32)}`

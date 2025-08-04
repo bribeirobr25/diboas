@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { dataManager } from '../services/DataManager.js'
+import logger from '../utils/logger'
 
 /**
  * Hook for managing DataManager subscriptions with automatic cleanup
@@ -55,7 +56,7 @@ export const useDataManagerSubscription = (eventType, callback, dependencies = [
 export const useSafeDataManager = () => {
   const checkDisposed = useCallback(() => {
     if (dataManager.disposed) {
-      console.warn('Attempting to use disposed DataManager')
+      logger.warn('Attempting to use disposed DataManager')
       return true
     }
     return false
