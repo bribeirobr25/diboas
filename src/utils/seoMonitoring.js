@@ -1,3 +1,6 @@
+import logger from './logger'
+import { storage } from './modernStorage.js'
+
 /**
  * SEO Monitoring and Analytics Utilities
  * Provides comprehensive SEO performance tracking and optimization
@@ -41,7 +44,7 @@ export const coreWebVitals = {
     }).catch(() => {
       // Web Vitals library not available - this is normal in development
       if (import.meta.env.DEV) {
-        console.info('Web Vitals library not available (development mode)')
+        logger.info('Web Vitals library not available (development mode)')
       }
     })
   },
@@ -53,7 +56,7 @@ export const coreWebVitals = {
 
     // Log to console in development
     if (import.meta.env.DEV) {
-      console.log(`[CWV] ${name}:`, {
+      logger.debug(`[CWV] ${name}:`, {
         value: `${value}ms`,
         delta: `${delta}ms`,
         rating: metric.rating,
@@ -71,30 +74,31 @@ export const coreWebVitals = {
       })
     }
 
-    // Store in localStorage for development tracking
+    // Store in modernized storage for development tracking
     if (import.meta.env.DEV) {
-      const metrics = JSON.parse(localStorage.getItem('seo_metrics') || '[]')
-      metrics.push({
-        name,
-        value,
-        delta,
-        rating: metric.rating,
-        timestamp: Date.now(),
-        url: window.location.href
+      storage.getCacheItem('seo_metrics', []).then(async (metrics) => {
+        metrics.push({
+          name,
+          value,
+          delta,
+          rating: metric.rating,
+          timestamp: Date.now(),
+          url: window.location.href
+        })
+        
+        // Keep only last 100 metrics
+        if (metrics.length > 100) {
+          metrics.splice(0, metrics.length - 100)
+        }
+        
+        await storage.setCacheItem('seo_metrics', metrics, 86400000) // 24 hours
       })
-      
-      // Keep only last 100 metrics
-      if (metrics.length > 100) {
-        metrics.splice(0, metrics.length - 100)
-      }
-      
-      localStorage.setItem('seo_metrics', JSON.stringify(metrics))
     }
   },
 
   // Get performance grade based on Core Web Vitals
-  getPerformanceGrade: () => {
-    const metrics = JSON.parse(localStorage.getItem('seo_metrics') || '[]')
+  getPerformanceGrade: async () => {
+    const metrics = await storage.getCacheItem('seo_metrics', [])
     const recent = metrics.slice(-10) // Last 10 measurements
 
     if (recent.length === 0) return { grade: 'N/A', score: 0 }
@@ -390,16 +394,16 @@ export const seoReporting = {
       
       const report = seoReporting.generateReport()
       console.group('📊 SEO Report')
-      console.log('Overall Grade:', report.summary.overallGrade)
-      console.log('SEO Score:', `${report.seo.score}/100 (${report.seo.grade})`)
-      console.log('Performance Score:', `${report.performance.score}/100 (${report.performance.grade})`)
-      console.log('Priority Actions:', report.summary.priorityActions)
-      console.log('Total Issues:', report.summary.totalIssues)
+      logger.debug('Overall Grade:', report.summary.overallGrade)
+      logger.debug('SEO Score:', `${report.seo.score}/100 (${report.seo.grade})`)
+      logger.debug('Performance Score:', `${report.performance.score}/100 (${report.performance.grade})`)
+      logger.debug('Priority Actions:', report.summary.priorityActions)
+      logger.debug('Total Issues:', report.summary.totalIssues)
       
       if (report.recommendations.length > 0) {
         console.group('🔧 Recommendations')
         report.recommendations.forEach(rec => {
-          console.log(`[${rec.impact}] ${rec.message}`)
+          logger.debug(`[${rec.impact}] ${rec.message}`)
         })
         console.groupEnd()
       }

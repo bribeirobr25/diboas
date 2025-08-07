@@ -79,7 +79,7 @@ const SECONDARY_FILTERS = {
   banking: {
     all: { id: 'all', label: 'All', icon: null },
     in: { id: 'in', label: 'Money In', icon: ArrowDownCircle, types: ['add', 'receive'] },
-    out: { id: 'out', label: 'Money Out', icon: ArrowUpCircle, types: ['send', 'withdraw', 'transfer'] }
+    out: { id: 'out', label: 'Money Out', icon: ArrowUpCircle, types: ['send', 'withdraw'] }
   },
   investment: {
     all: { id: 'all', label: 'All', icon: null },

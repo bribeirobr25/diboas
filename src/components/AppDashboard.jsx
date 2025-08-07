@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge.jsx'
 import { LoadingSpinner } from '@/components/ui/loading-spinner.jsx'
 import { SkeletonBalance, SkeletonTransaction } from '@/components/ui/skeleton.jsx'
+import logger from '../utils/logger'
 import { 
   ArrowUpRight,
   ArrowDownLeft,
@@ -92,7 +93,7 @@ export default function AppDashboard() {
   // PERFORMANCE: Memoized recent transaction history getter
   const loadRecentTransactionHistory = useCallback(() => {
     const allUserTransactions = retrieveAllTransactionsFromDataManager()
-    console.log('📖 Getting recent transaction history from DataManager:', allUserTransactions.length, 'total transactions')
+    logger.debug('📖 Getting recent transaction history from DataManager:', allUserTransactions.length, 'total transactions')
     return allUserTransactions.slice(0, 5) // Get last 5 transactions for dashboard
   }, [retrieveAllTransactionsFromDataManager])
   
@@ -106,7 +107,7 @@ export default function AppDashboard() {
   const updateDashboardTransactionsDebounced = useCallback(() => {
     const timeoutId = setTimeout(() => {
       const updatedTransactionHistory = loadRecentTransactionHistory()
-      console.log('📚 Updated dashboard transaction history (debounced):', updatedTransactionHistory)
+      logger.debug('📚 Updated dashboard transaction history (debounced):', updatedTransactionHistory)
       setDashboardTransactionHistory(updatedTransactionHistory)
       refreshWalletBalance(true)
     }, 100) // 100ms debounce
@@ -116,12 +117,12 @@ export default function AppDashboard() {
   
   // MEMORY SAFE: Use safe DataManager subscriptions with semantic event handling
   useDataManagerSubscription('transaction:added', (newTransactionData) => {
-    console.log('🔔 DataManager transaction added event received:', newTransactionData)
+    logger.debug('🔔 DataManager transaction added event received:', newTransactionData)
     updateDashboardTransactionsDebounced()
   }, [updateDashboardTransactionsDebounced])
   
   useDataManagerSubscription('transaction:completed', ({ transaction: completedTransactionData }) => {
-    console.log('🔔 DataManager transaction completed event received:', completedTransactionData)
+    logger.debug('🔔 DataManager transaction completed event received:', completedTransactionData)
     updateDashboardTransactionsDebounced()
   }, [updateDashboardTransactionsDebounced])
   
@@ -134,7 +135,7 @@ export default function AppDashboard() {
     
     // Also listen for custom events (for backward compatibility)
     const handleCustomTransactionCompletedEvent = (customEvent) => {
-      console.log('🔔 Custom transaction completed event received:', customEvent.detail)
+      logger.debug('🔔 Custom transaction completed event received:', customEvent.detail)
       updateDashboardTransactionsDebounced()
     }
     

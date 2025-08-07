@@ -4,12 +4,13 @@
  */
 
 import { dataManager } from '../services/DataManager.js'
+import logger from './logger'
 
 /**
  * Reset all application data to clean state
  */
 export const resetToCleanState = () => {
-  console.log('🧹 Resetting application to clean state for testing...')
+  logger.debug('🧹 Resetting application to clean state for testing...')
   
   // Reset DataManager to clean state
   dataManager.resetToCleanState()
@@ -26,14 +27,14 @@ export const resetToCleanState = () => {
   
   keysToRemove.forEach(key => {
     localStorage.removeItem(key)
-    console.log(`🗑️  Removed ${key}`)
+    logger.debug(`🗑️  Removed ${key}`)
   })
   
   // Clear any session storage as well
   sessionStorage.clear()
   
-  console.log('✅ Clean state reset complete!')
-  console.log('📊 Current state:', {
+  logger.debug('✅ Clean state reset complete!')
+  logger.debug('📊 Current state:', {
     balance: dataManager.getBalance(),
     transactions: dataManager.getTransactions(),
     user: dataManager.getUser()
@@ -48,9 +49,9 @@ export const resetToCleanState = () => {
  * All balances and data are built through actual user transactions
  */
 export const addDemoData = () => {
-  console.log('📝 Demo data disabled - users start with clean zero state')
-  console.log('💡 All balances are built through actual user transactions (Add, Send, Withdraw, Buy, Sell, Yield strategies)')
-  console.log('✅ Application will start with $0 balance')
+  logger.debug('📝 Demo data disabled - users start with clean zero state')
+  logger.debug('💡 All balances are built through actual user transactions (Add, Send, Withdraw, Buy, Sell, Yield strategies)')
+  logger.debug('✅ Application will start with $0 balance')
 }
 
 /**
@@ -71,7 +72,7 @@ export const isCleanState = () => {
   
   const isClean = hasValidBalanceData
   
-  console.log('🔍 Clean state check:', {
+  logger.debug('🔍 Clean state check:', {
     isClean,
     hasValidBalanceData,
     balance: {
@@ -97,18 +98,18 @@ function clearCorruptedData() {
     try {
       const stored = localStorage.getItem(key)
       if (stored && !stored.startsWith('{') && !stored.startsWith('[') && !stored.startsWith('"')) {
-        console.warn(`🧹 Clearing corrupted key: ${key} = ${stored.substring(0, 20)}...`)
+        logger.warn(`🧹 Clearing corrupted key: ${key} = ${stored.substring(0, 20)}...`)
         localStorage.removeItem(key)
         clearedCount++
       }
     } catch (_error) {
-      console.warn(`🧹 Clearing invalid key: ${key}`)
+      logger.warn(`🧹 Clearing invalid key: ${key}`)
       localStorage.removeItem(key)
       clearedCount++
     }
   })
   
-  console.log(`✅ Cleared ${clearedCount} corrupted localStorage entries`)
+  logger.debug(`✅ Cleared ${clearedCount} corrupted localStorage entries`)
   return clearedCount
 }
 
@@ -121,11 +122,11 @@ if (typeof window !== 'undefined') {
   window.addDemoData = addDemoData
   window.clearCorruptedData = clearCorruptedData
   
-  console.log('🛠️ Development helpers available:')
-  console.log('- window.resetDiBoaSData() - Reset to clean state')
-  console.log('- window.checkCleanState() - Check if data is clean')
-  console.log('- window.addDemoData() - Demo data disabled, users start with $0')
-  console.log('- window.clearCorruptedData() - Clear corrupted localStorage entries')
+  logger.debug('🛠️ Development helpers available:')
+  logger.debug('- window.resetDiBoaSData() - Reset to clean state')
+  logger.debug('- window.checkCleanState() - Check if data is clean')
+  logger.debug('- window.addDemoData() - Demo data disabled, users start with $0')
+  logger.debug('- window.clearCorruptedData() - Clear corrupted localStorage entries')
 }
 
 export default {

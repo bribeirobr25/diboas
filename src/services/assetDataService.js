@@ -1,18 +1,36 @@
 /**
- * Asset Data Service with Caching Layer
- * Handles all asset-related data fetching with mockup service integration
+ * Asset Data Service with Multi-Level Caching
+ * Handles all asset-related data fetching with advanced caching strategies
  * Follows DDD principles and maintains proper abstraction
  */
 
-// Cache configuration
-const CACHE_CONFIG = {
-  STATIC_DATA: 24 * 60 * 60 * 1000, // 24 hours for static data
-  PRICE_DATA: 5 * 60 * 1000,       // 5 minutes for price data (development)
-  MARKET_STATS: 5 * 60 * 1000      // 5 minutes for market stats (development)
+import { cacheManager, CACHE_POLICIES, cached } from '../utils/caching/CacheManager.js'
+import { mockupAssetMetadataProviderService } from './assets/MockupAssetMetadataProviderService.js'
+import logger from '../utils/logger'
+
+// Enhanced cache policies for different types of asset data
+const ASSET_CACHE_POLICIES = {
+  STATIC_DATA: {
+    ...CACHE_POLICIES.STATIC,
+    ttl: 24 * 60 * 60 * 1000 // 24 hours for static asset data
+  },
+  PRICE_DATA: {
+    ...CACHE_POLICIES.DYNAMIC,
+    ttl: 5 * 60 * 1000 // 5 minutes for price data
+  },
+  MARKET_STATS: {
+    ...CACHE_POLICIES.API,
+    ttl: 10 * 60 * 1000 // 10 minutes for market statistics
+  },
+  USER_PORTFOLIO: {
+    ...CACHE_POLICIES.USER,
+    ttl: 15 * 60 * 1000 // 15 minutes for user portfolio data
+  }
 }
 
-// Mock data for all supported assets
-const MOCK_ASSET_DATA = {
+// Legacy static asset data - now replaced with MockupAssetMetadataProviderService
+// Keeping for reference and potential fallback scenarios
+const LEGACY_MOCK_ASSET_DATA = {
   BTC: {
     symbol: 'BTC',
     name: 'Bitcoin',
@@ -231,41 +249,59 @@ class AssetDataService {
    * Get static asset information (cached for 24 hours)
    */
   async getAssetInfo(symbol) {
+    // Try cache first
     const cacheKey = `asset_info_${symbol}`
-    const cached = this.getFromCache(cacheKey, CACHE_CONFIG.STATIC_DATA)
-    
-    if (cached) {
-      return cached
+    const cached = await cacheManager.get(cacheKey, ASSET_CACHE_POLICIES.STATIC_DATA)
+    if (cached) return cached
+    let result
+    try {
+      // Get asset data from mockup service (includes realistic API delay)
+      const assetData = await mockupAssetMetadataProviderService.getAssetMetadata(symbol)
+      
+      // Transform to legacy format for backward compatibility
+      result = {
+        symbol: assetData.symbol,
+        name: assetData.name,
+        icon: assetData.icon || '○',
+        description: assetData.description,
+        website: assetData.links?.website,
+        whitepaper: assetData.links?.whitepaper,
+        chain: assetData.network?.mainnet || 'ETH',
+        decimals: assetData.technicalSpecs?.decimals || 18,
+        contractAddress: assetData.network?.contractAddress,
+        lastUpdated: new Date().toISOString()
+      }
+    } catch (error) {
+      // Fallback to create-new template data if asset not found
+      logger.warn(`Asset ${symbol} not found in mockup service, using fallback`, error)
+      
+      result = {
+        symbol: symbol,
+        name: `${symbol} Token`,
+        icon: '○',
+        description: `Digital asset ${symbol}`,
+        website: null,
+        whitepaper: null,
+        chain: 'ETH',
+        decimals: 18,
+        contractAddress: null,
+        lastUpdated: new Date().toISOString()
+      }
     }
 
-    // Simulate API call delay
-    await this.simulateApiDelay()
-
-    const assetData = MOCK_ASSET_DATA[symbol]
-    if (!assetData) {
-      throw new Error(`Asset ${symbol} not found`)
-    }
-
-    const result = {
-      ...assetData,
-      lastUpdated: new Date().toISOString()
-    }
-
-    this.setCache(cacheKey, result)
+    // Cache the result
+    await cacheManager.set(cacheKey, result, ASSET_CACHE_POLICIES.STATIC_DATA)
     return result
   }
 
   /**
-   * Get real-time price data (cached for 15 minutes)
+   * Get real-time price data (cached for 5 minutes)
    */
   async getAssetPrice(symbol) {
+    // Try cache first
     const cacheKey = `asset_price_${symbol}`
-    const cached = this.getFromCache(cacheKey, CACHE_CONFIG.PRICE_DATA)
-    
-    if (cached) {
-      return cached
-    }
-
+    const cached = await cacheManager.get(cacheKey, ASSET_CACHE_POLICIES.PRICE_DATA)
+    if (cached) return cached
     // Simulate API call delay
     await this.simulateApiDelay()
 
@@ -280,8 +316,9 @@ class AssetDataService {
       low24h: marketData.low24h,
       lastUpdated: new Date().toISOString()
     }
-
-    this.setCache(cacheKey, result)
+    
+    // Cache the result
+    await cacheManager.set(cacheKey, result, ASSET_CACHE_POLICIES.PRICE_DATA)
     
     // Emit price update event
     this.emitPriceUpdate(symbol, result)
@@ -294,7 +331,7 @@ class AssetDataService {
    */
   async getMarketStats(symbol) {
     const cacheKey = `market_stats_${symbol}`
-    const cached = this.getFromCache(cacheKey, CACHE_CONFIG.MARKET_STATS)
+    const cached = this.getFromCache(cacheKey, ASSET_CACHE_POLICIES.MARKET_STATS)
     
     if (cached) {
       return cached
@@ -391,13 +428,13 @@ class AssetDataService {
     //     const price = await this.getAssetPrice(symbol)
     //     this.emitPriceUpdate(symbol, price)
     //   } catch (error) {
-    //     console.error(`Error updating price for ${symbol}:`, error)
+    //     logger.error(`Error updating price for ${symbol}:`, error)
     //   }
-    // }, CACHE_CONFIG.PRICE_DATA)
+    // }, ASSET_CACHE_POLICIES.PRICE_DATA)
     // 
     // this.updateIntervals.set(symbol, interval)
     
-    console.log(`Price updates subscription registered for ${symbol} (manual refresh mode)`)
+    logger.debug(`Price updates subscription registered for ${symbol} (manual refresh mode)`)
   }
 
   /**
@@ -422,7 +459,7 @@ class AssetDataService {
       try {
         sub.callback(priceData)
       } catch (error) {
-        console.error(`Error in price update callback:`, error)
+        logger.error(`Error in price update callback:`, error)
       }
     })
   }
@@ -511,4 +548,4 @@ class AssetDataService {
 export const assetDataService = new AssetDataService()
 
 // Export for testing
-export { AssetDataService, CACHE_CONFIG, MOCK_ASSET_DATA }
+export { AssetDataService, ASSET_CACHE_POLICIES as CACHE_CONFIG }

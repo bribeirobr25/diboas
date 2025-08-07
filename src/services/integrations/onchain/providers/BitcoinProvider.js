@@ -175,18 +175,18 @@ export class BitcoinProvider {
       const feeRates = await this.getFeeRates()
       const selectedFeeRate = feeRates[feeLevel] || feeRates.medium
 
-      const totalFee = Math.ceil(estimatedVSize * selectedFeeRate / 1e8 * 1e8) // satoshis
+      const total = Math.ceil(estimatedVSize * selectedFeeRate / 1e8 * 1e8) // satoshis
 
       return {
         success: true,
         estimatedSize,
         estimatedVSize,
         feeRate: selectedFeeRate,
-        totalFee,
+        total,
         estimatedCost: {
-          satoshis: totalFee,
-          btc: (totalFee / 1e8).toFixed(8),
-          usd: ((totalFee / 1e8) * 45000).toFixed(2) // Assume $45,000 BTC
+          satoshis: total,
+          btc: (total / 1e8).toFixed(8),
+          usd: ((total / 1e8) * 45000).toFixed(2) // Assume $45,000 BTC
         },
         feeLevel,
         priority: this.getFeeDescription(feeLevel)

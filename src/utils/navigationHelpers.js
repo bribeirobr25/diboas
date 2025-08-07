@@ -1,7 +1,16 @@
 /**
  * Navigation utility functions
  * Eliminates navigation logic duplication across components
+ * Now with subdomain-aware routing support
  */
+
+import { 
+  buildSubdomainUrl, 
+  navigateToSubdomain, 
+  detectCurrentSubdomain,
+  SUBDOMAINS 
+} from '../config/subdomains.js'
+import { getApiConfig } from '../config/environments.js'
 
 /**
  * Common navigation paths used throughout the app
@@ -59,7 +68,9 @@ export const TRANSACTION_TYPES = {
   BUY: 'buy',
   SELL: 'sell',
   WITHDRAW: 'withdraw',
-  INVEST: 'invest'
+  INVEST: 'invest',
+  START_STRATEGY: 'start_strategy',
+  STOP_STRATEGY: 'stop_strategy'
 }
 
 /**
@@ -99,7 +110,9 @@ export function createTransactionNavigator(navigate) {
       [TRANSACTION_TYPES.BUY]: NAVIGATION_PATHS.TRANSACTIONS.BUY,
       [TRANSACTION_TYPES.SELL]: NAVIGATION_PATHS.TRANSACTIONS.SELL,
       [TRANSACTION_TYPES.WITHDRAW]: NAVIGATION_PATHS.TRANSACTIONS.WITHDRAW,
-      [TRANSACTION_TYPES.INVEST]: NAVIGATION_PATHS.TRANSACTIONS.INVEST
+      [TRANSACTION_TYPES.INVEST]: NAVIGATION_PATHS.TRANSACTIONS.INVEST,
+      [TRANSACTION_TYPES.START_STRATEGY]: '/category/yield',
+      [TRANSACTION_TYPES.STOP_STRATEGY]: '/yield/manager'
     }
     
     const route = routeMap[transactionType] || NAVIGATION_PATHS.TRANSACTION_WITH_TYPE(transactionType)
@@ -113,5 +126,95 @@ export function createTransactionNavigator(navigate) {
 export function createBackNavigator(navigate) {
   return (defaultPath = NAVIGATION_PATHS.HOME) => {
     navigate(defaultPath)
+  }
+}
+
+/**
+ * Get the base app URL for current environment with subdomain support
+ */
+export const getAppBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const { protocol, host } = window.location
+    return `${protocol}//${host}`
+  }
+  
+  // Fallback for SSR or tests - use app subdomain
+  const apiConfig = getApiConfig()
+  return apiConfig.appUrl || apiConfig.baseUrl.replace('/api', '')
+}
+
+/**
+ * Navigate to a different subdomain with optional path
+ */
+export const navigateToApp = (path = '/app') => {
+  navigateToSubdomain(SUBDOMAINS.APP, path)
+}
+
+export const navigateToLanding = (path = '/') => {
+  navigateToSubdomain(SUBDOMAINS.WWW, path)
+}
+
+export const navigateToAuth = (path = '/auth') => {
+  navigateToSubdomain(SUBDOMAINS.WWW, path)
+}
+
+export const navigateToDocs = (path = '/') => {
+  navigateToSubdomain(SUBDOMAINS.DOCS, path)
+}
+
+/**
+ * Build URL for cross-subdomain navigation
+ */
+export const buildAppUrl = (path) => {
+  return buildSubdomainUrl(SUBDOMAINS.APP, path)
+}
+
+export const buildLandingUrl = (path) => {
+  return buildSubdomainUrl(SUBDOMAINS.WWW, path)
+}
+
+export const buildDocsUrl = (path) => {
+  return buildSubdomainUrl(SUBDOMAINS.DOCS, path)
+}
+
+/**
+ * Check current subdomain context
+ */
+export const isOnAppSubdomain = () => {
+  return detectCurrentSubdomain() === SUBDOMAINS.APP
+}
+
+export const isOnLandingSubdomain = () => {
+  return detectCurrentSubdomain() === SUBDOMAINS.WWW
+}
+
+/**
+ * Enhanced transaction navigator with subdomain awareness
+ */
+export function createSubdomainAwareTransactionNavigator(navigate) {
+  return (transactionType) => {
+    const currentSubdomain = detectCurrentSubdomain()
+    
+    // All transaction routes should be on app subdomain
+    if (currentSubdomain !== SUBDOMAINS.APP) {
+      const routeMap = {
+        [TRANSACTION_TYPES.ADD]: NAVIGATION_PATHS.TRANSACTIONS.ADD,
+        [TRANSACTION_TYPES.SEND]: NAVIGATION_PATHS.TRANSACTIONS.SEND,
+        [TRANSACTION_TYPES.RECEIVE]: NAVIGATION_PATHS.TRANSACTIONS.RECEIVE,
+        [TRANSACTION_TYPES.BUY]: NAVIGATION_PATHS.TRANSACTIONS.BUY,
+        [TRANSACTION_TYPES.SELL]: NAVIGATION_PATHS.TRANSACTIONS.SELL,
+        [TRANSACTION_TYPES.WITHDRAW]: NAVIGATION_PATHS.TRANSACTIONS.WITHDRAW,
+        [TRANSACTION_TYPES.INVEST]: NAVIGATION_PATHS.TRANSACTIONS.INVEST,
+        [TRANSACTION_TYPES.START_STRATEGY]: '/category/yield',
+        [TRANSACTION_TYPES.STOP_STRATEGY]: '/yield/manager'
+      }
+      
+      const route = routeMap[transactionType] || NAVIGATION_PATHS.TRANSACTION_WITH_TYPE(transactionType)
+      navigateToSubdomain(SUBDOMAINS.APP, route)
+    } else {
+      // Already on app subdomain, use regular navigation
+      const transactionNavigator = createTransactionNavigator(navigate)
+      transactionNavigator(transactionType)
+    }
   }
 }

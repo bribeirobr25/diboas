@@ -9,6 +9,9 @@ import { Card, CardContent } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { Input } from '@/components/ui/input.jsx'
+import logger from '../utils/logger'
+import { useErrorHandler } from '../hooks/useErrorHandler.jsx'
+import FinancialErrorBoundary from './shared/FinancialErrorBoundary.jsx'
 import { 
   ArrowUpRight,
   ArrowDownLeft,
@@ -43,6 +46,11 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
   const navigate = useNavigate()
   const { getTransactions } = useSafeDataManager()
   const { settings } = useUserSettings()
+  const { handleError, createSafeWrapper } = useErrorHandler({
+    logErrors: true,
+    autoRecovery: true,
+    notifyUser: true
+  })
   const [transactions, setTransactions] = useState([])
   const [filteredTransactions, setFilteredTransactions] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -75,12 +83,6 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
       label: 'Receive', 
       color: 'bg-green-100 text-green-800',
       direction: 'in'
-    },
-    transfer: { 
-      icon: <ArrowRight className="w-4 h-4" />, 
-      label: 'Transfer', 
-      color: 'bg-purple-100 text-purple-800',
-      direction: 'out'
     },
     buy: { 
       icon: <TrendingUp className="w-4 h-4" />, 
@@ -130,34 +132,57 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
   }
 
   // Navigation to transaction details
-  const navigateToTransactionDetails = useCallback((transactionId) => {
-    navigate(`/transaction?id=${transactionId}`)
-  }, [navigate])
+  const navigateToTransactionDetails = createSafeWrapper(
+    (transactionId) => {
+      navigate(`/transaction?id=${transactionId}`)
+    },
+    {
+      context: { action: 'navigate_to_details', transactionId },
+      fallback: () => logger.warn('Failed to navigate to transaction details')
+    }
+  )
 
   // Load transaction history function
-  const loadTransactions = useCallback(() => {
-    setIsLoading(true)
-    try {
+  const loadTransactions = createSafeWrapper(
+    () => {
+      setIsLoading(true)
       const allTransactions = getTransactions()
       const history = limit ? allTransactions.slice(0, limit) : allTransactions
-      console.log('📋 Loaded transactions from DataManager:', history.length, 'transactions')
-      console.log('📋 Transaction statuses:', history.map(tx => ({ id: tx.id.substring(0, 8), status: tx.status })))
+      logger.debug('📋 Loaded transactions from DataManager:', history.length, 'transactions')
+      logger.debug('📋 Transaction statuses:', history.map(tx => ({ id: tx.id.substring(0, 8), status: tx.status })))
       setTransactions(history)
-    } catch (error) {
-      console.error('Failed to load transaction history:', error)
+    },
+    {
+      context: { action: 'load_transactions', limit },
+      fallback: () => {
+        setTransactions([])
+        logger.error('Failed to load transaction history - using empty state')
+      },
+      recoveryFn: async () => {
+        // Retry logic for transaction loading
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        return true
+      }
+    }
+  )
+
+  // Wrap callback-based loading to handle cleanup
+  const safeLoadTransactions = useCallback(async () => {
+    try {
+      await loadTransactions()
     } finally {
       setIsLoading(false)
     }
-  }, [getTransactions, limit])
+  }, [loadTransactions])
 
   // Subscribe to transaction updates
   useDataManagerSubscription('transaction:added', () => {
-    console.log('📋 Transaction added, reloading history')
+    logger.debug('📋 Transaction added, reloading history')
     loadTransactions()
   }, [loadTransactions])
   
   useDataManagerSubscription('transaction:updated', (updatedTransaction) => {
-    console.log('📋 Transaction updated:', updatedTransaction.id, 'status:', updatedTransaction.status)
+    logger.debug('📋 Transaction updated:', updatedTransaction.id, 'status:', updatedTransaction.status)
     loadTransactions()
   }, [loadTransactions])
 
@@ -288,7 +313,11 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
   }
 
   return (
-    <div className={className}>
+    <FinancialErrorBoundary
+      componentName="TransactionHistory"
+      transactionContext={{ totalTransactions: transactions.length }}
+    >
+      <div className={className}>
       {showHeader && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -301,7 +330,7 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={loadTransactions}
+                onClick={safeLoadTransactions}
                 disabled={isLoading}
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -599,12 +628,13 @@ const TransactionHistory = ({ limit = null, showHeader = true, className = '' })
       {/* Load More */}
       {!limit && filteredTransactions.length > 0 && filteredTransactions.length >= 20 && (
         <div className="text-center mt-6">
-          <Button variant="outline" onClick={loadTransactions}>
+          <Button variant="outline" onClick={safeLoadTransactions}>
             Load More Transactions
           </Button>
         </div>
       )}
-    </div>
+      </div>
+    </FinancialErrorBoundary>
   )
 }
 

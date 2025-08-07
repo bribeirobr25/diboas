@@ -28,7 +28,6 @@ export default function TransactionTypeSelector({
         'buy': transactionCategory === 'investment' ? '/category/investment/buy' : '/buy',
         'sell': transactionCategory === 'investment' ? '/category/investment/sell' : '/sell',
         // Legacy
-        'transfer': '/transfer',
         'invest': '/invest'
       }
       navigationHelper(transactionTypeRouteMapping[selectedTransactionTypeConfig.id] || `/transaction?type=${selectedTransactionTypeConfig.id}`)

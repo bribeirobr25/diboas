@@ -7,6 +7,15 @@ import { getIntegrationManager } from '../integrations/IntegrationManager.js'
 import MultiWalletManager from './MultiWalletManager.js'
 import { generateSecureId } from '../../utils/security.js'
 import { logSecureEvent } from '../../utils/securityLogging.js'
+import logger from '../../utils/logger'
+import { 
+  securityManager, 
+  validateFinancialOperation, 
+  checkRateLimit,
+  SECURITY_EVENT_TYPES 
+} from '../../security/SecurityManager.js'
+import { checkTransactionRateLimit } from '../../utils/advancedRateLimiter.js'
+import { centralizedFeeCalculator } from '../../utils/feeCalculations.js'
 
 export class TransactionEngine {
   constructor() {
@@ -15,17 +24,8 @@ export class TransactionEngine {
     this.activeTransactions = new Map()
     this.transactionHistory = new Map()
     
-    // Fee structure as per requirements
-    this.feeStructure = {
-      'add': { diBoaS: 0.0009, maxProvider: 0.029 }, // 0.09% + up to 2.9% provider
-      'withdraw': { diBoaS: 0.009, maxProvider: 0.029 }, // 0.9% + up to 2.9% provider
-      'send': { diBoaS: 0.0009 }, // 0.09%
-      'receive': { diBoaS: 0.0009 }, // 0.09%
-      'transfer': { diBoaS: 0.009 }, // 0.9%
-      'buy': { diBoaS: 0.0009 }, // 0.09%
-      'sell': { diBoaS: 0.0009 }, // 0.09%
-      'invest': { diBoaS: 0.0009 } // 0.09%
-    }
+    // Use centralized fee calculator
+    this.feeCalculator = centralizedFeeCalculator
 
     this.minimumAmounts = {
       'add': 10.0,
@@ -35,7 +35,9 @@ export class TransactionEngine {
       'transfer': 5.0,
       'buy': 10.0,
       'sell': 5.0,
-      'invest': 10.0
+      'invest': 10.0,
+      'start_strategy': 50.0,  // Higher minimum for DeFi strategies
+      'stop_strategy': 0.0     // No minimum for stopping strategies
     }
   }
 
@@ -132,6 +134,12 @@ export class TransactionEngine {
         case 'invest':
           result = await this.processInvest(userId, transactionData, routingPlan, feeCalculation)
           break
+        case 'start_strategy':
+          result = await this.processStartStrategy(userId, transactionData, routingPlan, feeCalculation)
+          break
+        case 'stop_strategy':
+          result = await this.processStopStrategy(userId, transactionData, routingPlan, feeCalculation)
+          break
         default:
           throw new Error(`Unsupported transaction type: ${transactionData.type}`)
       }
@@ -201,6 +209,28 @@ export class TransactionEngine {
   async validateTransaction(userId, transactionData) {
     const { type, amount, recipient, asset } = transactionData
 
+    // Security validation - Rate limiting
+    const rateLimitResult = checkTransactionRateLimit(userId, {
+      operation: 'transaction_validation',
+      type,
+      amount,
+      asset
+    })
+    
+    if (!rateLimitResult.allowed) {
+      securityManager.logSecurityEvent(SECURITY_EVENT_TYPES.RATE_LIMIT_EXCEEDED, {
+        userId,
+        operation: 'transaction_validation',
+        reason: rateLimitResult.reason,
+        severity: 'high'
+      })
+      return { 
+        isValid: false, 
+        error: 'Rate limit exceeded. Please try again later.',
+        retryAfter: rateLimitResult.retryAfter 
+      }
+    }
+
     // Basic validation
     if (!type || !amount) {
       return { isValid: false, error: 'Missing required fields' }
@@ -210,6 +240,23 @@ export class TransactionEngine {
     const numericAmount = parseFloat(amount)
     if (isNaN(numericAmount) || numericAmount <= 0) {
       return { isValid: false, error: 'Invalid amount' }
+    }
+
+    // Security validation - Financial operation validation
+    try {
+      validateFinancialOperation({
+        type,
+        amount: numericAmount,
+        asset,
+        userId,
+        recipient
+      })
+    } catch (securityError) {
+      return { 
+        isValid: false, 
+        error: securityError.message,
+        securityViolation: true 
+      }
     }
 
     // Minimum amount validation
@@ -250,6 +297,11 @@ export class TransactionEngine {
     if (['buy', 'sell', 'invest'].includes(type)) {
       if (!asset) {
         return { isValid: false, error: 'Asset selection is required' }
+      }
+
+      // Prevent Buy USD transactions - critical business rule
+      if (type === 'buy' && asset === 'USD') {
+        return { isValid: false, error: 'Cannot buy USD. Please select a cryptocurrency or tokenized asset' }
       }
 
       if (!this.isValidAsset(asset, type)) {
@@ -390,6 +442,31 @@ export class TransactionEngine {
             { action: 'invest', provider: 'investment_provider', asset, amount: numericAmount }
           ]
           break
+
+        case 'start_strategy':
+          // FinObjective DeFi strategies on Solana
+          const strategyBalance = balance.breakdown.SOL?.usdc || 0
+          plan.feasible = strategyBalance >= numericAmount
+          plan.fromChain = 'SOL'
+          plan.toChain = 'SOL'
+          plan.fromAsset = 'USDC'
+          plan.toAsset = 'USDC'
+          plan.routingSteps = [
+            { action: 'start_strategy', provider: 'defi_strategy', asset: 'USDC', amount: numericAmount }
+          ]
+          break
+
+        case 'stop_strategy':
+          // Stop FinObjective DeFi strategy
+          plan.feasible = true // No balance check needed for stopping
+          plan.fromChain = 'SOL'
+          plan.toChain = 'SOL'
+          plan.fromAsset = 'USDC'
+          plan.toAsset = 'USDC'
+          plan.routingSteps = [
+            { action: 'stop_strategy', provider: 'defi_strategy', asset: 'USDC', amount: numericAmount }
+          ]
+          break
       }
 
       if (!plan.feasible) {
@@ -406,53 +483,33 @@ export class TransactionEngine {
   }
 
   /**
-   * Calculate comprehensive fees for transaction
+   * Calculate comprehensive fees for transaction using centralized calculator
    */
   async calculateComprehensiveFees(transactionData, routingPlan) {
-    const { type, amount } = transactionData
-    const numericAmount = parseFloat(amount)
-    const feeConfig = this.feeStructure[type]
-
-    const fees = {
-      diBoaS: numericAmount * feeConfig.diBoaS,
-      network: 0,
-      provider: 0,
-      routing: 0,
-      total: 0,
-      breakdown: []
-    }
-
-    // Network fees based on chains involved
-    const chainsUsed = new Set([routingPlan.fromChain, routingPlan.toChain])
-    chainsUsed.forEach(chain => {
-      const chainFee = this.getChainNetworkFee(chain)
-      fees.network += chainFee
-      fees.breakdown.push({
-        type: 'network',
-        description: `${chain} network fee`,
-        amount: chainFee
-      })
+    const { type, amount, asset = 'SOL', paymentMethod = 'diboas_wallet' } = transactionData
+    
+    // Determine chains from routing plan
+    const chains = [routingPlan.fromChain, routingPlan.toChain].filter(Boolean)
+    
+    // Use centralized fee calculator
+    const fees = this.feeCalculator.calculateFees({
+      type,
+      amount,
+      asset,
+      paymentMethod,
+      chains
     })
 
-    // Provider fees for on/off-ramp
-    if (['add', 'withdraw'].includes(type) && feeConfig.maxProvider) {
-      fees.provider = numericAmount * feeConfig.maxProvider
-      fees.breakdown.push({
-        type: 'provider',
-        description: 'Payment provider fee',
-        amount: fees.provider
-      })
-    }
-
-    // Routing fees for cross-chain operations
+    // Add routing fees for cross-chain operations if needed
     if (routingPlan.needsRouting) {
       const routingFees = await this.calculateRoutingFees(routingPlan)
       fees.routing = routingFees.total
-      fees.breakdown.push({
-        type: 'routing',
-        description: 'Cross-chain routing fee',
-        amount: fees.routing
-      })
+      fees.total += fees.routing
+      fees.total = fees.total
+      
+      // Add to breakdown
+      if (!fees.breakdown) fees.breakdown = {}
+      fees.breakdown.routing = { amount: fees.routing, rate: 0 }
     }
 
     // Investment provider fees
@@ -814,6 +871,75 @@ export class TransactionEngine {
   }
 
   /**
+   * Process start strategy transaction (FinObjective DeFi)
+   */
+  async processStartStrategy(userId, transactionData, routingPlan, fees) {
+    try {
+      // Execute DeFi strategy deployment
+      const result = await this.integrationManager.execute(
+        'defi',
+        'startStrategy',
+        {
+          objective: transactionData.strategyConfig?.objective,
+          amount: transactionData.amount,
+          timeline: transactionData.strategyConfig?.timeline,
+          riskLevel: transactionData.strategyConfig?.riskLevel,
+          asset: 'USDC',
+          chain: 'SOL'
+        }
+      )
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash || `tx_start_strategy_${Date.now()}`,
+        strategyId: result.strategyId,
+        objective: transactionData.strategyConfig?.objective,
+        amountInvested: parseFloat(transactionData.amount),
+        expectedAPY: result.expectedAPY || 0,
+        timeline: transactionData.strategyConfig?.timeline
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  /**
+   * Process stop strategy transaction (FinObjective DeFi)
+   */
+  async processStopStrategy(userId, transactionData, routingPlan, fees) {
+    try {
+      // Execute DeFi strategy withdrawal
+      const result = await this.integrationManager.execute(
+        'defi',
+        'stopStrategy',
+        {
+          strategyId: transactionData.strategyId,
+          withdrawAmount: transactionData.amount,
+          asset: 'USDC',
+          chain: 'SOL'
+        }
+      )
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash || `tx_stop_strategy_${Date.now()}`,
+        strategyId: transactionData.strategyId,
+        amountWithdrawn: parseFloat(transactionData.amount),
+        totalEarnings: result.totalEarnings || 0,
+        finalAPY: result.finalAPY || 0
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  /**
    * Helper methods
    */
   isValidWalletAddress(address) {
@@ -943,7 +1069,7 @@ export class TransactionEngine {
         }
       )
     } catch (error) {
-      console.warn('Failed to trigger KYC:', error.message)
+      logger.warn('Failed to trigger KYC:', error.message)
     }
   }
 

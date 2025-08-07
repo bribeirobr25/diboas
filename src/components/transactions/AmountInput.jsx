@@ -30,18 +30,18 @@ export default function AmountInput({
           { label: '10%', value: Math.round((balance?.availableForSpending || 0) * 0.10 * 100) / 100 },
           { label: '25%', value: Math.round((balance?.availableForSpending || 0) * 0.25 * 100) / 100 }
         ]
-      case 'transfer':
-        return [
-          { label: '25%', value: Math.round((balance?.availableForSpending || 0) * 0.25 * 100) / 100 },
-          { label: '50%', value: Math.round((balance?.availableForSpending || 0) * 0.50 * 100) / 100 },
-          { label: 'Max', value: balance?.availableForSpending || 0 }
-        ]
       case 'sell': {
         const assetBalance = balance?.assets?.[selectedAsset]?.investedAmount || 0
         return [
           { label: '25%', value: Math.round(assetBalance * 0.25 * 100) / 100 },
           { label: '50%', value: Math.round(assetBalance * 0.50 * 100) / 100 },
           { label: 'Max', value: assetBalance }
+        ]
+      }
+      case 'stop_strategy': {
+        // For stop_strategy, always use the full strategy balance
+        return [
+          { label: 'Full Amount', value: availableBalance }
         ]
       }
       case 'withdraw':
@@ -115,10 +115,12 @@ export default function AmountInput({
       </div>
 
       <p className="balance-summary-text">
-        {['withdraw', 'send', 'transfer'].includes(transactionType)
-          ? `Maximum ${transactionType === 'withdraw' ? 'withdrawable' : transactionType === 'send' ? 'sendable' : 'transferable'}: $${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` 
+        {['withdraw', 'send'].includes(transactionType)
+          ? `Maximum ${transactionType === 'withdraw' ? 'withdrawable' : 'sendable'}: $${balance?.availableForSpending?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}` 
           : transactionType === 'sell'
           ? `Invested in ${selectedAsset}: $${typeof availableBalance === 'number' ? availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`
+          : transactionType === 'stop_strategy'
+          ? `Strategy Balance: $${typeof availableBalance === 'number' ? availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`
           : `Available: $${typeof availableBalance === 'number' ? availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`
         }
       </p>
@@ -129,13 +131,13 @@ export default function AmountInput({
         </p>
       )}
       
-      {['withdraw', 'send', 'transfer'].includes(transactionType) && balance?.investedAmount > 0 && (
+      {['withdraw', 'send'].includes(transactionType) && balance?.investedAmount > 0 && (
         <div className="info-box">
           <div className="flex-row-start">
             <Info className="info-icon" />
             <div className="info-content">
-              <p className="font-medium">Invested funds cannot be {transactionType === 'withdraw' ? 'withdrawn' : transactionType === 'send' ? 'sent' : 'transferred'} directly</p>
-              <p>You have ${balance.investedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} in investments. To {transactionType === 'withdraw' ? 'withdraw' : transactionType === 'send' ? 'send' : 'transfer'} invested funds, first sell your assets.</p>
+              <p className="font-medium">Invested funds cannot be {transactionType === 'withdraw' ? 'withdrawn' : 'sent'} directly</p>
+              <p>You have ${balance.investedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} in investments. To {transactionType === 'withdraw' ? 'withdraw' : 'send'} invested funds, first sell your assets.</p>
             </div>
           </div>
         </div>

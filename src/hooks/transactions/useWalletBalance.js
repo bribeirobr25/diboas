@@ -6,24 +6,37 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../useIntegrations.jsx'
 import { dataManager } from '../../services/DataManager.js'
+import { mockupBalanceProviderService } from '../../services/balance/MockupBalanceProviderService.js'
+import logger from '../../utils/logger'
 
 export const useWalletBalance = () => {
   const { user } = useAuth()
   const [balance, setBalance] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [isTimeout, setIsTimeout] = useState(false)
 
   // Subscribe to balance updates from DataManager
   useEffect(() => {
     // Set initial balance from DataManager state
     const currentBalance = dataManager.getBalance()
     if (currentBalance) {
-      setBalance(currentBalance)
+      const mappedBalance = {
+        ...currentBalance,
+        available: currentBalance.availableForSpending,
+        strategy: currentBalance.strategyBalance || 0
+      }
+      setBalance(mappedBalance)
     }
 
     // Subscribe to balance updates
     const unsubscribeBalance = dataManager.subscribe('balance:updated', (newBalance) => {
-      setBalance(newBalance)
+      const mappedBalance = {
+        ...newBalance,
+        available: newBalance.availableForSpending,
+        strategy: newBalance.strategyBalance || 0
+      }
+      setBalance(mappedBalance)
     })
 
     const unsubscribeLoading = dataManager.subscribe('balance:loading', (loading) => {
@@ -41,33 +54,35 @@ export const useWalletBalance = () => {
     }
   }, [])
 
-  // Get unified balance
+  // Get unified balance with real-time data from DataManager
   const getBalance = useCallback(async (forceRefresh = false) => {
-    if (!user) {
-      // Return current balance from DataManager for demo
-      const currentBalance = dataManager.getBalance()
-      setBalance(currentBalance)
-      return currentBalance
-    }
+    setIsLoading(true)
+    setError(null)
+    setIsTimeout(false)
 
     try {
-      // Force refresh from DataManager if needed
-      if (forceRefresh) {
-        // In a real implementation, this would trigger a blockchain refresh
-        // For demo, we just return the current state
-        const currentBalance = dataManager.getBalance()
-        setBalance(currentBalance)
-        return currentBalance
+      // Get balance from DataManager (clean state) instead of mock service
+      const balanceData = dataManager.getBalance()
+
+      // Map to consistent interface for existing components
+      const mappedBalance = {
+        ...balanceData,
+        available: balanceData.availableForSpending, // Map for wizard compatibility
+        strategy: balanceData.strategyBalance || 0,
+        totalBalance: balanceData.totalBalance || 0
       }
       
-      const currentBalance = dataManager.getBalance()
-      setBalance(currentBalance)
-      return currentBalance
+      setBalance(mappedBalance)
+      logger.debug('useWalletBalance: Loaded real-time balance data:', mappedBalance)
+      return mappedBalance
     } catch (err) {
+      logger.error('useWalletBalance: Failed to load balance:', err)
       setError(err)
       throw err
+    } finally {
+      setIsLoading(false)
     }
-  }, [user])
+  }, [])
 
   // Check balance sufficiency - Updated to match proper financial flow
   const checkSufficientBalance = useCallback(async (amount, transactionType, targetChain, paymentMethod) => {
@@ -89,7 +104,7 @@ export const useWalletBalance = () => {
       }
 
       // For transactions that use Available Balance only
-      if (['send', 'withdraw', 'transfer'].includes(transactionType)) {
+      if (['send', 'withdraw'].includes(transactionType)) {
         const available = currentBalance?.availableForSpending || 0
         checks.sufficient = available >= amount
         checks.availableBalance = available
@@ -147,8 +162,9 @@ export const useWalletBalance = () => {
     balance,
     isLoading,
     error,
+    isTimeout,
     getBalance,
     checkSufficientBalance,
-    isInitialized: true // DataManager is always initialized
+    isInitialized: true // Balance service is always initialized
   }
 }

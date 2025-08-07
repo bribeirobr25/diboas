@@ -5,7 +5,7 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import TransactionErrorHandler, { determineErrorType, ERROR_TYPES } from '../shared/TransactionErrorHandler.jsx'
 
 // Mock navigation

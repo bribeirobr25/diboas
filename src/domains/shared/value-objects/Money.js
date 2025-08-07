@@ -256,7 +256,22 @@ export class Money {
   normalizeToDecimalPlaces(decimalAmount) {
     // Round to appropriate precision for the currency using decimal.js
     const precision = this.getPrecisionForCurrency(this._currency)
-    return decimalAmount.toDecimalPlaces(precision, Decimal.ROUND_HALF_UP)
+    
+    // SPECIAL HANDLING FOR FEES: Don't round very small amounts to zero
+    // This preserves precision for fee calculations while maintaining display formatting
+    const normalized = decimalAmount.toDecimalPlaces(precision, Decimal.ROUND_HALF_UP)
+    
+    // If the normalized amount becomes zero but original was not zero,
+    // preserve at least the minimum precision needed
+    if (normalized.equals(0) && !decimalAmount.equals(0)) {
+      // For traditional currencies, preserve up to 6 decimal places for fees
+      const traditionalCurrencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD']
+      if (traditionalCurrencies.includes(this._currency)) {
+        return decimalAmount.toDecimalPlaces(6, Decimal.ROUND_HALF_UP)
+      }
+    }
+    
+    return normalized
   }
 
   getPrecisionForCurrency(currency) {

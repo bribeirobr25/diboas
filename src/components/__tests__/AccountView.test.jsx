@@ -3,7 +3,7 @@
  * Tests the financial dashboard component with account cards and balances
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import AccountView from '../AccountView.jsx'

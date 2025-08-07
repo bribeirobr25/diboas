@@ -4,6 +4,8 @@
  */
 
 import { useMemo, useCallback, useRef, useEffect, useState } from 'react'
+import logger from './logger'
+import { storage } from './modernStorage.js'
 
 /**
  * Money Object Pool for performance optimization
@@ -182,54 +184,60 @@ export const useOptimizedApiRequest = (url, options = {}) => {
   })
   
   useEffect(() => {
-    // Check cache first
-    const cached = sessionStorage.getItem(cacheKey)
-    if (cached && !options.skipCache) {
-      const { data, timestamp } = JSON.parse(cached)
-      if (Date.now() - timestamp < (options.cacheTime || 30000)) {
-        setState({ data, loading: false, error: null })
-        return
-      }
-    }
-    
-    // Abort previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-    
-    // Create new abort controller
-    abortControllerRef.current = new AbortController()
-    
-    const fetchData = async () => {
-      try {
-        setState(prev => ({ ...prev, loading: true, error: null }))
-        
-        const response = await fetch(url, {
-          ...options,
-          signal: abortControllerRef.current.signal
-        })
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
-        }
-        
-        const data = await response.json()
-        
-        // Cache the result
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          data,
-          timestamp: Date.now()
-        }))
-        
-        setState({ data, loading: false, error: null })
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          setState({ data: null, loading: false, error })
+    // Check cache first using modern storage
+    const checkCache = async () => {
+      if (!options.skipCache) {
+        const cachedData = await storage.getCacheItem(cacheKey)
+        if (cachedData) {
+          setState({ data: cachedData, loading: false, error: null })
+          return true
         }
       }
+      return false
+    }
+
+    const initializeRequest = async () => {
+      const cacheHit = await checkCache()
+      if (cacheHit) return
+      
+      // Abort previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      
+      // Create new abort controller
+      abortControllerRef.current = new AbortController()
+      
+      const fetchData = async () => {
+        try {
+          setState(prev => ({ ...prev, loading: true, error: null }))
+          
+          const response = await fetch(url, {
+            ...options,
+            signal: abortControllerRef.current.signal
+          })
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+          }
+          
+          const data = await response.json()
+          
+          // Cache the result using modern storage
+          await storage.setCacheItem(cacheKey, data, 300000) // 5 minutes TTL
+          
+          setState({ data, loading: false, error: null })
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            setState({ data: null, loading: false, error })
+          }
+        }
+      }
+      
+      fetchData()
     }
     
-    fetchData()
+    initializeRequest()
     
     return () => {
       if (abortControllerRef.current) {
@@ -279,7 +287,7 @@ export const performanceMonitor = {
     
     // Log slow renders in development
     if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development' && duration > 16) {
-      console.warn(`Slow render detected: ${componentName} took ${duration.toFixed(2)}ms`)
+      logger.warn(`Slow render detected: ${componentName} took ${duration.toFixed(2)}ms`)
     }
     
     return result
@@ -372,7 +380,7 @@ export const bundleOptimization = {
     try {
       return await importFunction()
     } catch (error) {
-      console.error('Dynamic import failed:', error)
+      logger.error('Dynamic import failed:', error)
       throw error
     }
   },

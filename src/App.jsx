@@ -1,8 +1,20 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { useMemo, useEffect, lazy, Suspense } from 'react';
-import ErrorBoundary from './components/shared/ErrorBoundary.jsx'
+import ErrorBoundary from './components/errorHandling/ErrorBoundary.jsx'
 import LoadingScreen from './components/shared/LoadingScreen.jsx'
+import { initializeCodeSplitting, chunkPreloader } from './utils/codesplitting.js'
+import { initializeBundleOptimization } from './utils/bundleOptimization.js'
+import { initializeCacheSystem } from './utils/caching/CacheManager.js'
+import { initializeStorage } from './utils/storageInitializer.js'
+import logger from './utils/logger'
+import { 
+  detectCurrentSubdomain, 
+  navigateToSubdomain, 
+  isRouteValidForSubdomain,
+  initializeSubdomainConfig,
+  SUBDOMAINS 
+} from './config/subdomains.js'
 
 // Lazy load ALL non-critical components for better performance and smaller bundles
 const LandingPage = lazy(() => import('./components/LandingPage.jsx'))
@@ -12,47 +24,107 @@ const AccountView = lazy(() => import('./components/AccountView.jsx'))
 const TransactionPage = lazy(() => import('./components/TransactionPage.jsx'))
 const AssetDetailPage = lazy(() => import('./components/AssetDetailPage.jsx'))
 const EnvironmentDebugPanel = lazy(() => import('./components/debug/EnvironmentDebugPanel.jsx'))
-const PerformanceDashboard = lazy(() => import('./components/dev/PerformanceDashboard.jsx'))
+// Admin/Internal Monitoring Components (for internal use only)
+const PerformanceDashboard = lazy(() => import('./components/monitoring/PerformanceDashboard.jsx'))
+const SecurityDashboard = lazy(() => import('./components/monitoring/SecurityDashboard.jsx'))
+const ErrorRecoveryDashboard = lazy(() => import('./components/errorHandling/ErrorRecoveryDashboard.jsx'))
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard.jsx'))
 
 // Category pages
 const BankingCategory = lazy(() => import('./components/categories/BankingCategory.jsx'))
 const InvestmentCategory = lazy(() => import('./components/categories/InvestmentCategory.jsx'))
-const YieldCategory = lazy(() => import('./components/categories/YieldCategory.jsx'))
+const YieldCategory = lazy(() => import('./components/categories/YieldCategoryNew.jsx'))
 
 // Yield strategy pages
-const ObjectiveConfig = lazy(() => import('./components/yield/ObjectiveConfig.jsx'))
+const StrategyConfigurationWizard = lazy(() => import('./components/yield/StrategyConfigurationWizard.jsx'))
 const StrategyManager = lazy(() => import('./components/yield/StrategyManager.jsx'))
+const YieldErrorBoundary = lazy(() => import('./components/yield/YieldErrorBoundary.jsx'))
+
+// Error pages
+const NotFoundErrorPage = lazy(() => import('./components/shared/ErrorPages.jsx').then(module => ({ default: module.NotFoundErrorPage })))
+const ServerErrorPage = lazy(() => import('./components/shared/ErrorPages.jsx').then(module => ({ default: module.ServerErrorPage })))
+const NetworkErrorPage = lazy(() => import('./components/shared/ErrorPages.jsx').then(module => ({ default: module.NetworkErrorPage })))
 
 // Lazy load providers and utilities
 const FeatureFlagProvider = lazy(() => import('./hooks/useFeatureFlags.jsx').then(module => ({ default: module.FeatureFlagProvider })))
 import { validateEnvironment, getEnvironmentInfo } from './config/environments.js'
-import { resetToCleanState, isCleanState } from './utils/resetDataForTesting.js'
+import { resetToCleanState } from './utils/resetDataForTesting.js'
 import { initializeLocalStorageCleanup } from './utils/localStorageHelper.js'
 import { dataManager } from './services/DataManager.js'
 import './App.css'
 import './styles/dashboard.css'
 import './styles/categories.css'
 
+// Subdomain-aware routing component
+function SubdomainRouter({ children, currentSubdomain, currentPath }) {
+  // Check if current route is valid for current subdomain
+  const isValidRoute = isRouteValidForSubdomain(currentPath, currentSubdomain)
+  
+  // Determine correct subdomain for this route
+  const targetSubdomain = useMemo(() => {
+    if (isValidRoute) return null
+    
+    if (currentPath === '/' || currentPath === '/auth' || currentPath.startsWith('/about')) {
+      return SUBDOMAINS.WWW
+    } else if (currentPath.startsWith('/docs')) {
+      return SUBDOMAINS.DOCS
+    } else if (currentPath.startsWith('/admin')) {
+      return SUBDOMAINS.ADMIN
+    }
+    return SUBDOMAINS.APP
+  }, [isValidRoute, currentPath])
+  
+  // Redirect to correct subdomain (hook must be called unconditionally)
+  useEffect(() => {
+    if (!import.meta.env.DEV && !isValidRoute && targetSubdomain) {
+      navigateToSubdomain(targetSubdomain, currentPath, true)
+    }
+  }, [isValidRoute, targetSubdomain, currentPath])
+  
+  // Development environment - allow all routes on localhost
+  if (import.meta.env.DEV) {
+    return children
+  }
+  
+  // Production/staging - show loading screen during redirect
+  if (!isValidRoute && targetSubdomain) {
+    return <LoadingScreen />
+  }
+  
+  return children
+}
+
 // Inner component that has access to navigate hook
 function AppRoutes({ initialUserContext, envInfo }) {
   const navigate = useNavigate()
+  const currentSubdomain = useMemo(() => detectCurrentSubdomain(), [])
+  const currentPath = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname
+    }
+    return '/'
+  }, [])
   
-  // Listen for error boundary navigation events
+  // Listen for error boundary navigation events and preload routes
   useEffect(() => {
     const handleNavigateHome = (event) => {
       const destination = event.detail?.destination || '/app'
       navigate(destination)
     }
     
+    // Preload chunks based on current route
+    chunkPreloader.preloadForRoute(currentPath)
+    
     window.addEventListener('diboas-navigate-home', handleNavigateHome)
     return () => window.removeEventListener('diboas-navigate-home', handleNavigateHome)
-  }, [navigate])
+  }, [navigate, currentPath])
 
   return (
     <ErrorBoundary navigate={navigate}>
-      <Suspense fallback={<LoadingScreen />}>
-        <FeatureFlagProvider initialUserContext={initialUserContext}>
-          <Routes>
+      <SubdomainRouter currentSubdomain={currentSubdomain} currentPath={currentPath}>
+        <Suspense fallback={<LoadingScreen />}>
+          <FeatureFlagProvider initialUserContext={initialUserContext}>
+            <Routes>
             <Route path="/" element={
               <Suspense fallback={<LoadingScreen />}>
                 <LandingPage />
@@ -163,17 +235,49 @@ function AppRoutes({ initialUserContext, envInfo }) {
           {/* Yield Strategy Routes */}
           <Route path="/yield/configure" element={
             <Suspense fallback={<LoadingScreen />}>
-              <ObjectiveConfig />
+              <YieldErrorBoundary>
+                <StrategyConfigurationWizard />
+              </YieldErrorBoundary>
             </Suspense>
           } />
           <Route path="/yield/manage" element={
             <Suspense fallback={<LoadingScreen />}>
-              <StrategyManager />
+              <YieldErrorBoundary>
+                <StrategyManager />
+              </YieldErrorBoundary>
             </Suspense>
           } />
-          <Route path="/yield/custom" element={
+          <Route path="/yield/strategy/:strategyId" element={
             <Suspense fallback={<LoadingScreen />}>
-              <ObjectiveConfig />
+              <YieldErrorBoundary>
+                <StrategyManager />
+              </YieldErrorBoundary>
+            </Suspense>
+          } />
+          
+          {/* Admin/Internal Monitoring Routes - For internal use only */}
+          <Route path="/admin/performance" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <PerformanceDashboard />
+            </Suspense>
+          } />
+          
+          <Route path="/admin/security" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <SecurityDashboard />
+            </Suspense>
+          } />
+          
+          <Route path="/admin/errors" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <ErrorRecoveryDashboard />
+            </Suspense>
+          } />
+          
+          {/* Admin Dashboard Overview */}
+          <Route path="/admin" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <AdminDashboard />
             </Suspense>
           } />
           
@@ -183,21 +287,44 @@ function AppRoutes({ initialUserContext, envInfo }) {
               <TransactionPage />
             </Suspense>
           } />
+          
+          {/* Stop strategy transaction route */}
+          <Route path="/transaction/stop_strategy" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <TransactionPage transactionType="stop_strategy" category="yield" />
+            </Suspense>
+          } />
+
+          {/* Error Pages */}
+          <Route path="/error/500" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <ServerErrorPage />
+            </Suspense>
+          } />
+          
+          <Route path="/error/network" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <NetworkErrorPage />
+            </Suspense>
+          } />
+
+          {/* 404 Catch-all Route - Must be last */}
+          <Route path="*" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <NotFoundErrorPage />
+            </Suspense>
+          } />
         </Routes>
         
         {/* Development Tools - Only load in development */}
         {envInfo.debugMode && (
-          <>
-            <Suspense fallback={<div>Loading debug panel...</div>}>
-              <EnvironmentDebugPanel />
-            </Suspense>
-            <Suspense fallback={null}>
-              <PerformanceDashboard />
-            </Suspense>
-          </>
+          <Suspense fallback={<div>Loading debug panel...</div>}>
+            <EnvironmentDebugPanel />
+          </Suspense>
         )}
-      </FeatureFlagProvider>
-      </Suspense>
+          </FeatureFlagProvider>
+        </Suspense>
+      </SubdomainRouter>
     </ErrorBoundary>
   )
 }
@@ -207,22 +334,60 @@ function App() {
   const validation = useMemo(() => validateEnvironment(), [])
   const envInfo = useMemo(() => getEnvironmentInfo(), [])
   
+  
   // Initialize app setup once with useEffect instead of on every render
   useEffect(() => {
+    // Initialize performance optimizations
+    initializeBundleOptimization()
+    initializeCodeSplitting()
+    initializeCacheSystem()
+    
+    // Performance monitoring disabled for cleaner development experience
+    // (Available through /admin routes for internal teams)
+    
+    // Initialize security monitoring
+    import('./services/DataManager.js').then(({ dataManager }) => {
+      dataManager.startSecurityMonitoring()
+      logger.info('Security monitoring initialized')
+    }).catch(error => {
+      logger.warn('Failed to initialize security monitoring:', error)
+    })
+    
+    // Initialize error recovery
+    import('./services/DataManager.js').then(({ dataManager }) => {
+      dataManager.startErrorRecovery()
+      logger.info('Error recovery initialized')
+    }).catch(error => {
+      logger.warn('Failed to initialize error recovery:', error)
+    })
+    
+    // Initialize subdomain configuration
+    const subdomainConfig = initializeSubdomainConfig()
+    
     // Log environment info in development (throttled to avoid React StrictMode duplicates)
     if (envInfo.debugMode) {
       const logKey = 'diboas_app_logged'
       if (!window[logKey]) {
         window[logKey] = true
         console.group('🚀 diBoaS Application Started')
-        console.log('Environment:', envInfo.environment)
-        console.log('Region:', envInfo.region)
-        console.log('Version:', envInfo.version)
-        console.log('API Base:', envInfo.baseUrl)
-        console.log('Debug Mode:', envInfo.debugMode)
+        logger.debug('Environment:', envInfo.environment)
+        logger.debug('Region:', envInfo.region)
+        logger.debug('Version:', envInfo.version)
+        logger.debug('API Base:', envInfo.baseUrl)
+        logger.debug('Debug Mode:', envInfo.debugMode)
+        logger.debug('Subdomain:', subdomainConfig.subdomain)
+        logger.debug('Security Policy:', subdomainConfig.security)
+        logger.debug('Performance Config:', subdomainConfig.performance)
         
         // Initialize data state - preserve user data, only reset if corrupted
-        console.log('📊 Initializing data state...')
+        logger.debug('📊 Initializing data state...')
+        
+        // Initialize modern storage system
+        initializeStorage().then(stats => {
+          logger.debug('📦 Modern storage initialized:', stats)
+        }).catch(error => {
+          logger.warn('Storage initialization failed:', error)
+        })
         
         // Initialize localStorage cleanup to prevent corruption
         initializeLocalStorageCleanup()
@@ -241,17 +406,17 @@ function App() {
         )
         
         if (hasCorruptedData) {
-          console.log('⚠️ Found corrupted data, resetting to clean state')
+          logger.debug('⚠️ Found corrupted data, resetting to clean state')
           resetToCleanState()
         } else {
-          console.log('✅ Data is valid, preserving user data:', {
+          logger.debug('✅ Data is valid, preserving user data:', {
             totalBalance: currentBalance.totalUSD,
             transactions: currentTransactions.length
           })
         }
         
         if (!validation.isValid) {
-          console.warn('Configuration Issues:', validation.issues)
+          logger.warn('Configuration Issues:', validation.issues)
         }
         console.groupEnd()
       }

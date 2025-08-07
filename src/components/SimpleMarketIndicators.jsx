@@ -1,57 +1,12 @@
 import { memo } from 'react'
 import { TrendingUp, TrendingDown } from 'lucide-react'
+import { useMarketIndicators } from '../hooks/useMarketIndicators.jsx'
 
 /**
- * Simplified Market Indicators - High Performance Version
- * Uses static demo data to prevent performance issues
- * Real market data integration removed to improve page performance
+ * Simplified Market Indicators - Now with Real-time Data
+ * Uses MockupMarketIndicatorProviderService for dynamic market data
+ * Maintains high performance with intelligent caching and memoization
  */
-
-// Static market data that doesn't change - prevents re-renders
-const STATIC_MARKET_DATA = [
-  {
-    name: 'BTC',
-    value: '$43,250',
-    change: '+2.4%',
-    isPositive: true,
-    icon: '₿'
-  },
-  {
-    name: 'ETH',
-    value: '$2,680',
-    change: '+1.8%',
-    isPositive: true,
-    icon: '💎'
-  },
-  {
-    name: 'Stock Market',
-    value: '4,785',
-    change: '-0.3%',
-    isPositive: false,
-    icon: '📈'
-  },
-  {
-    name: 'Gold',
-    value: '$2,045',
-    change: '+0.8%',
-    isPositive: true,
-    icon: '🥇'
-  },
-  {
-    name: 'DeFi TVL',
-    value: '$45.8B',
-    change: '+1.7%',
-    isPositive: true,
-    icon: '🏦'
-  },
-  {
-    name: 'Crypto Market',
-    value: '$1.68T',
-    change: '+2.8%',
-    isPositive: true,
-    icon: '💎'
-  }
-]
 
 // Minimalist market data item
 const MarketDataItem = memo(({ marketItem }) => {
@@ -82,22 +37,47 @@ const MarketDataItem = memo(({ marketItem }) => {
 
 MarketDataItem.displayName = 'MarketDataItem'
 
-// Main component - minimalist and smaller design
+// Main component - now with real-time data
 const SimpleMarketIndicators = memo(() => {
+  const { 
+    marketData, 
+    isLoading, 
+    error, 
+    lastUpdated 
+  } = useMarketIndicators(true, 30000) // Auto-refresh every 30 seconds
+
+  // Show loading state
+  if (isLoading && marketData.length === 0) {
+    return (
+      <div className="market-indicators-container">
+        <div className="market-indicators-status">
+          <span>📊 Loading Market Data...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state with fallback
+  const displayData = error && marketData.length === 0 ? 
+    [{ name: 'Market Data', value: 'Unavailable', change: '--', isPositive: true, icon: '📊' }] : 
+    marketData
+
   return (
     <div className="market-indicators-container">
-      {/* Status indicator - smaller */}
+      {/* Status indicator - dynamic */}
       <div className="market-indicators-status">
-        <span>📊 Demo Market Data</span>
-        <span className="market-indicators-status-live">Live</span>
+        <span>📊 {error ? 'Demo' : 'Live'} Market Data</span>
+        <span className={`market-indicators-status-live ${error ? 'market-indicators-status-error' : ''}`}>
+          {isLoading ? 'Updating...' : error ? 'Fallback' : 'Live'}
+        </span>
       </div>
 
       {/* Mobile View - Show all items in horizontal scroll */}
       <div className="market-indicators-mobile">
         <div className="market-indicators-scroll">
-          {STATIC_MARKET_DATA.map((item, index) => (
+          {displayData.map((item, index) => (
             <MarketDataItem 
-              key={`${item.name}-${index}`} 
+              key={`${item.name}-${item.symbol || index}`} 
               marketItem={item} 
             />
           ))}
@@ -106,9 +86,9 @@ const SimpleMarketIndicators = memo(() => {
 
       {/* Desktop View - Grid layout with fewer columns */}
       <div className="market-indicators-desktop">
-        {STATIC_MARKET_DATA.map((item, index) => (
+        {displayData.map((item, index) => (
           <MarketDataItem 
-            key={`${item.name}-${index}`} 
+            key={`${item.name}-${item.symbol || index}`} 
             marketItem={item} 
           />
         ))}

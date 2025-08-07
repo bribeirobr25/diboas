@@ -1,3 +1,6 @@
+import logger from './logger'
+import { storage } from './modernStorage.js'
+
 /**
  * Mock wallet address database for Transfer transaction autocomplete
  * This simulates real wallet addresses across different networks
@@ -216,26 +219,38 @@ export const validateWalletAddress = (address) => {
  */
 export const RECENT_ADDRESSES_KEY = 'diboas_recent_wallet_addresses'
 
-export const getRecentWalletAddresses = () => {
+export const getRecentWalletAddresses = async (userId = 'global') => {
   try {
-    const stored = localStorage.getItem(RECENT_ADDRESSES_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      return Array.isArray(parsed) ? parsed.slice(0, 3) : []
+    // Try modern storage first
+    let stored = await storage.getRecentAddresses(userId)
+    
+    // Legacy fallback
+    if (!stored || stored.length === 0) {
+      const legacyStored = localStorage.getItem(RECENT_ADDRESSES_KEY)
+      if (legacyStored) {
+        const parsed = JSON.parse(legacyStored)
+        stored = Array.isArray(parsed) ? parsed : []
+        // Migrate to modern storage
+        if (stored.length > 0) {
+          await storage.setRecentAddresses(userId, stored)
+        }
+      }
     }
+    
+    return Array.isArray(stored) ? stored.slice(0, 3) : []
   } catch (error) {
-    console.error('Error loading recent wallet addresses:', error)
+    logger.error('Error loading recent wallet addresses:', error)
+    return []
   }
-  return []
 }
 
-export const saveRecentWalletAddress = (address) => {
+export const saveRecentWalletAddress = async (address, userId = 'global') => {
   if (!address) return
   
   const network = detectAddressNetwork(address)
   if (!network) return // Don't save invalid addresses
   
-  const current = getRecentWalletAddresses()
+  const current = await getRecentWalletAddresses(userId)
   const addressData = {
     address,
     network,
@@ -248,9 +263,13 @@ export const saveRecentWalletAddress = (address) => {
   const updated = [addressData, ...filtered].slice(0, 3)
   
   try {
+    // Save to modern storage
+    await storage.setRecentAddresses(userId, updated)
+    
+    // Keep legacy format for compatibility
     localStorage.setItem(RECENT_ADDRESSES_KEY, JSON.stringify(updated))
   } catch (error) {
-    console.error('Error saving recent wallet address:', error)
+    logger.error('Error saving recent wallet address:', error)
   }
 }
 

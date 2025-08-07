@@ -5,7 +5,7 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import InvestmentCategory from '../categories/InvestmentCategory.jsx'
 import { dataManager } from '../../services/DataManager.js'
 import { assetDataService } from '../../services/assetDataService.js'

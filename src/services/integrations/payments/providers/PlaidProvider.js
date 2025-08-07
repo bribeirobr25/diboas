@@ -3,6 +3,8 @@
  * Bank account connection and verification via Plaid
  */
 
+import { centralizedFeeCalculator } from '../../../../utils/feeCalculations.js'
+
 export class PlaidProvider {
   constructor(config) {
     this.config = config
@@ -271,24 +273,33 @@ export class PlaidProvider {
     try {
       const { amount, accountType = 'checking', expedited = false } = paymentData
 
-      // ACH fee structure
+      // Use centralized fee calculator for bank account fees
+      const fees = centralizedFeeCalculator.calculateFees({
+        type: 'add', // Assuming this is for add transactions
+        amount,
+        asset: 'SOL',
+        paymentMethod: 'bank_account',
+        chains: ['SOL']
+      })
+
+      // ACH fee structure - keep expedited logic for compatibility
       let baseFee = 0.50 // Base ACH fee
-      let percentageFee = amount * 0.008 // 0.8% of amount
+      let percentageFee = fees.providerFee
       
       // Higher fees for expedited processing
       if (expedited) {
         baseFee = 1.50
-        percentageFee = amount * 0.015 // 1.5% for same-day ACH
+        percentageFee = amount * 0.015 // 1.5% for same-day ACH (override centralized rate)
       }
 
       // Minimum fee of $0.50, maximum of $10.00 for standard ACH
-      const totalFee = Math.max(0.50, Math.min(expedited ? 25.00 : 10.00, baseFee + percentageFee))
+      const total = Math.max(0.50, Math.min(expedited ? 25.00 : 10.00, baseFee + percentageFee))
 
       return {
         success: true,
         baseFee: baseFee.toFixed(2),
         percentageFee: percentageFee.toFixed(2),
-        totalFee: totalFee.toFixed(2),
+        total: total.toFixed(2),
         breakdown: {
           achFee: baseFee.toFixed(2),
           processingFee: percentageFee.toFixed(2),

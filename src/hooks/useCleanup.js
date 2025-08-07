@@ -6,6 +6,7 @@
 import { useEffect, useRef } from 'react'
 import { dataManager } from '../services/DataManager.js'
 import { rateLimiter, checkAuthRateLimit, checkTransactionRateLimit, checkGeneralRateLimit } from '../utils/advancedRateLimiter.js'
+import logger from '../utils/logger'
 
 export const useCleanup = () => {
   const cleanupFunctions = useRef([])
@@ -42,7 +43,7 @@ export const useCleanup = () => {
         try {
           cleanup()
         } catch (error) {
-          console.warn('Error during cleanup:', error)
+          logger.warn('Error during cleanup:', error)
         }
       })
       cleanupFunctions.current = []

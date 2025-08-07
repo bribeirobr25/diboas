@@ -5,7 +5,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import AssetDetailPage from '../AssetDetailPage.jsx'
 import { assetDataService } from '../../services/assetDataService.js'
 import { dataManager } from '../../services/DataManager.js'

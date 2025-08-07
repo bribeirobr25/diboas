@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { mockOnChainStatusProvider, TRANSACTION_STATUS } from '../services/onchain/OnChainStatusProvider.js'
+import logger from '../utils/logger'
 
 /**
  * Hook for managing on-chain transaction status
@@ -60,7 +61,7 @@ export const useOnChainStatus = (transactionId, options = {}) => {
           }
         }
       } catch (err) {
-        console.error('Error polling transaction status:', err)
+        logger.error('Error polling transaction status:', err)
         setError(err.message)
       }
     }, pollInterval)

@@ -352,11 +352,11 @@ export const seoMonitoring = {
   monitorCoreWebVitals: () => {
     if (typeof window !== 'undefined' && 'web-vitals' in window) {
       import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-        getCLS(console.log)
-        getFID(console.log)
-        getFCP(console.log)
-        getLCP(console.log)
-        getTTFB(console.log)
+        getCLS((metric) => logger.debug('CLS:', metric))
+        getFID((metric) => logger.debug('FID:', metric))
+        getFCP((metric) => logger.debug('FCP:', metric))
+        getLCP((metric) => logger.debug('LCP:', metric))
+        getTTFB((metric) => logger.debug('TTFB:', metric))
       })
     }
   },
@@ -380,7 +380,7 @@ export const seoMonitoring = {
       try {
         report.structuredData.push(JSON.parse(script.textContent))
       } catch (e) {
-        console.warn('Invalid structured data:', e)
+        logger.warn('Invalid structured data:', e)
       }
     })
 
@@ -393,6 +393,7 @@ export const seoMonitoring = {
  */
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import logger from './logger'
 
 export const useSEO = (seoConfig) => {
   const location = useLocation()

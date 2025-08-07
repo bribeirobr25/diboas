@@ -3,7 +3,7 @@
  * Tests the market data display component with real-time updates
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { mockApiResponses } from '../../test/utils/testHelpers.js'
 import MarketIndicators from '../MarketIndicators.jsx'

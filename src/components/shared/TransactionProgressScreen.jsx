@@ -118,6 +118,8 @@ export default function TransactionProgressScreen({
   const navigate = useNavigate()
   const [completedSteps, setCompletedSteps] = useState([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [showFinalStatus, setShowFinalStatus] = useState(false)
+  const [finalStatusTimer, setFinalStatusTimer] = useState(null)
 
   // Use real-time transaction status if transactionId is provided
   const {
@@ -142,12 +144,34 @@ export default function TransactionProgressScreen({
   const finalErrorMessage = useRealTimeStatus && statusError ? statusError : errorMessage
   const finalError = flowError || (finalErrorMessage ? new Error(finalErrorMessage) : null)
 
-  // Debug logging removed for production
-
-  // Additional debugging for completion detection
+  // Handle completion/error state changes and trigger final status display
   useEffect(() => {
-    // Completion status tracking removed for production
-  }, [finalIsCompleted])
+    if (finalIsCompleted || finalIsError) {
+      // Start final status timer
+      setShowFinalStatus(true)
+      
+      const timer = setTimeout(() => {
+        // Auto-navigate back to dashboard after 3 seconds
+        navigate('/app')
+      }, 3000)
+      
+      setFinalStatusTimer(timer)
+      
+      // Cleanup function
+      return () => {
+        if (timer) clearTimeout(timer)
+      }
+    }
+  }, [finalIsCompleted, finalIsError, navigate])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (finalStatusTimer) {
+        clearTimeout(finalStatusTimer)
+      }
+    }
+  }, [finalStatusTimer])
 
   // Get transaction configuration with dynamic 'from' and 'to' fields
   const getTransactionConfig = (type) => {
@@ -281,10 +305,21 @@ export default function TransactionProgressScreen({
                 <span className="text-gray-600">Amount:</span>
                 <span className="font-medium">${transactionData?.amount}</span>
               </div>
-              {fees && (
+              {fees && fees.total && (
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">Total Fees:</span>
-                  <span className="font-medium">${fees.total?.toFixed(2) || '0.00'}</span>
+                  <span className="font-medium">${(() => {
+                    // Use the same total that was shown to the user on the previous page
+                    // This ensures consistency between transaction summary and confirmation
+                    const total = fees.total || 0
+                    
+                    // Handle both string and numeric values
+                    const feeNumber = typeof total === 'string' ? 
+                      parseFloat(total.replace(/[^0-9.-]/g, '')) || 0 : 
+                      parseFloat(total) || 0
+                    
+                    return feeNumber.toFixed(2)
+                  })()}</span>
                 </div>
               )}
               <div className="border-t pt-2 mt-2">
@@ -321,7 +356,8 @@ export default function TransactionProgressScreen({
     )
   }
 
-  if (finalIsCompleted) {
+  // Final Status Screen (Success or Failure)
+  if (showFinalStatus && (finalIsCompleted || finalIsError)) {
     return (
       <div className="main-layout center-content" style={{padding: '1rem'}}>
         <Card className="main-card" style={{width: '100%', maxWidth: '32rem'}}>
@@ -330,105 +366,116 @@ export default function TransactionProgressScreen({
               <img src={diBoaSLogo} alt="diBoaS Logo" className="h-12 w-auto mx-auto mb-4" />
             </div>
             
-            {/* Success Icon */}
-            <div className={`w-16 h-16 rounded-full ${config.bgColor} flex items-center justify-center mx-auto mb-6`}>
-              <CheckCircle className={`w-8 h-8 ${config.color}`} />
+            {/* Status Icon and Content */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-lg text-center mb-6">
+              <div className="flex justify-center mb-4">
+                {finalIsCompleted ? (
+                  <CheckCircle className="w-16 h-16 text-green-600" />
+                ) : (
+                  <XCircle className="w-16 h-16 text-red-600" />
+                )}
+              </div>
+              
+              {finalIsCompleted ? (
+                <>
+                  <h2 className="text-2xl font-bold text-green-900 mb-2">
+                    {config.name} Successful! 🎉
+                  </h2>
+                  <p className="text-green-700 mb-4">
+                    Your {config.name.toLowerCase()} has been completed successfully.
+                  </p>
+                  
+                  {/* Transaction Summary for Success */}
+                  <div className="bg-white rounded-lg p-4 text-left">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Amount:</span>
+                        <span className="font-medium">${transactionData?.amount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">From:</span>
+                        <span className="font-medium text-xs">{config.from}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">To:</span>
+                        <span className="font-medium text-xs">{config.to}</span>
+                      </div>
+                      {fees && (
+                        <div className="flex justify-between border-t pt-2">
+                          <span className="text-gray-600">Net Amount:</span>
+                          <span className="font-medium text-green-600">
+                            ${(() => {
+                              // Use the same total fee that was shown to the user on the previous page
+                              const total = fees.total || 0
+                              
+                              // Handle both string and numeric values
+                              const feeNumber = typeof total === 'string' ? 
+                                parseFloat(total.replace(/[^0-9.-]/g, '')) || 0 : 
+                                parseFloat(total) || 0
+                              
+                              const netAmount = parseFloat(transactionData.amount) - feeNumber
+                              return netAmount.toFixed(2)
+                            })()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-bold text-red-900 mb-2">
+                    {config.name} Failed
+                  </h2>
+                  <p className="text-red-700 mb-4">
+                    {finalErrorMessage || 'An error occurred during processing.'}
+                  </p>
+                  
+                  {/* Error Context */}
+                  <div className="bg-white rounded-lg p-4 text-left">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Transaction Type:</span>
+                        <span className="font-medium">{config.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Amount:</span>
+                        <span className="font-medium">${transactionData?.amount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Status:</span>
+                        <span className="text-red-600 font-medium">Failed</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             
-            {/* Success Message */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {config.name} Successful!
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Your {config.name.toLowerCase()} has been completed successfully.
-            </p>
-            
-            {/* Transaction Summary */}
-            <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left">
-              <h3 className="font-semibold text-gray-900 mb-4">Transaction Summary</h3>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Type:</span>
-                  <span className="font-medium">{config.name}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Amount:</span>
-                  <span className="font-medium">${transactionData?.amount}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-600">From:</span>
-                  <span className="font-medium">{config.from}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-600">To:</span>
-                  <span className="font-medium">{config.to}</span>
-                </div>
-                
-                {/* Transaction Hash */}
-                {onChainHash && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Transaction Hash:</span>
-                    <span className="font-mono text-xs truncate max-w-32">{onChainHash}</span>
-                  </div>
-                )}
-                
-                {fees && (
-                  <>
-                    <div className="border-t pt-2">
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>Total Fees:</span>
-                        <span>${fees.total?.toFixed(2) || '0.00'}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="border-t pt-2">
-                      <div className="flex justify-between font-semibold">
-                        <span>Net Amount:</span>
-                        <span className={config.color}>
-                          ${(parseFloat(transactionData.amount) - parseFloat(fees.total || 0)).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
+            {/* Auto-navigation countdown */}
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-4">
+                Returning to dashboard in 3 seconds...
+              </p>
+              <div className="flex justify-center">
+                <Clock className="w-4 h-4 text-gray-400 animate-pulse" />
               </div>
             </div>
             
-            {/* Action Button */}
+            {/* Optional manual navigation */}
             <Button 
-              className="w-full diboas-button"
-              onClick={() => navigate('/app')}
+              variant="outline"
+              className="w-full mt-4"
+              onClick={() => {
+                if (finalStatusTimer) clearTimeout(finalStatusTimer)
+                navigate('/app')
+              }}
             >
-              Back to Dashboard
+              Back to Dashboard Now
             </Button>
           </CardContent>
         </Card>
       </div>
-    )
-  }
-
-  if (finalIsError) {
-    // Get current step name for error context
-    const currentStepName = steps[currentStepIndex] || currentStep || 'Processing transaction'
-    
-    return (
-      <TransactionErrorHandler
-        error={finalError}
-        transactionData={transactionData}
-        currentStep={currentStepName}
-        onRetry={() => {
-          // Reset error state and go back to transaction form
-          if (onCancel) onCancel()
-          navigate(-1)
-        }}
-        onCancel={onCancel}
-        onBackToDashboard={() => navigate('/app')}
-        showTechnicalDetails={true}
-      />
     )
   }
 

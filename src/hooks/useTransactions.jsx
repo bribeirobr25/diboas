@@ -9,6 +9,7 @@ import { defaultFeeCalculator } from '../utils/feeCalculations.js'
 import { useAuth } from './useIntegrations.jsx'
 import { dataManager } from '../services/DataManager.js'
 import { onChainTransactionManager } from '../services/transactions/OnChainTransactionManager.js'
+import logger from '../utils/logger'
 // import { getWalletManager } from './transactions/transactionSingletons.js'
 
 // Main transaction hook moved to ./transactions/useTransactions.js
@@ -98,7 +99,7 @@ export const useWalletBalance = () => {
       }
 
       // For transactions that use Available Balance only
-      if (['send', 'withdraw', 'transfer'].includes(transactionType)) {
+      if (['send', 'withdraw'].includes(transactionType)) {
         const available = currentBalance?.availableForSpending || 0
         checks.sufficient = available >= amount
         checks.availableBalance = available
@@ -136,6 +137,25 @@ export const useWalletBalance = () => {
         
         if (!checks.sufficient) {
           checks.deficit = amount - invested
+        }
+        return checks
+      }
+
+      // For strategy transactions: check available balance (similar to buy with diBoaS wallet)
+      if (transactionType === 'start_strategy') {
+        if (paymentMethod === 'diboas_wallet') {
+          // Strategy funding: Check Available Balance
+          const available = currentBalance?.availableForSpending || 0
+          checks.sufficient = available >= amount
+          checks.availableBalance = available
+          
+          if (!checks.sufficient) {
+            checks.deficit = amount - available
+          }
+        } else {
+          // Strategy with external payment: External payment, no balance check needed
+          checks.sufficient = true
+          checks.availableBalance = 999999 // External payment source
         }
         return checks
       }
@@ -360,10 +380,16 @@ export const useTransactionValidation = () => {
         errors.amount = { message: 'Valid amount is required', isValid: false }
       }
 
-      // Minimum amount validation
+      // Minimum amount validation per TRANSACTIONS.md
       const minimumAmounts = {
-        'add': 10, 'withdraw': 5, 'send': 5,
-        'transfer': 5, 'buy': 10, 'sell': 5, 'invest': 10
+        'add': 10,           // $10 per TRANSACTIONS.md section 3.1.1
+        'withdraw': 5,       // $5 per TRANSACTIONS.md section 3.1.2
+        'send': 5,           // $5 per TRANSACTIONS.md section 3.1.3
+        'buy': 10,           // $10 per TRANSACTIONS.md section 3.2.1
+        'sell': 5,           // $5 per TRANSACTIONS.md section 3.2.2
+        'invest': 10,        // Legacy - same as buy
+        'start_strategy': 10, // $10 per TRANSACTIONS.md section 3.3.2
+        'stop_strategy': 0   // No minimum - must stop entire strategy
       }
 
       if (numericAmount < minimumAmounts[type]) {
@@ -376,12 +402,12 @@ export const useTransactionValidation = () => {
       // Balance validation based on transaction type and proper financial flow
       const currentBalance = dataManager.getBalance()
       
-      if (['withdraw', 'send', 'transfer'].includes(type)) {
+      if (['withdraw', 'send'].includes(type)) {
         // These transactions only use Available Balance (USDC)
         const availableBalance = currentBalance?.availableForSpending || 0
         
         if (numericAmount > availableBalance) {
-          const actionName = type === 'withdraw' ? 'withdraw' : type === 'send' ? 'send' : 'transfer'
+          const actionName = type === 'withdraw' ? 'withdraw' : 'send'
           errors.amount = { 
             message: `Cannot ${actionName} more than available balance. Maximum: $${availableBalance.toFixed(2)}`, 
             isValid: false 
@@ -407,22 +433,44 @@ export const useTransactionValidation = () => {
             isValid: false 
           }
         }
-      }
-
-      // Recipient validation
-      if (['send', 'transfer'].includes(type)) {
-        if (!recipient) {
-          errors.recipient = { message: 'Recipient is required', isValid: false }
-        } else if (type === 'transfer') {
-          // External wallet address validation using fee calculator
-          const addressInfo = defaultFeeCalculator.detectNetworkFromAddressDetailed(recipient)
+      } else if (type === 'start_strategy') {
+        // Start Strategy: uses Available Balance (only diBoaS wallet allowed per TRANSACTIONS.md)
+        const availableBalance = currentBalance?.availableForSpending || 0
+        
+        if (numericAmount > availableBalance) {
+          errors.amount = { 
+            message: `Cannot start strategy with more than available balance. Maximum: $${availableBalance.toFixed(2)}`, 
+            isValid: false 
+          }
+        }
+      } else if (type === 'stop_strategy') {
+        // Stop Strategy: uses Strategy Balance for specific strategy
+        const strategyId = transactionData.strategyId
+        if (strategyId) {
+          const strategyBalance = currentBalance?.strategies?.[strategyId]?.currentAmount || 0
           
-          if (!addressInfo.isValid) {
-            errors.recipient = { 
-              message: 'Invalid wallet address format. Supported networks: Bitcoin (BTC), Ethereum (ETH), Arbitrum (ARB), Base (BASE), Solana (SOL), Sui (SUI)', 
+          if (numericAmount > strategyBalance) {
+            errors.amount = { 
+              message: `Cannot stop strategy with more than strategy balance. Maximum: $${strategyBalance.toFixed(2)}`, 
               isValid: false 
             }
           }
+        } else {
+          // Generic strategy balance check if no specific strategyId
+          const totalStrategyBalance = currentBalance?.strategyBalance || 0
+          if (numericAmount > totalStrategyBalance) {
+            errors.amount = { 
+              message: `Cannot stop strategy with more than total strategy balance. Maximum: $${totalStrategyBalance.toFixed(2)}`, 
+              isValid: false 
+            }
+          }
+        }
+      }
+
+      // Recipient validation
+      if (type === 'send') {
+        if (!recipient) {
+          errors.recipient = { message: 'Recipient is required', isValid: false }
         } else {
           // diBoaS username validation
           if (!recipient.startsWith('@') || recipient.length < 4) {
@@ -477,12 +525,36 @@ export const useTransactionFlow = () => {
   const executeTransactionFlow = useCallback(async (transactionData) => {
     setFlowError(null)
     
+    // Create a transaction record for logging even if it fails
+    const transactionRecord = {
+      id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+      type: transactionData.type,
+      amount: transactionData.amount,
+      currency: transactionData.currency || 'USD',
+      asset: transactionData.asset,
+      recipient: transactionData.recipient,
+      paymentMethod: transactionData.paymentMethod,
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    }
+    
     try {
       // Step 1: Validation
       setFlowState('validating')
       const validation = await validateTransaction(transactionData)
       if (!validation.isValid) {
-        throw new Error(`Transaction validation failed: ${JSON.stringify(validation.errors)}`)
+        const errorMessage = `Transaction validation failed: ${JSON.stringify(validation.errors)}`
+        
+        // Log failed transaction to DataManager
+        dataManager.addTransaction({
+          ...transactionRecord,
+          status: 'failed',
+          error: errorMessage,
+          failedAtStep: 'validation',
+          description: `Failed ${transactionData.type} transaction - Validation error`
+        })
+        
+        throw new Error(errorMessage)
       }
 
       // Step 2: Balance check
@@ -493,19 +565,43 @@ export const useTransactionFlow = () => {
         transactionData.paymentMethod
       )
       if (!balanceCheck?.sufficient) {
-        throw new Error(`Insufficient balance for transaction: required ${parseFloat(transactionData.amount)}, available ${balanceCheck?.availableBalance}`)
+        const errorMessage = `Insufficient balance for transaction: required ${parseFloat(transactionData.amount)}, available ${balanceCheck?.availableBalance}`
+        
+        // Log failed transaction to DataManager
+        dataManager.addTransaction({
+          ...transactionRecord,
+          status: 'failed',
+          error: errorMessage,
+          failedAtStep: 'balance_check',
+          description: `Failed ${transactionData.type} transaction - Insufficient balance`
+        })
+        
+        throw new Error(errorMessage)
       }
 
       // Step 3: Fee calculation
       setFlowState('calculating')
       const fees = await calculateFees(transactionData)
 
+      // Calculate net amount once (single source of truth)
+      let netAmount = parseFloat(transactionData.amount)
+      if (transactionData.type === 'add' && fees?.total) {
+        // For add transactions, user receives amount - fees
+        netAmount = parseFloat(transactionData.amount) - parseFloat(fees.total)
+      }
+      // For withdraw/send: full amount deducted from balance
+      // For buy/sell: handled separately with invested balance
+
       // Step 4: Update flow data for confirmation
       const confirmationData = {
-        transaction: transactionData,
+        transaction: {
+          ...transactionData,
+          netAmount // Include pre-calculated net amount
+        },
         fees,
         balanceCheck,
-        validation
+        validation,
+        transactionId: transactionRecord.id // Include transaction ID for tracking
       }
       setFlowData(confirmationData)
       setFlowState('confirming')
@@ -513,6 +609,18 @@ export const useTransactionFlow = () => {
     } catch (error) {
       setFlowError(error)
       setFlowState('error')
+      
+      // If error hasn't been logged yet (e.g., fee calculation error), log it now
+      if (!error.message?.includes('validation failed') && !error.message?.includes('Insufficient balance')) {
+        dataManager.addTransaction({
+          ...transactionRecord,
+          status: 'failed',
+          error: error.message || 'Unknown error',
+          failedAtStep: flowState === 'calculating' ? 'fee_calculation' : 'unknown',
+          description: `Failed ${transactionData.type} transaction - ${error.message || 'Unknown error'}`
+        })
+      }
+      
       throw error
     }
   }, [validateTransaction, checkSufficientBalance, calculateFees])
@@ -522,6 +630,12 @@ export const useTransactionFlow = () => {
     if (!flowData || flowState !== 'confirming') {
       throw new Error('No transaction to confirm')
     }
+
+    logger.debug('🚀 Starting transaction confirmation:', {
+      flowState,
+      transactionType: flowData.transaction?.type,
+      amount: flowData.transaction?.amount
+    })
 
     try {
       setFlowState('processing')
@@ -536,11 +650,20 @@ export const useTransactionFlow = () => {
         userId: 'current_user' // TODO: Get actual user ID from auth context
       }
       
+      logger.debug('📤 Executing transaction with on-chain manager:', {
+        ...transactionWithFees,
+        feesObject: flowData.fees,
+        feesTotal: flowData.fees?.total
+      })
+      
       // Execute transaction with on-chain confirmation gating
       const result = await onChainTransactionManager.executeTransaction(transactionWithFees)
       
+      logger.debug('📥 Transaction execution result:', result)
+      
       if (result.success) {
         // Transaction successfully submitted to blockchain
+        logger.debug('✅ Transaction submitted successfully, setting pending_blockchain state')
         setFlowData({ 
           ...flowData, 
           result: {
@@ -560,12 +683,52 @@ export const useTransactionFlow = () => {
         }
       } else {
         // Transaction submission failed
+        logger.error('❌ Transaction submission failed:', result.error)
+        
+        // Log failed transaction to DataManager
+        if (flowData?.transactionId) {
+          dataManager.addTransaction({
+            id: flowData.transactionId,
+            type: flowData.transaction.type,
+            amount: flowData.transaction.amount,
+            currency: flowData.transaction.currency || 'USD',
+            asset: flowData.transaction.asset,
+            recipient: flowData.transaction.recipient,
+            paymentMethod: flowData.transaction.paymentMethod,
+            timestamp: new Date().toISOString(),
+            status: 'failed',
+            error: result.error || 'Transaction submission failed',
+            failedAtStep: 'submission',
+            description: `Failed ${flowData.transaction.type} transaction - Submission error`
+          })
+        }
+        
         throw new Error(result.error || 'Transaction submission failed')
       }
       
     } catch (error) {
+      logger.error('💥 Transaction confirmation error:', error)
       setFlowError(error)
       setFlowState('error')
+      
+      // Log failed transaction to DataManager if not already logged
+      if (flowData?.transactionId && !error.message?.includes('submission failed')) {
+        dataManager.addTransaction({
+          id: flowData.transactionId,
+          type: flowData.transaction.type,
+          amount: flowData.transaction.amount,
+          currency: flowData.transaction.currency || 'USD',
+          asset: flowData.transaction.asset,
+          recipient: flowData.transaction.recipient,
+          paymentMethod: flowData.transaction.paymentMethod,
+          timestamp: new Date().toISOString(),
+          status: 'failed',
+          error: error.message || 'Transaction processing error',
+          failedAtStep: 'processing',
+          description: `Failed ${flowData.transaction.type} transaction - ${error.message || 'Processing error'}`
+        })
+      }
+      
       throw error
     }
   }, [flowData, flowState])
@@ -600,7 +763,7 @@ export const useTransactionTwoFA = () => {
   const checkTwoFARequirement = useCallback(async (transactionData) => {
     // 2FA required for transactions after first deposit as per requirements
     const requires2FA = user?.settings?.twoFAEnabled && 
-                       ['withdraw', 'transfer', 'send'].includes(transactionData.type) &&
+                       ['withdraw', 'send'].includes(transactionData.type) &&
                        parseFloat(transactionData.amount) > 100
 
     setTwoFARequired(requires2FA)

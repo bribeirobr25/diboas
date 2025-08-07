@@ -4,6 +4,7 @@
  */
 
 import { getEnvironmentInfo } from '../config/environments.js'
+import logger from './logger'
 
 /**
  * CSP Configuration by Environment
@@ -208,7 +209,7 @@ class CSPManager {
         
         // Log violation in development
         if (this.environment === 'development') {
-          console.warn('CSP Violation:', violation)
+          logger.warn('CSP Violation:', violation)
         }
 
         // Report to security service in production
@@ -233,11 +234,11 @@ class CSPManager {
           },
           body: JSON.stringify(violation)
         }).catch(error => {
-          console.error('Failed to report CSP violation:', error)
+          logger.error('Failed to report CSP violation:', error)
         })
       }
     } catch (error) {
-      console.error('CSP violation reporting failed:', error)
+      logger.error('CSP violation reporting failed:', error)
     }
   }
 

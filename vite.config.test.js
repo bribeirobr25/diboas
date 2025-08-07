@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
-    globals: true,
+    globals: false, // Prefer explicit imports for better IDE support
     
     // Test optimizations
     testTimeout: 10000, // Increase timeout for integration tests

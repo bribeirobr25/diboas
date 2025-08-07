@@ -19,20 +19,13 @@ export default function PaymentMethodSelector({
 
   let methods = transactionType === 'buy' ? buyPaymentMethods : paymentMethods
   
-  // Add external wallet option for withdraw transactions
-  if (transactionType === 'withdraw') {
-    methods = [
-      ...paymentMethods,
-      { methodId: 'external_wallet', displayLabel: 'External Wallet', paymentIcon: <Wallet className="w-4 h-4" /> }
-    ]
-  }
+  // For withdraw transactions, use payment methods directly from service
+  // (service already includes external_wallet in offramp methods)
   
-  // Add crypto wallet option for add transactions (at the end)
+  // For add transactions, use the payment methods directly from the service
+  // (service already includes My Wallet as crypto_wallet)
   if (transactionType === 'add') {
-    methods = [
-      ...paymentMethods,
-      { methodId: 'crypto_wallet', displayLabel: 'Crypto Wallet', paymentIcon: <Wallet className="w-4 h-4" /> }
-    ]
+    methods = paymentMethods
   }
 
   return (

@@ -229,35 +229,35 @@
   flex-shrink: 0;
 }
 
-/* Yield Overview Card */
-.yield-overview-card {
+/* Strategy Overview Card - Unified with Investment/Banking */
+.strategy-overview-card {
   border: 1px solid #e5e7eb;
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
-.yield-overview-title {
+.strategy-overview-title {
   font-size: 1.125rem;
   font-weight: 600;
   color: #111827;
   margin-bottom: 0.25rem;
 }
 
-.yield-overview-grid {
+.strategy-overview-grid {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.yield-overview-item {
+.strategy-overview-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   flex: 1;
 }
 
-.yield-overview-icon {
+.strategy-overview-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -267,27 +267,46 @@
   background: #f9fafb;
 }
 
-.yield-overview-content {
+.strategy-overview-content {
   flex: 1;
 }
 
-.yield-overview-label {
+.strategy-overview-label {
   font-size: 0.875rem;
   color: #6b7280;
   margin: 0 0 0.25rem 0;
 }
 
-.yield-overview-value {
+.strategy-overview-value {
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
 }
 
-.yield-overview-divider {
+.strategy-overview-divider {
   width: 1px;
   height: 3rem;
   background: #e5e7eb;
   flex-shrink: 0;
+}
+
+/* Strategy Grid - 3 per line desktop, 2 mobile */
+.strategy-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .strategy-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .strategy-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* Asset List Styles */

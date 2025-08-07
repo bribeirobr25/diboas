@@ -10,6 +10,7 @@ import { dataManager } from '../../services/DataManager.js'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
+import logger from '../../utils/logger'
 import { 
   Target,
   ArrowLeft,
@@ -65,7 +66,7 @@ export default function YieldCategory() {
 
   // Load data from DataManager on component mount
   useEffect(() => {
-    const loadYieldData = () => {
+    const loadYieldData = async () => {
       try {
         // Get FinObjective configurations from DataManager
         const objectives = dataManager.getFinObjectives()
@@ -75,13 +76,13 @@ export default function YieldCategory() {
         const risks = dataManager.getRiskLevels()
         setRiskLevels(risks)
 
-        // Get current yield data from DataManager
-        const currentYieldData = dataManager.getYieldData()
+        // Get enhanced yield data from DataManager with new services integration
+        const currentYieldData = await dataManager.getEnhancedYieldData()
         setYieldData(currentYieldData)
 
         setIsLoading(false)
       } catch (error) {
-        console.error('Error loading yield data:', error)
+        logger.error('Error loading yield data:', error)
         setIsLoading(false)
       }
     }
@@ -98,15 +99,15 @@ export default function YieldCategory() {
       setFinObjectives(updatedObjectives)
     })
 
-    const unsubscribeBalance = dataManager.subscribe('balance:updated', () => {
-      // Recalculate yield data when balance changes
-      const updatedYieldData = dataManager.getYieldData()
+    const unsubscribeBalance = dataManager.subscribe('balance:updated', async () => {
+      // Recalculate enhanced yield data when balance changes
+      const updatedYieldData = await dataManager.getEnhancedYieldData()
       setYieldData(updatedYieldData)
     })
 
-    const unsubscribeStrategies = dataManager.subscribe('strategy:updated', () => {
-      // Recalculate yield data when strategies change
-      const updatedYieldData = dataManager.getYieldData()
+    const unsubscribeStrategies = dataManager.subscribe('strategy:updated', async () => {
+      // Recalculate enhanced yield data when strategies change
+      const updatedYieldData = await dataManager.getEnhancedYieldData()
       setYieldData(updatedYieldData)
     })
 
@@ -152,26 +153,52 @@ export default function YieldCategory() {
           </Button>
         </div>
 
-        {/* Category Header */}
-        <div className="yield-category__header mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="yield-category__icon p-3 rounded-xl bg-purple-100">
-              <Target className="w-8 h-8 text-purple-600" />
-            </div>
-            <div>
-              <h1 className="yield-category__title text-3xl font-bold text-gray-900">
-                FinObjective
-              </h1>
-              <p className="yield-category__subtitle text-lg text-gray-600">
-                Goal-Driven DeFi Strategies
+        {/* Category Header with Background Image */}
+        <div className="yield-category__header-with-bg">
+          <div 
+            className="yield-category__header-bg"
+            style={{
+              backgroundImage: 'url(https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&h=300&fit=crop&crop=center)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              borderRadius: '1rem',
+              position: 'relative',
+              padding: '2rem',
+              marginBottom: '2rem',
+              color: 'white'
+            }}
+          >
+            <div 
+              className="yield-category__header-overlay"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.9), rgba(147, 51, 234, 0.8))',
+                borderRadius: '1rem'
+              }}
+            ></div>
+            
+            <div className="yield-category__header-content" style={{ position: 'relative', zIndex: 1 }}>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="yield-category__icon p-3 rounded-xl bg-white/20 backdrop-blur-sm">
+                  <Target className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="yield-category__title text-3xl font-bold text-white">
+                    FinObjective
+                  </h1>
+                  <p className="yield-category__subtitle text-lg text-white/90">
+                    Goal-Driven DeFi Strategies
+                  </p>
+                </div>
+              </div>
+              
+              <p className="yield-category__description text-white/80 max-w-2xl">
+                Turn your financial goals into reality with automated DeFi strategies. 
+                Each objective is tailored to your timeline and risk tolerance.
               </p>
             </div>
           </div>
-          
-          <p className="yield-category__description text-gray-600 max-w-2xl">
-            Turn your financial goals into reality with automated DeFi strategies. 
-            Each objective is tailored to your timeline and risk tolerance.
-          </p>
         </div>
 
         {/* Yield Overview Card - Data from DataManager */}
@@ -241,209 +268,314 @@ export default function YieldCategory() {
           </Card>
         </div>
 
-        {/* Popular Objectives - Data from DataManager */}
-        <div className="yield-category__popular mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="yield-category__popular-title text-xl font-semibold text-gray-900">
-              Popular Objectives
-            </h2>
-            <Badge className="yield-category__popular-badge bg-purple-100 text-purple-800">
-              <Zap className="w-3 h-3 mr-1" />
-              Trending
-            </Badge>
-          </div>
-          
-          <div className="yield-category__popular-grid grid grid-cols-1 md:grid-cols-3 gap-6">
-            {popularObjectives.map((objective) => {
-              const IconComponent = ICON_MAP[objective.icon] || Target
-              const riskConfig = riskLevels[objective.riskLevel] || riskLevels.Medium
-              
-              return (
-                <Card 
-                  key={objective.id}
-                  className="yield-category__objective-card interactive-card cursor-pointer transition-all duration-200 hover:scale-105 ring-2 ring-purple-500 ring-opacity-50"
-                  onClick={() => handleObjectiveClick(objective)}
-                >
-                  <CardHeader className="yield-category__objective-header pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-3 rounded-xl ${objective.color}`}>
-                          <IconComponent className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <CardTitle className="yield-category__objective-title text-lg">
-                            {objective.title}
-                          </CardTitle>
-                          <CardDescription className="yield-category__objective-description">
-                            {objective.description}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <Badge className="yield-category__popular-indicator bg-yellow-100 text-yellow-800">
-                        Popular
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="yield-category__objective-content pt-0">
-                    <div className="yield-category__objective-details space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Target Amount:</span>
-                        <span className="font-semibold">${objective.targetAmount.toLocaleString()}</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Timeframe:</span>
-                        <span className="font-semibold">{objective.timeframe}</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Expected APY:</span>
-                        <span className="font-semibold text-green-600">{objective.expectedApy}</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Risk Level:</span>
-                        <Badge className={`${riskConfig.color} text-xs`}>
-                          {objective.riskLevel}
-                        </Badge>
-                      </div>
-
-                      {/* Show progress if objective is active */}
-                      {objective.isActive && (
-                        <div className="flex justify-between items-center pt-2 border-t">
-                          <span className="text-sm text-gray-600">Progress:</span>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-blue-600">{objective.progress.toFixed(1)}%</span>
-                            <span className="text-sm text-gray-500">
-                              (${objective.currentAmount.toLocaleString()})
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="yield-category__objective-strategy mt-3 pt-3 border-t">
-                        <p className="text-xs text-gray-600 mb-2">Strategy:</p>
-                        <p className="text-sm font-medium">{objective.strategy}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* All Objectives - Data from DataManager */}
-        <div className="yield-category__all">
-          <h2 className="yield-category__all-title text-xl font-semibold text-gray-900 mb-6">
-            All Financial Objectives
+        {/* Strategy Templates Section */}
+        <div className="yield-category__templates mb-8">
+          <h2 className="yield-category__templates-title text-xl font-semibold text-gray-900 mb-6">
+            Objective-Driven Strategies
           </h2>
           
-          <div className="yield-category__all-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {allObjectives.map((objective) => {
-              const IconComponent = ICON_MAP[objective.icon] || Target
-              const riskConfig = riskLevels[objective.riskLevel] || riskLevels.Medium
-              
-              return (
-                <Card 
-                  key={objective.id}
-                  className={`yield-category__objective-card interactive-card cursor-pointer transition-all duration-200 hover:scale-105 ${
-                    objective.isActive ? 'ring-2 ring-green-500 ring-opacity-50' : ''
-                  }`}
-                  onClick={() => handleObjectiveClick(objective)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className={`p-2 rounded-lg ${objective.color}`}>
-                        <IconComponent className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="yield-category__objective-name font-semibold">
-                          {objective.title}
-                          {objective.popular && (
-                            <Badge className="ml-2 bg-yellow-100 text-yellow-800 text-xs">
-                              Popular
-                            </Badge>
-                          )}
-                          {objective.isActive && (
-                            <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
-                              Active
-                            </Badge>
-                          )}
-                        </h3>
-                        <p className="yield-category__objective-desc text-sm text-gray-600">
-                          {objective.description}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="yield-category__objective-summary space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Target:</span>
-                        <span className="font-medium">${objective.targetAmount.toLocaleString()}</span>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">APY:</span>
-                        <span className="font-medium text-green-600">{objective.expectedApy}</span>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Risk:</span>
-                        <Badge className={`${riskConfig.color} text-xs`}>
-                          {objective.riskLevel}
-                        </Badge>
-                      </div>
-
-                      {/* Show current amount and progress for active objectives */}
-                      {objective.isActive && (
-                        <div className="pt-2 border-t space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Current:</span>
-                            <span className="font-medium text-blue-600">
-                              ${objective.currentAmount.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Progress:</span>
-                            <span className="font-medium text-green-600">
-                              {objective.progress.toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Custom Objective CTA */}
-        <div className="yield-category__custom mt-8">
-          <Card className="yield-category__custom-card bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="yield-category__custom-title text-lg font-semibold text-purple-900 mb-2">
-                    Create Custom Objective
+          <div className="yield-category__templates-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {/* Emergency Funds Template */}
+            <Card 
+              className="yield-strategy-template cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-gray-100 hover:border-purple-200"
+              onClick={() => handleObjectiveClick({ id: 'emergency-funds', title: 'Emergency Funds' })}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-red-100 text-red-600">
+                    <Umbrella className="w-6 h-6" />
+                  </div>
+                  <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1">
+                    Essential
+                  </Badge>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg text-gray-900 leading-tight mb-2">
+                    Emergency Funds
                   </h3>
-                  <p className="yield-category__custom-description text-purple-700">
-                    Design your own financial goal with personalized DeFi strategies
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Build your safety net with low-risk, liquid investments
                   </p>
                 </div>
-                <Button 
-                  onClick={handleCreateCustom}
-                  className="yield-category__custom-button bg-purple-600 hover:bg-purple-700"
-                >
-                  <Target className="w-4 h-4 mr-2" />
-                  Create Custom
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Risk:</span>
+                    <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
+                      Low
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">APY:</span>
+                    <span className="text-sm font-semibold text-green-600">3-5%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Timeline:</span>
+                    <span className="text-sm font-semibold">3-6 months</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Free Coffee Template */}
+            <Card 
+              className="yield-strategy-template cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-gray-100 hover:border-purple-200"
+              onClick={() => handleObjectiveClick({ id: 'free-coffee', title: 'Free Coffee' })}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-amber-100 text-amber-600">
+                    <Coffee className="w-6 h-6" />
+                  </div>
+                  <Badge className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1">
+                    Popular
+                  </Badge>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg text-gray-900 leading-tight mb-2">
+                    Free Coffee
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Generate passive income to cover your daily coffee expenses
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Risk:</span>
+                    <Badge className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1">
+                      Medium
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">APY:</span>
+                    <span className="text-sm font-semibold text-green-600">5-8%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Timeline:</span>
+                    <span className="text-sm font-semibold">6-12 months</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Home Down Payment Template */}
+            <Card 
+              className="yield-strategy-template cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-gray-100 hover:border-purple-200"
+              onClick={() => handleObjectiveClick({ id: 'home-down-payment', title: 'Home Down Payment' })}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-blue-100 text-blue-600">
+                    <Home className="w-6 h-6" />
+                  </div>
+                  <Badge className="bg-purple-100 text-purple-800 text-xs px-2 py-1">
+                    Long-term
+                  </Badge>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg text-gray-900 leading-tight mb-2">
+                    Home Down Payment
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Save for your dream home with optimized growth strategies
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Risk:</span>
+                    <Badge className="bg-orange-100 text-orange-800 text-xs px-2 py-1">
+                      Medium-High
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">APY:</span>
+                    <span className="text-sm font-semibold text-green-600">8-12%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Timeline:</span>
+                    <span className="text-sm font-semibold">12+ months</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Dream Vacation Template */}
+            <Card 
+              className="yield-strategy-template cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-gray-100 hover:border-purple-200"
+              onClick={() => handleObjectiveClick({ id: 'dream-vacation', title: 'Dream Vacation' })}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-cyan-100 text-cyan-600">
+                    <Plane className="w-6 h-6" />
+                  </div>
+                  <Badge className="bg-cyan-100 text-cyan-800 text-xs px-2 py-1">
+                    Balanced
+                  </Badge>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg text-gray-900 leading-tight mb-2">
+                    Dream Vacation
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Save for your perfect getaway with balanced liquidity pools
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Risk:</span>
+                    <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1">
+                      Medium
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">APY:</span>
+                    <span className="text-sm font-medium text-gray-900">8-12%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Timeline:</span>
+                    <span className="text-sm font-medium text-gray-900">6-12 months</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* New Car Template */}
+            <Card 
+              className="yield-strategy-template cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-gray-100 hover:border-purple-200"
+              onClick={() => handleObjectiveClick({ id: 'new-car', title: 'New Car' })}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-indigo-100 text-indigo-600">
+                    <Car className="w-6 h-6" />
+                  </div>
+                  <Badge className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1">
+                    Growth
+                  </Badge>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg text-gray-900 leading-tight mb-2">
+                    New Car
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Drive your dream car with growth-oriented protocols
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Risk:</span>
+                    <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1">
+                      Medium
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">APY:</span>
+                    <span className="text-sm font-medium text-gray-900">10-15%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Timeline:</span>
+                    <span className="text-sm font-medium text-gray-900">12+ months</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Education Fund Template */}
+            <Card 
+              className="yield-strategy-template cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-gray-100 hover:border-purple-200"
+              onClick={() => handleObjectiveClick({ id: 'education-fund', title: 'Education Fund' })}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-emerald-100 text-emerald-600">
+                    <GraduationCap className="w-6 h-6" />
+                  </div>
+                  <Badge className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1">
+                    Future
+                  </Badge>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg text-gray-900 leading-tight mb-2">
+                    Education Fund
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Invest in your future with steady growth protocols
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Risk:</span>
+                    <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1">
+                      Medium
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">APY:</span>
+                    <span className="text-sm font-medium text-gray-900">8-14%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Timeline:</span>
+                    <span className="text-sm font-medium text-gray-900">12+ months</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Create New Template */}
+            <Card 
+              className="yield-strategy-template cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 hover:border-purple-300"
+              onClick={() => handleObjectiveClick({ id: 'create-new', title: 'Create New' })}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-purple-100 text-purple-600">
+                    <Target className="w-6 h-6" />
+                  </div>
+                  <Badge className="bg-purple-100 text-purple-800 text-xs px-2 py-1">
+                    Custom
+                  </Badge>
+                </div>
+                
+                <div className="mb-4">
+                  <h3 className="font-semibold text-lg text-gray-900 leading-tight mb-2">
+                    Create New
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Design your own objective with personalized parameters
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Risk:</span>
+                    <Badge className="bg-gray-100 text-gray-800 text-xs px-2 py-1">
+                      Flexible
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">APY:</span>
+                    <span className="text-sm font-semibold text-purple-600">Custom</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Timeline:</span>
+                    <span className="text-sm font-semibold">Your choice</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Educational Tips */}

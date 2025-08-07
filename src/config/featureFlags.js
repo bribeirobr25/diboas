@@ -5,6 +5,7 @@
  */
 
 import { getCurrentEnvironment, getCurrentRegion, ENV_TYPES, REGIONS, isProduction } from './environments.js'
+import logger from '../utils/logger'
 
 /**
  * Feature flag types for different rollout strategies
@@ -288,7 +289,7 @@ class FeatureFlagManager {
     const flag = featureFlags[flagName]
     
     if (!flag) {
-      console.warn(`Feature flag '${flagName}' not found`)
+      logger.warn(`Feature flag '${flagName}' not found`)
       return false
     }
 

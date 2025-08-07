@@ -236,7 +236,7 @@ export const getCurrentLocale = () => {
  */
 export const setLocale = (locale) => {
   if (!SUPPORTED_LOCALES[locale]) {
-    console.warn(`Unsupported locale: ${locale}`)
+    logger.warn(`Unsupported locale: ${locale}`)
     return false
   }
   
@@ -287,7 +287,7 @@ export const formatCurrency = (amount, locale = null, currency = null) => {
     
     return formatter.format(amount)
   } catch (error) {
-    console.warn(`Currency formatting error: ${error.message}`)
+    logger.warn(`Currency formatting error: ${error.message}`)
     return `${currencyCode} ${amount.toFixed(2)}`
   }
 }
@@ -302,7 +302,7 @@ export const formatNumber = (number, locale = null, options = {}) => {
     const formatter = new Intl.NumberFormat(currentLocale, options)
     return formatter.format(number)
   } catch (error) {
-    console.warn(`Number formatting error: ${error.message}`)
+    logger.warn(`Number formatting error: ${error.message}`)
     return number.toString()
   }
 }
@@ -329,7 +329,7 @@ export const formatDateTime = (date, locale = null, options = {}) => {
     
     return formatter.format(new Date(date))
   } catch (error) {
-    console.warn(`Date formatting error: ${error.message}`)
+    logger.warn(`Date formatting error: ${error.message}`)
     return new Date(date).toLocaleString()
   }
 }
@@ -369,7 +369,7 @@ export const formatRelativeTime = (date, locale = null) => {
     return rtf.format(diffInMonths, 'month')
     
   } catch (error) {
-    console.warn(`Relative time formatting error: ${error.message}`)
+    logger.warn(`Relative time formatting error: ${error.message}`)
     return formatDateTime(date, locale, { month: 'short', day: 'numeric' })
   }
 }
@@ -390,7 +390,7 @@ export const pluralize = (count, single, plural, locale = null) => {
       return plural || `${single}s`
     }
   } catch (error) {
-    console.warn(`Pluralization error: ${error.message}`)
+    logger.warn(`Pluralization error: ${error.message}`)
     return count === 1 ? single : (plural || `${single}s`)
   }
 }
@@ -407,6 +407,7 @@ export const isRTL = (locale = null) => {
  * React hooks for internationalization
  */
 import { useState, useEffect } from 'react'
+import logger from './logger'
 
 export const useLocale = () => {
   const [locale, setLocaleState] = useState(getCurrentLocale())

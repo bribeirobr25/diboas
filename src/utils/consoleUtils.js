@@ -1,3 +1,5 @@
+import logger from './logger'
+
 /**
  * Console Utilities for Development
  * Helps manage console output and suppress known browser extension warnings
@@ -51,15 +53,15 @@ export const initializeConsoleManagement = () => {
   }
 
   // Add helpful development message
-  console.log(
+  logger.debug(
     '%c🎯 diBoaS Development Mode',
     'color: #1E40AF; font-weight: bold; font-size: 14px;'
   )
-  console.log(
+  logger.debug(
     '%c✨ Browser extension warnings have been filtered from the console',
     'color: #06B6D4; font-size: 12px;'
   )
-  console.log(
+  logger.debug(
     '%c🛡️ Application security and functionality remain unaffected',
     'color: #10B981; font-size: 12px;'
   )
@@ -70,7 +72,7 @@ export const initializeConsoleManagement = () => {
  */
 export const logAppEvent = (event, data = {}) => {
   if (typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') {
-    console.log(
+    logger.debug(
       `%c[diBoaS] ${event}`,
       'color: #1E40AF; font-weight: bold;',
       data
@@ -84,7 +86,7 @@ export const logAppEvent = (event, data = {}) => {
 export const logPerformanceMetric = (metric, value, unit = 'ms') => {
   if (typeof process !== 'undefined' && process?.env?.NODE_ENV === 'development') {
     const color = value < 100 ? '#10B981' : value < 500 ? '#F59E0B' : '#EF4444'
-    console.log(
+    logger.debug(
       `%c[Performance] ${metric}: ${value}${unit}`,
       `color: ${color}; font-weight: bold;`
     )
@@ -101,7 +103,7 @@ export const audit = (event, level = 'info') => {
     error: '#EF4444'
   }
   
-  console.log(
+  logger.debug(
     `%c[Security] ${event}`,
     `color: ${colors[level]}; font-weight: bold;`
   )

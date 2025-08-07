@@ -1,3 +1,6 @@
+import logger from './logger'
+import { storage } from './modernStorage.js'
+
 /**
  * User Settings Management
  * Handles user preferences including advanced transaction display mode
@@ -16,32 +19,55 @@ const defaultSettings = {
 
 class UserSettingsManager {
   constructor() {
-    this.settings = this.loadSettings()
+    this.settings = { ...defaultSettings }
+    this.initializeAsync()
+  }
+  
+  async initializeAsync() {
+    this.settings = await this.loadSettings()
   }
 
-  // Load settings from localStorage
-  loadSettings() {
+  // Load settings from modernized localStorage
+  async loadSettings() {
     try {
-      const storedSettings = localStorage.getItem(SETTINGS_KEY)
+      // Try modern storage first, fallback to legacy
+      let storedSettings = await storage.getUserSettings('global')
+      
+      // Legacy fallback
+      if (!storedSettings) {
+        const legacySettings = localStorage.getItem(SETTINGS_KEY)
+        if (legacySettings) {
+          storedSettings = JSON.parse(legacySettings)
+          // Migrate to modern storage
+          await storage.setUserSettings('global', storedSettings)
+          // Keep legacy for compatibility during transition
+        }
+      }
+      
       if (storedSettings) {
-        return { ...defaultSettings, ...JSON.parse(storedSettings) }
+        return { ...defaultSettings, ...storedSettings }
       }
     } catch (error) {
-      console.error('Failed to load user settings:', error)
+      logger.error('Failed to load user settings:', error)
     }
     return { ...defaultSettings }
   }
 
-  // Save settings to localStorage
-  saveSettings() {
+  // Save settings to modernized localStorage
+  async saveSettings() {
     try {
+      // Save to modern storage
+      await storage.setUserSettings('global', this.settings)
+      
+      // Keep legacy format for compatibility during transition
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings))
+      
       // Emit event for components to react to settings changes
       window.dispatchEvent(new CustomEvent('diboas:settings-changed', { 
         detail: this.settings 
       }))
     } catch (error) {
-      console.error('Failed to save user settings:', error)
+      logger.error('Failed to save user settings:', error)
     }
   }
 
@@ -51,15 +77,15 @@ class UserSettingsManager {
   }
 
   // Update a specific setting
-  setSetting(key, value) {
+  async setSetting(key, value) {
     this.settings[key] = value
-    this.saveSettings()
+    await this.saveSettings()
   }
 
   // Toggle advanced transaction details
-  toggleAdvancedTransactionDetails() {
+  async toggleAdvancedTransactionDetails() {
     this.settings.showAdvancedTransactionDetails = !this.settings.showAdvancedTransactionDetails
-    this.saveSettings()
+    await this.saveSettings()
     return this.settings.showAdvancedTransactionDetails
   }
 
@@ -69,9 +95,9 @@ class UserSettingsManager {
   }
 
   // Reset to default settings
-  resetToDefaults() {
+  async resetToDefaults() {
     this.settings = { ...defaultSettings }
-    this.saveSettings()
+    await this.saveSettings()
   }
 
   // Get all settings
@@ -102,8 +128,8 @@ export const useUserSettings = () => {
 
   return {
     settings,
-    toggleAdvancedTransactionDetails: () => userSettings.toggleAdvancedTransactionDetails(),
-    setSetting: (key, value) => userSettings.setSetting(key, value),
+    toggleAdvancedTransactionDetails: async () => await userSettings.toggleAdvancedTransactionDetails(),
+    setSetting: async (key, value) => await userSettings.setSetting(key, value),
     getSetting: (key) => userSettings.getSetting(key)
   }
 }

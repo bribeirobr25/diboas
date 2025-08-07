@@ -351,15 +351,7 @@ describe('Withdraw to External Wallet DEX Fee Bug Fix', () => {
       const user = userEvent.setup()
       const mockExecuteTransactionFlow = vi.fn()
       
-      // Mock the transaction flow hook to capture the call
-      vi.mocked(require('../../hooks/transactions/index.js').useTransactionFlow).mockReturnValue({
-        flowState: 'idle',
-        flowData: null,
-        flowError: null,
-        executeTransactionFlow: mockExecuteTransactionFlow,
-        confirmTransaction: vi.fn(),
-        resetFlow: vi.fn()
-      })
+      // Mock the transaction flow hook to capture the call - using static mocks from top of file
       
       render(
         <TestWrapper>

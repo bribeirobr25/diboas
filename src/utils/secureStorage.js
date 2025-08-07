@@ -1,3 +1,5 @@
+import logger from './logger'
+
 /**
  * Secure Storage Utility for Financial Data
  * Encrypts sensitive data before storing in localStorage
@@ -66,7 +68,7 @@ class SecureFinancialStorage {
       // Convert to base64 for storage
       return btoa(String.fromCharCode(...combined))
     } catch (error) {
-      console.error('Encryption failed:', error)
+      logger.error('Encryption failed:', error)
       throw new Error('Failed to encrypt financial data')
     }
   }
@@ -98,7 +100,7 @@ class SecureFinancialStorage {
       
       return JSON.parse(decryptedString)
     } catch (error) {
-      console.error('Decryption failed:', error)
+      logger.error('Decryption failed:', error)
       // Return null for invalid/corrupted data instead of throwing
       return null
     }
@@ -113,7 +115,7 @@ class SecureFinancialStorage {
       localStorage.setItem(key, encryptedData)
       return true
     } catch (error) {
-      console.error('Secure storage failed:', error)
+      logger.error('Secure storage failed:', error)
       return false
     }
   }
@@ -128,7 +130,7 @@ class SecureFinancialStorage {
       
       return await this.decryptData(encryptedData, userKey)
     } catch (error) {
-      console.error('Secure retrieval failed:', error)
+      logger.error('Secure retrieval failed:', error)
       return null
     }
   }

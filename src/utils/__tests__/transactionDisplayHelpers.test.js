@@ -3,7 +3,7 @@
  * Tests all transaction display logic including edge cases and error scenarios
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   calculateDisplayAmountWithSign,
   formatRelativeTimeFromTimestamp,

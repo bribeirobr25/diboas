@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
+import logger from '../utils/logger'
 import { 
   ArrowLeft,
   TrendingUp,
@@ -80,7 +81,7 @@ export default function AssetDetailPage() {
 
         setLoading(false)
       } catch (err) {
-        console.error('Error loading asset data:', err)
+        logger.error('Error loading asset data:', err)
         setError(err.message || 'Failed to load asset data')
         setLoading(false)
         
@@ -195,7 +196,7 @@ export default function AssetDetailPage() {
       }))
       setLastUpdate(new Date())
     } catch (error) {
-      console.error('Error refreshing price:', error)
+      logger.error('Error refreshing price:', error)
     } finally {
       setRefreshing(false)
     }

@@ -1,3 +1,5 @@
+import logger from '../../utils/logger'
+
 /**
  * Integration Logger
  * Centralized logging for all integration operations
@@ -119,7 +121,7 @@ export class IntegrationLogger {
     const entry = this.createLogEntry('info', message, data)
     
     if (this.enableConsole) {
-      console.log(`[INTEGRATION] ${message}`, data || '')
+      logger.debug(`[INTEGRATION] ${message}`, data || '')
     }
 
     return entry
@@ -134,7 +136,7 @@ export class IntegrationLogger {
     const entry = this.createLogEntry('warn', message, data)
     
     if (this.enableConsole) {
-      console.warn(`[INTEGRATION] ${message}`, data || '')
+      logger.warn(`[INTEGRATION] ${message}`, data || '')
     }
 
     return entry
@@ -156,7 +158,7 @@ export class IntegrationLogger {
     const entry = this.createLogEntry('error', message, errorData)
     
     if (this.enableConsole) {
-      console.error(`[INTEGRATION] ${message}`, error || '')
+      logger.error(`[INTEGRATION] ${message}`, error || '')
     }
 
     return entry
