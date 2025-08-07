@@ -54,6 +54,56 @@ Build comprehensive test coverage that ensures the reliability, security, and pe
 
 ---
 
+## Import Standards
+
+### Standardized Vitest Imports
+
+All test files must use explicit imports from Vitest (no globals):
+
+#### Standard Import Patterns
+```javascript
+// Full lifecycle testing (most common)
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
+// Without cleanup lifecycle
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+
+// Simple unit tests
+import { describe, it, expect } from 'vitest'
+
+// Mock-only files
+import { vi } from 'vitest'
+```
+
+#### React Component Testing Imports
+```javascript
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+```
+
+#### E2E Testing (Playwright)
+```javascript
+import { test, expect } from '@playwright/test'
+```
+
+### Import Validation
+
+Use the provided validation script to ensure consistent imports:
+
+```bash
+# Validate all test imports
+node scripts/validate-test-imports.js
+```
+
+This script checks for:
+- Missing Vitest imports when using test globals
+- Deprecated Jest patterns
+- Inconsistent import styles
+- Proper separation of Playwright vs Vitest tests
+
+---
+
 ## Test Categories
 
 ### 1. Unit Tests (`src/**/*.test.{js,jsx}`)
@@ -69,6 +119,7 @@ Build comprehensive test coverage that ensures the reliability, security, and pe
 **Example**:
 ```javascript
 // src/utils/__tests__/validation.test.js
+import { describe, it, expect } from 'vitest'
 import { validateFinancialAmount } from '../validation.js'
 
 describe('validateFinancialAmount', () => {
@@ -96,15 +147,18 @@ describe('validateFinancialAmount', () => {
 **Example**:
 ```javascript
 // src/components/__tests__/MarketIndicators.test.jsx
+import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { renderWithProviders } from '../../test/utils/testHelpers.js'
 import MarketIndicators from '../MarketIndicators.jsx'
 
-test('should display market data correctly', () => {
-  renderWithProviders(<MarketIndicators />)
-  
-  expect(screen.getByText('Bitcoin')).toBeInTheDocument()
-  expect(screen.getByText(/\\$43,250\\.50/)).toBeInTheDocument()
+describe('MarketIndicators', () => {
+  it('should display market data correctly', () => {
+    renderWithProviders(<MarketIndicators />)
+    
+    expect(screen.getByText('Bitcoin')).toBeInTheDocument()
+    expect(screen.getByText(/\\$43,250\\.50/)).toBeInTheDocument()
+  })
 })
 ```
 
@@ -122,7 +176,13 @@ test('should display market data correctly', () => {
 **Example**:
 ```javascript
 // src/test/integration/marketData.integration.test.js
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+
 describe('Market Data Integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('should complete full data flow from API to component', async () => {
     // Setup providers
     await registry.registerProvider('test', mockProvider, config)
@@ -201,7 +261,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
-    globals: true,
+    globals: false, // Prefer explicit imports for better IDE support
     coverage: {
       thresholds: {
         global: {

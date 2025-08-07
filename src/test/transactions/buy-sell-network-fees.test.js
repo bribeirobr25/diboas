@@ -24,7 +24,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       })
 
       console.log('BTC Buy Fees:', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -48,7 +48,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       })
 
       console.log('ETH Buy Fees:', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -71,7 +71,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       })
 
       console.log('SOL Buy Fees:', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -94,7 +94,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       })
 
       console.log('BTC Buy with Credit Card:', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -119,7 +119,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       })
 
       console.log('BTC Sell Fees:', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -143,7 +143,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       })
 
       console.log('ETH Sell Fees:', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -166,7 +166,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       })
 
       console.log('SUI Sell Fees:', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -191,7 +191,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       })
 
       console.log('Banking Withdraw Fees:', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -201,7 +201,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       expect(fees.dexFee).toBe(0) // FIXED: No DEX fee for off-ramp withdrawals
       expect(fees.diboas).toBeCloseTo(9, 2) // 0.9% diBoaS fee for withdrawals
       expect(fees.providerFee).toBeCloseTo(20, 2) // 2% bank account withdrawal fee
-      expect(fees.totalFees).toBeCloseTo(29.01, 2) // Total: diBoaS + Network + Provider only
+      expect(fees.total).toBeCloseTo(29.01, 2) // Total: diBoaS + Network + Provider only
     })
 
     it('should calculate DEX fees for withdraw to different payment methods', async () => {
@@ -222,7 +222,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
         })
 
         console.log(`Withdraw via ${method}:`, {
-          total: fees.totalFees,
+          total: fees.total,
           dex: fees.dexFee,
           provider: fees.providerFee
         })
@@ -257,7 +257,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       const fees = await feeCalculator.calculateTransactionFees(complexTransaction)
 
       console.log('Complex BTC Buy (5000):', {
-        total: fees.totalFees,
+        total: fees.total,
         diboas: fees.diboas,
         network: fees.networkFee,
         provider: fees.providerFee,
@@ -273,7 +273,7 @@ describe('Buy/Sell Network Fee Calculation Tests', () => {
       
       // Total should be sum of all components
       const expectedTotal = fees.diboas + fees.networkFee + fees.dexFee + fees.providerFee
-      expect(fees.totalFees).toBeCloseTo(expectedTotal, 2)
+      expect(fees.total).toBeCloseTo(expectedTotal, 2)
     })
   })
 })

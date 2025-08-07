@@ -3,7 +3,7 @@
  * Tests edge cases, race conditions, error handling, and system recovery
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { BrowserRouter } from 'react-router-dom'

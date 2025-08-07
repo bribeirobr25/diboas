@@ -3,7 +3,7 @@
  * Tests fee calculations, balance validation, payment methods, edge cases, and system recovery
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import React from 'react'
@@ -38,7 +38,7 @@ const defaultBalance = {
 const mockFees = {
   providerFee: 0.5, // 0.05% of 1000
   networkFee: 0.003, // 0.0003% of 1000  
-  totalFees: 0.503,
+  total: 0.503,
   providerFeeRate: '0.05%',
   networkFeeRate: '0.0003%'
 }
@@ -175,7 +175,7 @@ describe('ObjectiveConfig - Strategy Launch Flow Tests', () => {
   describe('diBoaS Wallet Balance Validation', () => {
     it('should validate sufficient balance including fees', async () => {
       // Mock fees that would make total requirement 1000.503
-      mockCalculateFees.mockResolvedValue({ ...mockFees, totalFees: 0.503 })
+      mockCalculateFees.mockResolvedValue({ ...mockFees, total: 0.503 })
       
       renderWithRouter(<ObjectiveConfig />)
       
@@ -198,7 +198,7 @@ describe('ObjectiveConfig - Strategy Launch Flow Tests', () => {
       // Mock high fees that would exceed available balance
       mockCalculateFees.mockResolvedValue({
         ...mockFees,
-        totalFees: 1500, // Would make total requirement 2500 > 2000 available
+        total: 1500, // Would make total requirement 2500 > 2000 available
         providerFee: 1499,
         networkFee: 1
       })
@@ -348,7 +348,7 @@ describe('ObjectiveConfig - Strategy Launch Flow Tests', () => {
       for (const [methodId, expectedFees] of Object.entries(paymentMethodFees)) {
         mockCalculateFees.mockResolvedValue({
           ...expectedFees,
-          totalFees: expectedFees.providerFee + expectedFees.networkFee
+          total: expectedFees.providerFee + expectedFees.networkFee
         })
         
         const methodMap = {

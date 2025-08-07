@@ -5,7 +5,7 @@
 
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import TransactionProgressScreen from '../shared/TransactionProgressScreen.jsx'
 import { TRANSACTION_STATUS } from '../../services/transactions/TransactionStatusService.js'
 
@@ -20,15 +20,17 @@ vi.mock('react-router-dom', async () => {
 })
 
 // Mock transaction status hook
-const mockUseTransactionProgress = vi.fn()
 vi.mock('../../hooks/useTransactionStatus.js', () => ({
-  useTransactionProgress: mockUseTransactionProgress
+  useTransactionProgress: vi.fn()
 }))
 
 describe('TransactionProgressScreen Integration Tests', () => {
   beforeEach(() => {
     mockNavigate.mockClear()
-    mockUseTransactionProgress.mockReturnValue({
+    
+    // Get the mocked hook function and set its return value
+    const { useTransactionProgress } = require('../../hooks/useTransactionStatus.js')
+    useTransactionProgress.mockReturnValue({
       status: null,
       isLoading: false,
       error: null,
@@ -216,7 +218,8 @@ describe('TransactionProgressScreen Integration Tests', () => {
     })
 
     it('should handle real-time status updates', async () => {
-      mockUseTransactionProgress.mockReturnValue({
+      const { useTransactionProgress } = require('../../hooks/useTransactionStatus.js')
+      useTransactionProgress.mockReturnValue({
         status: { status: TRANSACTION_STATUS.PROCESSING },
         progress: 0.5,
         progressText: 'Broadcasting to network...',
@@ -353,7 +356,8 @@ describe('TransactionProgressScreen Integration Tests', () => {
     })
 
     it('should handle real-time status errors', async () => {
-      mockUseTransactionProgress.mockReturnValue({
+      const { useTransactionProgress } = require('../../hooks/useTransactionStatus.js')
+      useTransactionProgress.mockReturnValue({
         status: { status: TRANSACTION_STATUS.FAILED },
         error: new Error('Blockchain network error'),
         progress: 0.8
@@ -370,7 +374,8 @@ describe('TransactionProgressScreen Integration Tests', () => {
     })
 
     it('should handle timeout status correctly', async () => {
-      mockUseTransactionProgress.mockReturnValue({
+      const { useTransactionProgress } = require('../../hooks/useTransactionStatus.js')
+      useTransactionProgress.mockReturnValue({
         status: { status: TRANSACTION_STATUS.TIMEOUT },
         error: new Error('Transaction timed out')
       })

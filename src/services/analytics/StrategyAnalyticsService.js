@@ -3,7 +3,7 @@
  * Provides comprehensive analytics and performance tracking for investment strategies
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 
 class StrategyAnalyticsService {

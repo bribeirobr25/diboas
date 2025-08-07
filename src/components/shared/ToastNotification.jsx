@@ -17,7 +17,7 @@ import {
   Clock,
   AlertCircle
 } from 'lucide-react'
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 
 /**
  * Toast Types

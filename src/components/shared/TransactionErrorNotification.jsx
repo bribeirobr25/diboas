@@ -23,7 +23,7 @@ import {
 import { useErrorRecovery } from '../../hooks/useErrorRecovery.jsx'
 import { PaymentError } from '../../services/integrations/payments/PaymentError.js'
 import { ERROR_TYPES, ERROR_SEVERITY } from '../../services/errorHandling/ErrorRecoveryService.js'
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 
 /**
  * Get appropriate icon for error type

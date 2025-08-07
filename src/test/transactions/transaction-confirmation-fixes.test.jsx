@@ -48,7 +48,7 @@ vi.mock('../../hooks/useTransactionStatus.js', () => ({
 vi.mock('../../hooks/transactions/index.js', () => ({
   useWalletBalance: vi.fn(() => ({ balance: { availableForSpending: 1000 } })),
   useFeeCalculator: vi.fn(() => ({ 
-    fees: { total: 15.9, totalFees: 15.9, diBoaS: 0.9, network: 5, provider: 10 },
+    fees: { total: 15.9, total: 15.9, diBoaS: 0.9, network: 5, provider: 10 },
     calculateFees: vi.fn()
   })),
   useTransactionValidation: vi.fn(() => ({ validationErrors: {}, validateTransaction: vi.fn() })),
@@ -72,7 +72,7 @@ const renderWithRouter = (component) => {
 
 describe('Transaction Confirmation Fixes', () => {
   describe('Fix 1: Total Fees Display Bug', () => {
-    it('should display correct total fees using totalFees property', () => {
+    it('should display correct total fees using total property', () => {
       const mockTransactionData = {
         type: 'buy',
         amount: '1000',
@@ -82,7 +82,7 @@ describe('Transaction Confirmation Fixes', () => {
 
       const mockFees = {
         total: 100.9, // Old property - should be fallback
-        totalFees: 15.9, // New correct property - should be used
+        total: 15.9, // New correct property - should be used
         diBoaS: 0.9,
         network: 5,
         provider: 10
@@ -98,12 +98,12 @@ describe('Transaction Confirmation Fixes', () => {
         />
       )
 
-      // Should display the totalFees value (15.9) not the total value (100.9)
+      // Should display the total value (15.9) not the total value (100.9)
       expect(screen.getByText('$15.90')).toBeTruthy()
       expect(screen.queryByText('$100.90')).toBeFalsy()
     })
 
-    it('should fallback to total property if totalFees is not available', () => {
+    it('should fallback to total property if total is not available', () => {
       const mockTransactionData = {
         type: 'withdraw',
         amount: '500',
@@ -112,7 +112,7 @@ describe('Transaction Confirmation Fixes', () => {
 
       const mockFees = {
         total: 25.5, // Should be used as fallback
-        // totalFees not provided
+        // total not provided
         diBoaS: 4.5,
         network: 1.0,
         dex: 20.0
@@ -152,7 +152,7 @@ describe('Transaction Confirmation Fixes', () => {
       expect(screen.queryByText('Total Fees:')).toBeFalsy()
     })
 
-    it('should calculate correct net amount using totalFees', () => {
+    it('should calculate correct net amount using total', () => {
       const mockTransactionData = {
         type: 'buy',
         amount: '1000',
@@ -161,7 +161,7 @@ describe('Transaction Confirmation Fixes', () => {
       }
 
       const mockFees = {
-        totalFees: 15.9,
+        total: 15.9,
         diBoaS: 0.9,
         network: 5,
         provider: 10
@@ -324,7 +324,7 @@ describe('Transaction Confirmation Fixes', () => {
     it('should maintain fee values through the entire transaction flow', () => {
       
       const correctFees = {
-        totalFees: 15.9,
+        total: 15.9,
         total: 100.9, // Wrong value that should not be used
         diBoaS: 0.9,
         network: 5,

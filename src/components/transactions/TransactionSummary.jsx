@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import logger from '../../utils/logger'
+import { useErrorHandler } from '../../hooks/useErrorHandler.jsx'
+import FinancialErrorBoundary from '../shared/FinancialErrorBoundary.jsx'
 
 // Fee formatting utility - shows 2 decimals for standard display
 const formatFeeAmount = (amount) => {
@@ -27,38 +29,96 @@ export default function TransactionSummary({
   isOnRamp: isOnRampTransaction,
   isOffRamp: isOffRampTransaction,
   selectedPaymentMethod: chosenPaymentMethod,
-  handleTransactionStart: handleTransactionStart,
+  handleTransactionStart: originalHandleTransactionStart,
   isTransactionValid: isTransactionInputValid,
   getNetworkFeeRate: calculateNetworkFeePercentage,
   getProviderFeeRate: calculateProviderFeePercentage,
   getPaymentMethodFeeRate: calculatePaymentMethodFeePercentage,
-  recipientAddress: recipientWalletAddress
+  recipientAddress: recipientWalletAddress,
+  isCalculatingFees = false,
+  feeError = null,
+  isTimeout = false
 }) {
+  const { handleError, createSafeWrapper } = useErrorHandler({
+    logErrors: true,
+    autoRecovery: true,
+    notifyUser: true
+  })
   const [areFeeDetailsVisible, setAreFeeDetailsVisible] = useState(false)
 
-  const calculateAssetQuantityEstimate = () => {
-    if (!(['buy', 'sell'].includes(currentTransactionType) && transactionAmountInput && selectedCryptocurrencyAsset && selectedCryptocurrencyAsset !== 'USD')) {
-      return null
+  // Calculate the correct DEX fee percentage for display
+  const calculateDexFeePercentage = () => {
+    if (currentTransactionType === 'sell') {
+      // For sell transactions, DEX fee depends on the asset
+      if (selectedCryptocurrencyAsset === 'SOL') {
+        return '0%'  // Solana has no DEX fee
+      } else {
+        return '0.8%'  // All other assets have 0.8% DEX fee (from MockupFeeProviderService)
+      }
+    } else if (currentTransactionType === 'buy' && chosenPaymentMethod === 'diboas_wallet') {
+      // For buy with diBoaS wallet, DEX fee depends on the asset
+      if (selectedCryptocurrencyAsset === 'SOL') {
+        return '0%'  // Solana has no DEX fee
+      } else {
+        return '0.8%'  // All other assets have 0.8% DEX fee (from MockupFeeProviderService)
+      }
     }
-
-    const selectedAssetData = supportedCryptocurrencyAssets.find(cryptoAsset => cryptoAsset.assetId === selectedCryptocurrencyAsset)
-    if (!selectedAssetData || !selectedAssetData.currentMarketPrice) return null
-    
-    const marketPriceValue = parseFloat(selectedAssetData.currentMarketPrice.replace(/[$,]/g, ''))
-    const inputAmountValue = parseFloat(transactionAmountInput)
-    
-    if (currentTransactionType === 'buy' && marketPriceValue > 0) {
-      const estimatedCryptoQuantity = inputAmountValue / marketPriceValue
-      return `≈ ${estimatedCryptoQuantity.toFixed(6)} ${selectedAssetData.tickerSymbol}`
-    } else if (currentTransactionType === 'sell' && inputAmountValue > 0) {
-      const estimatedFiatValue = inputAmountValue * marketPriceValue
-      return `≈ $${estimatedFiatValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    }
-    return null
+    return '0%'
   }
 
+  const calculateAssetQuantityEstimate = createSafeWrapper(
+    () => {
+      if (!(['buy', 'sell'].includes(currentTransactionType) && transactionAmountInput && selectedCryptocurrencyAsset && selectedCryptocurrencyAsset !== 'USD')) {
+        return null
+      }
+
+      const selectedAssetData = supportedCryptocurrencyAssets.find(cryptoAsset => cryptoAsset.assetId === selectedCryptocurrencyAsset)
+      if (!selectedAssetData || !selectedAssetData.currentMarketPrice) return null
+      
+      const marketPriceValue = parseFloat(selectedAssetData.currentMarketPrice.replace(/[$,]/g, ''))
+      const inputAmountValue = parseFloat(transactionAmountInput)
+      
+      if (currentTransactionType === 'buy' && marketPriceValue > 0) {
+        const estimatedCryptoQuantity = inputAmountValue / marketPriceValue
+        return `≈ ${estimatedCryptoQuantity.toFixed(6)} ${selectedAssetData.tickerSymbol}`
+      } else if (currentTransactionType === 'sell' && inputAmountValue > 0) {
+        // For sell transactions, show how much crypto quantity the USD amount represents
+        const estimatedCryptoQuantity = inputAmountValue / marketPriceValue
+        return `≈ ${estimatedCryptoQuantity.toFixed(6)} ${selectedAssetData.tickerSymbol}`
+      }
+      return null
+    },
+    {
+      context: { currentTransactionType, selectedCryptocurrencyAsset, transactionAmountInput },
+      fallback: null
+    }
+  )
+
+  const handleTransactionStart = createSafeWrapper(
+    originalHandleTransactionStart,
+    {
+      context: {
+        transactionType: currentTransactionType,
+        amount: transactionAmountInput,
+        asset: selectedCryptocurrencyAsset,
+        paymentMethod: chosenPaymentMethod
+      },
+      fallback: () => {
+        logger.error('Transaction start failed - critical financial operation')
+      }
+    }
+  )
+
   return (
-    <div>
+    <FinancialErrorBoundary
+      componentName="TransactionSummary"
+      transactionContext={{ 
+        type: currentTransactionType, 
+        amount: transactionAmountInput,
+        asset: selectedCryptocurrencyAsset 
+      }}
+    >
+      <div>
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Transaction Summary</CardTitle>
@@ -102,15 +162,27 @@ export default function TransactionSummary({
               variant="ghost"
               className="fee-details-toggle"
               onClick={() => setAreFeeDetailsVisible(!areFeeDetailsVisible)}
+              disabled={isCalculatingFees}
             >
               <span>Fee Details</span>
-              <span className="font-medium">${formatFeeAmount(calculatedTransactionFees?.total)}</span>
+              {isCalculatingFees ? (
+                <span className="font-medium text-blue-600 flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  Loading...
+                </span>
+              ) : feeError || isTimeout ? (
+                <span className="font-medium text-red-600">
+                  {isTimeout ? 'Timeout - Try again' : 'Error'}
+                </span>
+              ) : (
+                <span className="font-medium">${formatFeeAmount(calculatedTransactionFees?.total)}</span>
+              )}
             </Button>
             
             {areFeeDetailsVisible && (
               <div className="mt-3 space-y-2 text-sm">
                 <div className="fee-breakdown-row">
-                  <span>diBoaS Fee ({isOffRampTransaction || currentTransactionType === 'transfer' ? '0.9%' : '0.09%'})</span>
+                  <span>diBoaS Fee ({isOffRampTransaction ? '0.9%' : '0.09%'})</span>
                   <span>${formatFeeAmount(calculatedTransactionFees?.diBoaS)}</span>
                 </div>
                 <div className="fee-breakdown-row">
@@ -124,8 +196,8 @@ export default function TransactionSummary({
                     <span>${formatFeeAmount(calculatedTransactionFees?.provider)}</span>
                   </div>
                 )}
-                {/* DEX Fee for Transfer transactions and external wallet withdrawals */}
-                {(currentTransactionType === 'transfer' || (currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet')) && (
+                {/* DEX Fee for external wallet withdrawals */}
+                {(currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet') && (
                   <div className="fee-breakdown-row">
                     <span>DEX Fee ({calculateProviderFeePercentage()})</span>
                     <span>${formatFeeAmount(calculatedTransactionFees?.dex)}</span>
@@ -137,7 +209,7 @@ export default function TransactionSummary({
                     {/* DEX Fee - for Buy using diBoaS wallet and all Sell transactions */}
                     {((currentTransactionType === 'buy' && chosenPaymentMethod === 'diboas_wallet') || currentTransactionType === 'sell') && calculatedTransactionFees?.dex > 0 && (
                       <div className="fee-breakdown-row">
-                        <span>DEX Fee (0.2%)</span>
+                        <span>DEX Fee ({calculateDexFeePercentage()})</span>
                         <span>${formatFeeAmount(calculatedTransactionFees?.dex)}</span>
                       </div>
                     )}
@@ -152,23 +224,83 @@ export default function TransactionSummary({
               <span>Total</span>
               <span>${transactionAmountInput && calculatedTransactionFees ? (() => {
                 const transactionAmountNumber = parseFloat(transactionAmountInput) || 0;
-                const totalFeesNumber = parseFloat(calculatedTransactionFees.total) || 0;
-                const netTransactionTotal = transactionAmountNumber - totalFeesNumber;
-                logger.debug('TransactionSummary: amount=', transactionAmountNumber, 'fees=', totalFeesNumber, 'net total=', netTransactionTotal);
+                const totalNumber = parseFloat(calculatedTransactionFees.total) || 0;
+                const netTransactionTotal = transactionAmountNumber - totalNumber;
+                logger.debug('TransactionSummary: amount=', transactionAmountNumber, 'fees=', totalNumber, 'net total=', netTransactionTotal);
                 return netTransactionTotal.toFixed(2);
               })() : transactionAmountInput || '0.00'}</span>
             </div>
           </div>
+          
+          {/* Irreversible transaction warning for Send transactions */}
+          {currentTransactionType === 'send' && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+              <div className="flex items-start gap-2">
+                <div className="text-amber-600 mt-0.5">⚠️</div>
+                <div className="text-sm text-amber-800">
+                  <p className="font-medium mb-1">Irreversible Transaction</p>
+                  <p>Send transactions cannot be undone. Please verify the recipient @username and amount before proceeding.</p>
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="transaction-action-section">
             <Button
               variant="cta"
               className="transaction-execute-button"
               onClick={handleTransactionStart}
-              disabled={!isTransactionInputValid}
+              disabled={!isTransactionInputValid || isCalculatingFees || feeError || isTimeout || !calculatedTransactionFees?.total}
             >
-              {`${selectedTransactionTypeConfig?.label} ${transactionAmountInput ? `$${transactionAmountInput}` : ''}`}
+              {isCalculatingFees ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Retrieving fees...
+                </span>
+              ) : isTimeout ? (
+                'Try Again - Fee Timeout'
+              ) : feeError ? (
+                'Try Again - Fee Error'
+              ) : !calculatedTransactionFees?.total ? (
+                'Waiting for fees...'
+              ) : (
+                `${selectedTransactionTypeConfig?.label} ${transactionAmountInput ? `$${transactionAmountInput}` : ''}`
+              )}
             </Button>
+            
+            {/* Fee Loading Status Messages */}
+            {isCalculatingFees && (
+              <div className="mt-2 text-center">
+                <p className="text-xs text-blue-600">
+                  Getting real-time fees from our partners...
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  This ensures you get the most accurate pricing
+                </p>
+              </div>
+            )}
+            
+            {isTimeout && (
+              <div className="mt-2 text-center">
+                <p className="text-xs text-red-600">
+                  Fee retrieval took too long. Please try again.
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  We need current fees to ensure accurate pricing
+                </p>
+              </div>
+            )}
+            
+            {feeError && !isTimeout && (
+              <div className="mt-2 text-center">
+                <p className="text-xs text-red-600">
+                  Unable to retrieve current fees. Please try again.
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Real-time fees are required for transactions
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="text-xs text-gray-500 text-center">
@@ -179,6 +311,7 @@ export default function TransactionSummary({
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </FinancialErrorBoundary>
   )
 }

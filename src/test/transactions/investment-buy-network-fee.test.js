@@ -37,7 +37,7 @@ describe('Investment Buy Network Fee Display Issue', () => {
         console.log(`Network Fee Value: $${fees.network}`)
         console.log(`Network Fee (networkFee property): $${fees.networkFee}`)
         console.log(`Expected: $${expectedNetwork}`)
-        console.log(`Total Fees: $${fees.totalFees}`)
+        console.log(`Total Fees: $${fees.total}`)
         console.log(`All fee properties:`, {
           diBoaS: fees.diBoaS,
           network: fees.network,
@@ -75,7 +75,7 @@ describe('Investment Buy Network Fee Display Issue', () => {
       console.log(`diBoaS Fee: $${btcBuyFees.diBoaS} (should show this value)`)
       console.log(`Network Fee: $${btcBuyFees.network} (should show this value)`)
       console.log(`DEX Fee: $${btcBuyFees.dex} (should show this value)`)
-      console.log(`Total: $${btcBuyFees.totalFees}`)
+      console.log(`Total: $${btcBuyFees.total}`)
       
       console.log('\nBreakdown object:')
       console.log(`Network rate: ${btcBuyFees.breakdown.network.rate * 100}%`)

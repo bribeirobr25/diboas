@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { useErrorRecovery } from '../../hooks/useErrorRecovery.jsx'
 import { ERROR_TYPES, ERROR_SEVERITY } from '../../services/errorHandling/ErrorRecoveryService.js'
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 
 /**
  * 404 Not Found Error Page

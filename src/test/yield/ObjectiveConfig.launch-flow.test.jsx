@@ -3,7 +3,7 @@
  * Tests core launch functionality with simplified mocking
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import React from 'react'
@@ -22,7 +22,7 @@ const MockObjectiveConfig = () => {
 
   // Use React ref for mockBalance so it can be modified by tests
   const mockBalance = React.useRef({ availableForSpending: 2000 })
-  const mockFees = { totalFees: 0.5, processingFee: 0.5, networkFee: 0.003 }
+  const mockFees = { total: 0.5, processingFee: 0.5, networkFee: 0.003 }
 
   const handleLaunch = () => {
     setIsProcessing(true)
@@ -38,7 +38,7 @@ const MockObjectiveConfig = () => {
       
       // Check balance validation
       if (config.paymentMethod === 'diboas_wallet') {
-        const totalRequired = parseFloat(config.initialAmount) + mockFees.totalFees
+        const totalRequired = parseFloat(config.initialAmount) + mockFees.total
         if (mockBalance.current.availableForSpending < totalRequired) {
           throw new Error(`Insufficient balance: required ${totalRequired}, available ${mockBalance.current.availableForSpending}`)
         }
@@ -52,7 +52,7 @@ const MockObjectiveConfig = () => {
     }
   }
 
-  const totalRequired = parseFloat(config.initialAmount) + mockFees.totalFees
+  const totalRequired = parseFloat(config.initialAmount) + mockFees.total
   const hasInsufficientBalance = config.paymentMethod === 'diboas_wallet' && 
     mockBalance.current.availableForSpending < totalRequired
 
@@ -155,8 +155,8 @@ const MockObjectiveConfig = () => {
             <div>Fee Breakdown:</div>
             <div>Processing Fee: ${mockFees.processingFee.toFixed(2)}</div>
             <div>Network Fee: ${mockFees.networkFee.toFixed(3)}</div>
-            <div>Total Fees: ${mockFees.totalFees.toFixed(2)}</div>
-            <div>Net Amount: ${(parseFloat(config.initialAmount) - mockFees.totalFees).toFixed(2)}</div>
+            <div>Total Fees: ${mockFees.total.toFixed(2)}</div>
+            <div>Net Amount: ${(parseFloat(config.initialAmount) - mockFees.total).toFixed(2)}</div>
           </div>
           
           <button onClick={() => setStep(3)}>Previous</button>

@@ -3,7 +3,7 @@
  * Handles scheduled deposits, strategy execution, and automated portfolio management
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 import { dataManager } from '../DataManager.js'
 import protocolService from '../defi/ProtocolService.js'

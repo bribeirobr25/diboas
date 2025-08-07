@@ -6,6 +6,7 @@ import LoadingScreen from './components/shared/LoadingScreen.jsx'
 import { initializeCodeSplitting, chunkPreloader } from './utils/codesplitting.js'
 import { initializeBundleOptimization } from './utils/bundleOptimization.js'
 import { initializeCacheSystem } from './utils/caching/CacheManager.js'
+import { initializeStorage } from './utils/storageInitializer.js'
 import logger from './utils/logger'
 import { 
   detectCurrentSubdomain, 
@@ -286,6 +287,13 @@ function AppRoutes({ initialUserContext, envInfo }) {
               <TransactionPage />
             </Suspense>
           } />
+          
+          {/* Stop strategy transaction route */}
+          <Route path="/transaction/stop_strategy" element={
+            <Suspense fallback={<LoadingScreen />}>
+              <TransactionPage transactionType="stop_strategy" category="yield" />
+            </Suspense>
+          } />
 
           {/* Error Pages */}
           <Route path="/error/500" element={
@@ -325,6 +333,7 @@ function App() {
   // Memoize environment validation to prevent re-running on every render
   const validation = useMemo(() => validateEnvironment(), [])
   const envInfo = useMemo(() => getEnvironmentInfo(), [])
+  
   
   // Initialize app setup once with useEffect instead of on every render
   useEffect(() => {
@@ -372,6 +381,13 @@ function App() {
         
         // Initialize data state - preserve user data, only reset if corrupted
         logger.debug('📊 Initializing data state...')
+        
+        // Initialize modern storage system
+        initializeStorage().then(stats => {
+          logger.debug('📦 Modern storage initialized:', stats)
+        }).catch(error => {
+          logger.warn('Storage initialization failed:', error)
+        })
         
         // Initialize localStorage cleanup to prevent corruption
         initializeLocalStorageCleanup()

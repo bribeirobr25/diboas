@@ -3,7 +3,7 @@
  * Provides real protocol integration for yield strategies
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 
 class ProtocolService {

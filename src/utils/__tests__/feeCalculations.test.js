@@ -30,10 +30,10 @@ describe('Centralized Fee Calculator', () => {
 
     it('should have correct network fee rates as per TRANSACTIONS.md', () => {
       expect(FEE_RATES.NETWORK).toEqual({
-        BTC: 0.09,    // 9%
-        ETH: 0.005,   // 0.5%
-        SOL: 0.00001, // 0.001%
-        SUI: 0.00003  // 0.003%
+        BTC: 0.01,     // 1%
+        ETH: 0.005,    // 0.5%
+        SOL: 0.000001, // 0.0001%
+        SUI: 0.000005  // 0.0005%
       })
     })
 
@@ -58,14 +58,15 @@ describe('Centralized Fee Calculator', () => {
 
     it('should have correct DEX and DeFi fees', () => {
       expect(FEE_RATES.DEX).toEqual({
-        buy: 0.01,     // 1%
-        sell: 0.01,    // 1%
-        transfer: 0.008 // 0.8%
+        standard: 0.008,     // 0.8% for all chains except Solana
+        solana: 0            // 0% for Solana chain transactions
       })
 
       expect(FEE_RATES.DEFI).toEqual({
-        start_strategy: 0.01, // 1%
-        stop_strategy: 0.01   // 1%
+        SOL: 0.007,     // 0.7% - For Solana providers
+        SUI: 0.009,     // 0.9% - For Sui providers  
+        ETH: 0.012,     // 1.2% - For Ethereum Layer 1 providers
+        BTC: 0.015      // 1.5% - For Bitcoin providers
       })
     })
   })
@@ -104,24 +105,24 @@ describe('Centralized Fee Calculator', () => {
 
       expect(result).toEqual({
         diBoaSFee: 0.9, // 1000 * 0.0009
-        networkFee: 0.01, // 1000 * 0.00001
+        networkFee: 0.001, // 1000 * 0.000001
         providerFee: 10, // 1000 * 0.01 (onramp credit_debit_card)
         dexFee: 0, // No DEX fee for add
         defiFee: 0, // No DeFi fee for add
-        totalFees: 10.91,
+        total: 10.901,
         // Legacy format
         diBoaS: 0.9,
-        network: 0.01,
+        network: 0.001,
         provider: 10,
         dex: 0,
         defi: 0,
-        total: 10.91,
+        total: 10.901,
         breakdown: {
           diBoaS: { amount: 0.9, rate: 0.0009 },
-          network: { amount: 0.01, rate: 0.00001 },
+          network: { amount: 0.001, rate: 0.000001 },
           provider: { amount: 10, rate: 0.01 },
           dex: { amount: 0, rate: 0 },
-          defi: { amount: 0, rate: 0 }
+          defi: { amount: 0, rate: 0.007 }
         }
       })
     })
@@ -136,8 +137,8 @@ describe('Centralized Fee Calculator', () => {
       })
 
       expect(result.providerFee).toBe(0)
-      expect(result.dexFee).toBe(10) // 1000 * 0.01 for buy with diBoaS wallet
-      expect(result.totalFees).toBe(10.91) // 0.9 + 0.01 + 0 + 10 + 0 = 10.91
+      expect(result.dexFee).toBe(0) // SOL chain = 0% DEX fee
+      expect(result.total).toBe(0.901) // 0.9 + 0.001 + 0 + 0 + 0 = 0.901
     })
 
     it('should calculate fees for strategy transactions', () => {
@@ -150,10 +151,10 @@ describe('Centralized Fee Calculator', () => {
       })
 
       expect(result.diBoaSFee).toBe(0.9) // 1000 * 0.0009
-      expect(result.defiFee).toBe(10) // 1000 * 0.01 for start_strategy
+      expect(result.defiFee).toBe(7) // 1000 * 0.007 for SOL DeFi
       expect(result.providerFee).toBe(0) // No provider fee for diBoaS wallet
       expect(result.dexFee).toBe(0) // No DEX fee for strategy
-      expect(result.totalFees).toBe(10.91) // 0.9 + 0.01 + 0 + 0 + 10 = 10.91
+      expect(result.total).toBe(7.901) // 0.9 + 0.001 + 0 + 0 + 7 = 7.901
     })
   })
 
@@ -165,8 +166,8 @@ describe('Centralized Fee Calculator', () => {
     })
 
     it('should calculate network fees correctly', () => {
-      expect(feeCalculator._calculateNetworkFee(1000, 'SOL', ['SOL'])).toBe(0.01)
-      expect(feeCalculator._calculateNetworkFee(1000, 'BTC', ['BTC'])).toBe(90)
+      expect(feeCalculator._calculateNetworkFee(1000, 'SOL', ['SOL'])).toBe(0.001)
+      expect(feeCalculator._calculateNetworkFee(1000, 'BTC', ['BTC'])).toBe(10)
       expect(feeCalculator._calculateNetworkFee(1000, 'ETH', ['ETH'])).toBe(5)
     })
 
@@ -177,15 +178,15 @@ describe('Centralized Fee Calculator', () => {
     })
 
     it('should calculate DEX fees correctly', () => {
-      expect(feeCalculator._calculateDexFee(1000, 'buy', 'diboas_wallet')).toBe(10)
-      expect(feeCalculator._calculateDexFee(1000, 'sell', 'diboas_wallet')).toBe(10)
-      expect(feeCalculator._calculateDexFee(1000, 'transfer', 'external')).toBe(8)
+      expect(feeCalculator._calculateDexFee(1000, 'buy', 'diboas_wallet', ['SOL'], 'SOL')).toBe(0) // SOL = 0%
+      expect(feeCalculator._calculateDexFee(1000, 'sell', 'diboas_wallet', ['ETH'], 'ETH')).toBe(8) // ETH = 0.8%
+      expect(feeCalculator._calculateDexFee(1000, 'transfer', 'external', ['ETH'])).toBe(8)
       expect(feeCalculator._calculateDexFee(1000, 'add', 'diboas_wallet')).toBe(0)
     })
 
     it('should calculate DeFi fees correctly', () => {
-      expect(feeCalculator._calculateDefiFee(1000, 'start_strategy')).toBe(10)
-      expect(feeCalculator._calculateDefiFee(1000, 'stop_strategy')).toBe(10)
+      expect(feeCalculator._calculateDefiFee(1000, 'start_strategy', 'SOL')).toBe(7) // SOL = 0.7%
+      expect(feeCalculator._calculateDefiFee(1000, 'stop_strategy', 'ETH')).toBe(12) // ETH = 1.2%
       expect(feeCalculator._calculateDefiFee(1000, 'add')).toBe(0)
     })
   })
@@ -252,8 +253,8 @@ describe('Centralized Fee Calculator', () => {
       })
 
       expect(result.diBoaSFee).toBe(0.9)
-      expect(result.networkFee).toBe(0.01)
-      expect(result.totalFees).toBe(0.91)
+      expect(result.networkFee).toBe(0.001)
+      expect(result.total).toBe(0.901)
     })
 
     it('should maintain compatibility with legacy calculateDiBoaSFee', () => {
@@ -262,8 +263,8 @@ describe('Centralized Fee Calculator', () => {
     })
 
     it('should maintain compatibility with legacy calculateNetworkFee', () => {
-      expect(feeCalculator.calculateNetworkFee('SOL', 1000)).toBe(0.01)
-      expect(feeCalculator.calculateNetworkFee('BTC', 1000)).toBe(90)
+      expect(feeCalculator.calculateNetworkFee('SOL', 1000)).toBe(0.001)
+      expect(feeCalculator.calculateNetworkFee('BTC', 1000)).toBe(10)
     })
   })
 
@@ -328,7 +329,7 @@ describe('Centralized Fee Calculator', () => {
         chains: ['SOL']
       })
 
-      expect(result.networkFee).toBe(0.00001) // Should be exact calculation, no minimum
+      expect(result.networkFee).toBe(0.000001) // Should be exact calculation, no minimum
     })
   })
 
@@ -373,8 +374,8 @@ describe('Centralized Fee Calculator', () => {
       )
 
       expect(comparison).toHaveLength(3)
-      expect(comparison[0].totalFees).toBeLessThan(comparison[1].totalFees)
-      expect(comparison[1].totalFees).toBeLessThan(comparison[2].totalFees)
+      expect(comparison[0].total).toBeLessThan(comparison[1].total)
+      expect(comparison[1].total).toBeLessThan(comparison[2].total)
     })
   })
 

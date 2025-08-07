@@ -1,4 +1,5 @@
 import logger from './logger'
+import { storage } from './modernStorage.js'
 
 /**
  * SEO Monitoring and Analytics Utilities
@@ -73,30 +74,31 @@ export const coreWebVitals = {
       })
     }
 
-    // Store in localStorage for development tracking
+    // Store in modernized storage for development tracking
     if (import.meta.env.DEV) {
-      const metrics = JSON.parse(localStorage.getItem('seo_metrics') || '[]')
-      metrics.push({
-        name,
-        value,
-        delta,
-        rating: metric.rating,
-        timestamp: Date.now(),
-        url: window.location.href
+      storage.getCacheItem('seo_metrics', []).then(async (metrics) => {
+        metrics.push({
+          name,
+          value,
+          delta,
+          rating: metric.rating,
+          timestamp: Date.now(),
+          url: window.location.href
+        })
+        
+        // Keep only last 100 metrics
+        if (metrics.length > 100) {
+          metrics.splice(0, metrics.length - 100)
+        }
+        
+        await storage.setCacheItem('seo_metrics', metrics, 86400000) // 24 hours
       })
-      
-      // Keep only last 100 metrics
-      if (metrics.length > 100) {
-        metrics.splice(0, metrics.length - 100)
-      }
-      
-      localStorage.setItem('seo_metrics', JSON.stringify(metrics))
     }
   },
 
   // Get performance grade based on Core Web Vitals
-  getPerformanceGrade: () => {
-    const metrics = JSON.parse(localStorage.getItem('seo_metrics') || '[]')
+  getPerformanceGrade: async () => {
+    const metrics = await storage.getCacheItem('seo_metrics', [])
     const recent = metrics.slice(-10) // Last 10 measurements
 
     if (recent.length === 0) return { grade: 'N/A', score: 0 }

@@ -25,7 +25,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['SOL']
       })
 
-      expect(addResult.totalFees).toBeGreaterThan(0)
+      expect(addResult.total).toBeGreaterThan(0)
       expect(addResult.diboas).toBeCloseTo(0.9, 2) // 0.09% diBoaS
       expect(addResult.providerFee).toBeCloseTo(5, 2) // 0.5% Apple Pay
       expect(addResult.networkFee).toBeCloseTo(0.01, 3) // SOL network
@@ -39,7 +39,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['SOL']
       })
 
-      expect(sendResult.totalFees).toBeGreaterThan(0)
+      expect(sendResult.total).toBeGreaterThan(0)
       expect(sendResult.diboas).toBeCloseTo(0.18, 2) // 0.09% diBoaS
       expect(sendResult.providerFee).toBe(0) // No provider fee for diBoaS wallet
       expect(sendResult.networkFee).toBeCloseTo(0.002, 3) // SOL network
@@ -53,7 +53,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['SOL']
       })
 
-      expect(withdrawResult.totalFees).toBeGreaterThan(0)
+      expect(withdrawResult.total).toBeGreaterThan(0)
       expect(withdrawResult.diboas).toBeCloseTo(6.3, 2) // 0.9% diBoaS for withdraw
       expect(withdrawResult.providerFee).toBeCloseTo(14, 2) // 2% bank account withdraw
       expect(withdrawResult.networkFee).toBeCloseTo(0.007, 3) // SOL network
@@ -77,7 +77,7 @@ describe('All Categories Integration Tests', () => {
           chains: ['SOL']
         })
 
-        expect(result.totalFees).toBeGreaterThan(0)
+        expect(result.total).toBeGreaterThan(0)
         expect(result.diboas).toBeCloseTo(0.09, 2) // 0.09% diBoaS
         expect(result.providerFee).toBeCloseTo(100 * expectedRate, 2)
       }
@@ -95,7 +95,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['BTC']
       })
 
-      expect(buyResult.totalFees).toBeGreaterThan(0)
+      expect(buyResult.total).toBeGreaterThan(0)
       expect(buyResult.diboas).toBeCloseTo(0.9, 2) // 0.09% diBoaS
       expect(buyResult.networkFee).toBeCloseTo(90, 2) // 9% BTC network
       expect(buyResult.dexFee).toBeCloseTo(10, 2) // 1% DEX fee for buy
@@ -110,7 +110,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['BTC']
       })
 
-      expect(sellResult.totalFees).toBeGreaterThan(0)
+      expect(sellResult.total).toBeGreaterThan(0)
       expect(sellResult.diboas).toBeCloseTo(1.08, 2) // 0.09% diBoaS
       expect(sellResult.networkFee).toBeCloseTo(108, 2) // 9% BTC network
       expect(sellResult.dexFee).toBeCloseTo(12, 2) // 1% DEX fee for sell
@@ -124,7 +124,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['BTC']
       })
 
-      expect(transferResult.totalFees).toBeGreaterThan(0)
+      expect(transferResult.total).toBeGreaterThan(0)
       expect(transferResult.diboas).toBeCloseTo(4.5, 2) // 0.9% diBoaS for transfer
       expect(transferResult.networkFee).toBeCloseTo(45, 2) // 9% BTC network
       expect(transferResult.dexFee).toBeCloseTo(4, 2) // 0.8% DEX fee for transfer
@@ -147,7 +147,7 @@ describe('All Categories Integration Tests', () => {
           chains: [chain]
         })
 
-        expect(result.totalFees).toBeGreaterThan(0)
+        expect(result.total).toBeGreaterThan(0)
         expect(result.diboas).toBeCloseTo(0.9, 2) // 0.09% diBoaS
         expect(result.networkFee).toBeCloseTo(1000 * networkRate, 4)
         expect(result.dexFee).toBeCloseTo(10, 2) // 1% DEX fee
@@ -163,7 +163,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['ETH']
       })
 
-      expect(result.totalFees).toBeGreaterThan(0)
+      expect(result.total).toBeGreaterThan(0)
       expect(result.diboas).toBeCloseTo(0.45, 2) // 0.09% diBoaS
       expect(result.networkFee).toBeCloseTo(2.5, 2) // 0.5% ETH network
       expect(result.providerFee).toBeCloseTo(5, 2) // 1% credit card fee
@@ -182,7 +182,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['SOL']
       })
 
-      expect(startResult.totalFees).toBeGreaterThan(0)
+      expect(startResult.total).toBeGreaterThan(0)
       expect(startResult.diboas).toBeCloseTo(1.8, 2) // 0.09% diBoaS
       expect(startResult.networkFee).toBeCloseTo(0.02, 3) // SOL network
       expect(startResult.dexFee).toBeCloseTo(10, 2) // 0.5% DEX fee for strategies
@@ -198,7 +198,7 @@ describe('All Categories Integration Tests', () => {
         chains: ['SOL']
       })
 
-      expect(stopResult.totalFees).toBeGreaterThan(0)
+      expect(stopResult.total).toBeGreaterThan(0)
       expect(stopResult.diboas).toBeCloseTo(2.25, 2) // 0.09% diBoaS
       expect(stopResult.networkFee).toBeCloseTo(0.025, 3) // SOL network
       expect(stopResult.dexFee).toBeCloseTo(12.5, 2) // 0.5% DEX fee for strategies
@@ -221,7 +221,7 @@ describe('All Categories Integration Tests', () => {
           chains: [chain]
         })
 
-        expect(result.totalFees).toBeGreaterThan(0)
+        expect(result.total).toBeGreaterThan(0)
         expect(result.diboas).toBeCloseTo(0.9, 2) // 0.09% diBoaS
         expect(result.networkFee).toBeCloseTo(1000 * networkRate, 4)
         expect(result.dexFee).toBeCloseTo(5, 2) // 0.5% DEX fee
@@ -243,7 +243,7 @@ describe('All Categories Integration Tests', () => {
         })
 
         // Should still work but only show DEX fees, no external payment fees
-        expect(result.totalFees).toBeGreaterThan(0)
+        expect(result.total).toBeGreaterThan(0)
         expect(result.diboas).toBeCloseTo(0.9, 2)
         expect(result.dexFee).toBeCloseTo(5, 2)
         expect(result.providerFee).toBeCloseTo(5, 2) // DEX fee shown as provider
@@ -261,7 +261,7 @@ describe('All Categories Integration Tests', () => {
         asset: 'USDC',
         chains: ['SOL']
       })
-      expect(addResult.totalFees).toBeGreaterThan(0)
+      expect(addResult.total).toBeGreaterThan(0)
 
       // Step 2: Buy crypto
       const buyResult = await feeCalculator.calculateTransactionFees({
@@ -271,7 +271,7 @@ describe('All Categories Integration Tests', () => {
         asset: 'ETH',
         chains: ['ETH']
       })
-      expect(buyResult.totalFees).toBeGreaterThan(0)
+      expect(buyResult.total).toBeGreaterThan(0)
 
       // Step 3: Start DeFi strategy
       const strategyResult = await feeCalculator.calculateTransactionFees({
@@ -281,7 +281,7 @@ describe('All Categories Integration Tests', () => {
         asset: 'USDC',
         chains: ['ETH']
       })
-      expect(strategyResult.totalFees).toBeGreaterThan(0)
+      expect(strategyResult.total).toBeGreaterThan(0)
       expect(strategyResult.dexFee).toBeCloseTo(10, 2) // 0.5% strategy DEX fee
     })
 
@@ -294,7 +294,7 @@ describe('All Categories Integration Tests', () => {
         asset: 'USDC',
         chains: ['ETH']
       })
-      expect(stopResult.totalFees).toBeGreaterThan(0)
+      expect(stopResult.total).toBeGreaterThan(0)
 
       // Step 2: Sell crypto
       const sellResult = await feeCalculator.calculateTransactionFees({
@@ -304,7 +304,7 @@ describe('All Categories Integration Tests', () => {
         asset: 'ETH',
         chains: ['ETH']
       })
-      expect(sellResult.totalFees).toBeGreaterThan(0)
+      expect(sellResult.total).toBeGreaterThan(0)
 
       // Step 3: Withdraw to bank
       const withdrawResult = await feeCalculator.calculateTransactionFees({
@@ -314,7 +314,7 @@ describe('All Categories Integration Tests', () => {
         asset: 'USDC',
         chains: ['SOL']
       })
-      expect(withdrawResult.totalFees).toBeGreaterThan(0)
+      expect(withdrawResult.total).toBeGreaterThan(0)
     })
   })
 
@@ -409,7 +409,7 @@ describe('All Categories Integration Tests', () => {
           paymentMethod
         })
 
-        expect(result.totalFees).toBeGreaterThan(0)
+        expect(result.total).toBeGreaterThan(0)
         expect(result.diboas).toBeGreaterThan(0)
       }
     })
@@ -430,8 +430,8 @@ describe('All Categories Integration Tests', () => {
           paymentMethod
         })
 
-        expect(result.totalFees).toBeGreaterThan(0)
-        expect(result.totalFees).toBeLessThan(largeAmount) // Sanity check
+        expect(result.total).toBeGreaterThan(0)
+        expect(result.total).toBeLessThan(largeAmount) // Sanity check
       }
     })
   })

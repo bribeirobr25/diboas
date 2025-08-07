@@ -7,7 +7,7 @@ import React from 'react'
 import { AlertTriangle, RefreshCw, Home, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
-import { secureLogger } from '../../utils/secureLogger.js'
+import secureLogger from '../../utils/secureLogger.js'
 import logger from '../../utils/logger'
 
 class FinancialErrorBoundary extends React.Component {

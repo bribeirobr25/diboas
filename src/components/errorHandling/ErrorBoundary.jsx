@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge.jsx'
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
 import { useErrorBoundary, useErrorRecovery } from '../../hooks/useErrorRecovery.jsx'
 import { ERROR_TYPES, ERROR_SEVERITY } from '../../services/errorHandling/ErrorRecoveryService.js'
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import {
   AlertTriangle,
   RefreshCw,

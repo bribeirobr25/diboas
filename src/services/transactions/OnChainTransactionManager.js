@@ -54,6 +54,7 @@ export class OnChainTransactionManager {
         id: transactionId,
         type,
         amount: parseFloat(amount),
+        netAmount: transactionData.netAmount, // Store pre-calculated net amount
         recipient,
         asset,
         paymentMethod,
@@ -218,6 +219,12 @@ export class OnChainTransactionManager {
 
     try {
       // CRITICAL: Only update balances AFTER on-chain confirmation
+      logger.debug('🎯 About to update user balances after confirmation:', {
+        transactionId: pendingTx.id,
+        type: pendingTx.type,
+        amount: pendingTx.amount,
+        fees: pendingTx.fees
+      })
       await this.updateUserBalances(pendingTx)
       
       // Update transaction status to confirmed
@@ -321,10 +328,22 @@ export class OnChainTransactionManager {
     const { type, amount, asset, userId } = transaction
 
     try {
-      // Update balance in data manager - this method handles all the balance calculations
+      // Debug logging to check fees being passed
+      logger.debug('OnChainTransactionManager updateUserBalances:', {
+        transactionId: transaction.id,
+        type: transaction.type,
+        amount: transaction.amount,
+        fees: transaction.fees,
+        feesTotal: transaction.fees?.total,
+        paymentMethod: transaction.paymentMethod
+      })
+
+      // Update balance in data manager with pre-calculated net amount
+      // The netAmount was already calculated in the transaction flow (single source of truth)
       await this.dataManager.updateBalance({
         type: transaction.type,
         amount: transaction.amount,
+        netAmount: transaction.netAmount, // Use pre-calculated value from transaction flow
         fees: transaction.fees || { total: 0 },
         asset: transaction.asset,
         paymentMethod: transaction.paymentMethod

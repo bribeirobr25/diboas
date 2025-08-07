@@ -3,7 +3,7 @@
  * Tests streamlined 5-step flow, payment validation, fees, and edge cases
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter, MemoryRouter } from 'react-router-dom'

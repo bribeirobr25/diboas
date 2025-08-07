@@ -366,7 +366,7 @@ export class BridgeProviderRegistry extends ProviderRegistry {
     }
 
     // Sort by best rate (lowest fees)
-    return quotes.sort((a, b) => a.totalFees - b.totalFees)
+    return quotes.sort((a, b) => a.total - b.total)
   }
 
   /**
@@ -547,7 +547,7 @@ export class MockBridgeProvider {
   async getQuote({ fromChain, toChain, asset, amount }) {
     const baseFee = 5.0 // Base fee in USD
     const percentageFee = amount * 0.001 // 0.1%
-    const totalFees = baseFee + percentageFee
+    const total = baseFee + percentageFee
     const estimatedTime = 300 + Math.random() * 600 // 5-15 minutes
     
     return {
@@ -555,9 +555,9 @@ export class MockBridgeProvider {
       toChain,
       asset,
       amount,
-      totalFees,
+      total,
       estimatedTime,
-      rate: 1 - (totalFees / amount)
+      rate: 1 - (total / amount)
     }
   }
 }

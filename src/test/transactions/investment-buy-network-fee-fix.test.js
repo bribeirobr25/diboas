@@ -29,12 +29,12 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log('BTC Buy (FIXED):')
       console.log(`Network Fee: $${btcBuy.network} (should be $90)`)
       console.log(`Network Rate: ${btcBuy.breakdown.network.rate * 100}% (should be 9%)`)
-      console.log(`Total: $${btcBuy.totalFees}`)
+      console.log(`Total: $${btcBuy.total}`)
 
       expect(btcBuy.network).toBeCloseTo(90, 2) // 9% of $1000
       expect(btcBuy.networkFee).toBeCloseTo(90, 2) // Legacy property
       expect(btcBuy.breakdown.network.rate).toBe(0.09) // 9%
-      expect(btcBuy.totalFees).toBeCloseTo(100.9, 2) // $0.9 + $90 + $10 DEX
+      expect(btcBuy.total).toBeCloseTo(100.9, 2) // $0.9 + $90 + $10 DEX
     })
 
     it('should calculate correct network fees for ETH buy transaction', async () => {
@@ -49,11 +49,11 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log('\nETH Buy (FIXED):')
       console.log(`Network Fee: $${ethBuy.network} (should be $5)`)
       console.log(`Network Rate: ${ethBuy.breakdown.network.rate * 100}% (should be 0.5%)`)
-      console.log(`Total: $${ethBuy.totalFees}`)
+      console.log(`Total: $${ethBuy.total}`)
 
       expect(ethBuy.network).toBeCloseTo(5, 2) // 0.5% of $1000
       expect(ethBuy.breakdown.network.rate).toBe(0.005) // 0.5%
-      expect(ethBuy.totalFees).toBeCloseTo(15.9, 2)
+      expect(ethBuy.total).toBeCloseTo(15.9, 2)
     })
 
     it('should calculate correct network fees for SUI buy transaction', async () => {
@@ -68,11 +68,11 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log('\nSUI Buy (FIXED):')
       console.log(`Network Fee: $${suiBuy.network} (should be $0.03)`)
       console.log(`Network Rate: ${suiBuy.breakdown.network.rate * 100}% (should be 0.003%)`)
-      console.log(`Total: $${suiBuy.totalFees}`)
+      console.log(`Total: $${suiBuy.total}`)
 
       expect(suiBuy.network).toBeCloseTo(0.03, 3) // 0.003% of $1000
       expect(suiBuy.breakdown.network.rate).toBe(0.00003) // 0.003%
-      expect(suiBuy.totalFees).toBeCloseTo(10.93, 2)
+      expect(suiBuy.total).toBeCloseTo(10.93, 2)
     })
 
     it('should maintain correct network fees for SOL buy transaction', async () => {
@@ -87,11 +87,11 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log('\nSOL Buy (unchanged):')
       console.log(`Network Fee: $${solBuy.network} (should be $0.01)`)
       console.log(`Network Rate: ${solBuy.breakdown.network.rate * 100}% (should be 0.001%)`)
-      console.log(`Total: $${solBuy.totalFees}`)
+      console.log(`Total: $${solBuy.total}`)
 
       expect(solBuy.network).toBeCloseTo(0.01, 3) // 0.001% of $1000
       expect(solBuy.breakdown.network.rate).toBe(0.00001) // 0.001%
-      expect(solBuy.totalFees).toBeCloseTo(10.91, 2)
+      expect(solBuy.total).toBeCloseTo(10.91, 2)
     })
   })
 
@@ -184,13 +184,13 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log(`diBoaS Fee: $${btcBuyWithCard.diBoaS} (0.09%)`)
       console.log(`Network Fee: $${btcBuyWithCard.network} (9%)`)
       console.log(`Provider Fee: $${btcBuyWithCard.provider} (1%)`)
-      console.log(`Total: $${btcBuyWithCard.totalFees}`)
+      console.log(`Total: $${btcBuyWithCard.total}`)
 
       expect(btcBuyWithCard.diBoaS).toBeCloseTo(0.9, 2) // 0.09%
       expect(btcBuyWithCard.network).toBeCloseTo(90, 2) // 9%
       expect(btcBuyWithCard.provider).toBeCloseTo(10, 2) // 1% credit card fee
       expect(btcBuyWithCard.dex).toBe(0) // No DEX fee for external payment
-      expect(btcBuyWithCard.totalFees).toBeCloseTo(100.9, 2)
+      expect(btcBuyWithCard.total).toBeCloseTo(100.9, 2)
     })
 
     it('should calculate correct provider fees for Buy with bank account', async () => {
@@ -206,13 +206,13 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log(`diBoaS Fee: $${ethBuyWithBank.diBoaS} (0.09%)`)
       console.log(`Network Fee: $${ethBuyWithBank.network} (0.5%)`)
       console.log(`Provider Fee: $${ethBuyWithBank.provider} (1%)`)
-      console.log(`Total: $${ethBuyWithBank.totalFees}`)
+      console.log(`Total: $${ethBuyWithBank.total}`)
 
       expect(ethBuyWithBank.diBoaS).toBeCloseTo(0.9, 2)
       expect(ethBuyWithBank.network).toBeCloseTo(5, 2) // ETH rate
       expect(ethBuyWithBank.provider).toBeCloseTo(10, 2) // 1% bank fee
       expect(ethBuyWithBank.dex).toBe(0)
-      expect(ethBuyWithBank.totalFees).toBeCloseTo(15.9, 2)
+      expect(ethBuyWithBank.total).toBeCloseTo(15.9, 2)
     })
 
     it('should calculate correct provider fees for Buy with PayPal', async () => {
@@ -228,13 +228,13 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log(`diBoaS Fee: $${suiBuyWithPayPal.diBoaS} (0.09%)`)
       console.log(`Network Fee: $${suiBuyWithPayPal.network} (0.003%)`)
       console.log(`Provider Fee: $${suiBuyWithPayPal.provider} (3%)`)
-      console.log(`Total: $${suiBuyWithPayPal.totalFees}`)
+      console.log(`Total: $${suiBuyWithPayPal.total}`)
 
       expect(suiBuyWithPayPal.diBoaS).toBeCloseTo(0.9, 2)
       expect(suiBuyWithPayPal.network).toBeCloseTo(0.03, 3) // SUI rate
       expect(suiBuyWithPayPal.provider).toBeCloseTo(30, 2) // 3% PayPal fee
       expect(suiBuyWithPayPal.dex).toBe(0)
-      expect(suiBuyWithPayPal.totalFees).toBeCloseTo(30.93, 2)
+      expect(suiBuyWithPayPal.total).toBeCloseTo(30.93, 2)
     })
 
     it('should calculate correct provider fees for Buy with Apple Pay', async () => {
@@ -250,13 +250,13 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log(`diBoaS Fee: $${solBuyWithApplePay.diBoaS} (0.09%)`)
       console.log(`Network Fee: $${solBuyWithApplePay.network} (0.001%)`)
       console.log(`Provider Fee: $${solBuyWithApplePay.provider} (0.5%)`)
-      console.log(`Total: $${solBuyWithApplePay.totalFees}`)
+      console.log(`Total: $${solBuyWithApplePay.total}`)
 
       expect(solBuyWithApplePay.diBoaS).toBeCloseTo(0.9, 2)
       expect(solBuyWithApplePay.network).toBeCloseTo(0.01, 3) // SOL rate
       expect(solBuyWithApplePay.provider).toBeCloseTo(5, 2) // 0.5% Apple Pay fee
       expect(solBuyWithApplePay.dex).toBe(0)
-      expect(solBuyWithApplePay.totalFees).toBeCloseTo(5.91, 2)
+      expect(solBuyWithApplePay.total).toBeCloseTo(5.91, 2)
     })
 
     it('should verify diBoaS wallet has DEX fee instead of provider fee', async () => {
@@ -273,13 +273,13 @@ describe('Investment Buy Network Fee Fix', () => {
       console.log(`Network Fee: $${btcBuyWithWallet.network} (9%)`)
       console.log(`Provider Fee: $${btcBuyWithWallet.provider} (should be 0)`)
       console.log(`DEX Fee: $${btcBuyWithWallet.dex} (1%)`)
-      console.log(`Total: $${btcBuyWithWallet.totalFees}`)
+      console.log(`Total: $${btcBuyWithWallet.total}`)
 
       expect(btcBuyWithWallet.diBoaS).toBeCloseTo(0.9, 2)
       expect(btcBuyWithWallet.network).toBeCloseTo(90, 2)
       expect(btcBuyWithWallet.provider).toBe(0) // No provider fee for diBoaS wallet
       expect(btcBuyWithWallet.dex).toBeCloseTo(10, 2) // 1% DEX fee for diBoaS wallet
-      expect(btcBuyWithWallet.totalFees).toBeCloseTo(100.9, 2)
+      expect(btcBuyWithWallet.total).toBeCloseTo(100.9, 2)
     })
 
     it('should compare all payment methods for same asset', async () => {
@@ -305,7 +305,7 @@ describe('Investment Buy Network Fee Fix', () => {
         console.log(`\n${method}:`)
         console.log(`  Provider Fee: $${fees.provider} (expected: $${expectedProvider})`)
         console.log(`  DEX Fee: $${fees.dex} (expected: $${expectedDex})`)
-        console.log(`  Total: $${fees.totalFees}`)
+        console.log(`  Total: $${fees.total}`)
 
         expect(fees.provider).toBeCloseTo(expectedProvider, 2)
         expect(fees.dex).toBeCloseTo(expectedDex, 2)

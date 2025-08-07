@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import logger from '../../utils/logger'
+import { useErrorHandler } from '../../hooks/useErrorHandler.jsx'
+import FinancialErrorBoundary from '../shared/FinancialErrorBoundary.jsx'
 import { 
   ArrowLeft,
   TrendingUp,
@@ -16,9 +18,7 @@ import {
   DollarSign,
   Calendar,
   Target,
-  Settings,
   Play,
-  Pause,
   BarChart3,
   AlertCircle,
   CheckCircle,
@@ -91,11 +91,6 @@ const STATUS_CONFIG = {
     color: 'bg-green-100 text-green-800',
     icon: Play
   },
-  paused: {
-    label: 'Paused',
-    color: 'bg-yellow-100 text-yellow-800',
-    icon: Pause
-  },
   near_completion: {
     label: 'Near Goal',
     color: 'bg-blue-100 text-blue-800',
@@ -112,9 +107,15 @@ export default function StrategyManager() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isNewStrategy = searchParams.get('strategy') === 'new'
+  const { handleError, createSafeWrapper } = useErrorHandler({
+    logErrors: true,
+    autoRecovery: true,
+    notifyUser: true
+  })
   
   const [strategies, setStrategies] = useState(MOCK_STRATEGIES)
   const [selectedStrategy, setSelectedStrategy] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (isNewStrategy) {
@@ -123,36 +124,54 @@ export default function StrategyManager() {
     }
   }, [isNewStrategy])
 
-  const handleBack = () => {
-    navigate('/category/yield')
-  }
+  const handleBack = createSafeWrapper(
+    () => {
+      navigate('/category/yield')
+    },
+    {
+      context: { action: 'navigate_back' },
+      fallback: () => logger.warn('Navigation fallback: refresh page')
+    }
+  )
 
-  const handleCreateNew = () => {
-    navigate('/yield/configure')
-  }
+  const handleCreateNew = createSafeWrapper(
+    () => {
+      navigate('/yield/configure')
+    },
+    {
+      context: { action: 'navigate_to_configure' },
+      fallback: () => logger.warn('Navigation fallback: manual redirect')
+    }
+  )
 
-  const handleStrategyClick = (strategy) => {
-    setSelectedStrategy(strategy)
-  }
+  const handleStrategyClick = createSafeWrapper(
+    (strategy) => {
+      setSelectedStrategy(strategy)
+      logger.debug('Strategy selected:', strategy.id)
+    },
+    {
+      context: { action: 'select_strategy' },
+      fallback: () => logger.warn('Strategy selection failed')
+    }
+  )
 
-  const handleStrategyAction = (strategyId, action) => {
-    setStrategies(prev => prev.map(strategy => 
-      strategy.id === strategyId 
-        ? { ...strategy, status: action === 'pause' ? 'paused' : 'active' }
-        : strategy
-    ))
-  }
 
   const calculateProgress = (current, target) => {
     return Math.min(100, (current / target) * 100)
   }
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
+  const formatCurrency = createSafeWrapper(
+    (amount) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(amount)
+    },
+    {
+      context: { action: 'format_currency' },
+      fallback: `$${amount?.toFixed(2) || '0.00'}`
+    }
+  )
 
   const getTimeRemaining = (totalMonths, elapsed) => {
     const remaining = totalMonths - elapsed
@@ -160,8 +179,12 @@ export default function StrategyManager() {
   }
 
   return (
-    <div className="main-layout">
-      <PageHeader showUserActions={true} />
+    <FinancialErrorBoundary
+      componentName="StrategyManager"
+      transactionContext={{ activeStrategies: strategies.length }}
+    >
+      <div className="main-layout">
+        <PageHeader showUserActions={true} />
       
       <div className="page-container max-w-6xl mx-auto">
         {/* Breadcrumb Navigation */}
@@ -368,37 +391,29 @@ export default function StrategyManager() {
 
                       {/* Action Buttons */}
                       <div className="strategy-manager__actions flex gap-2 pt-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleStrategyAction(strategy.id, strategy.status === 'active' ? 'pause' : 'activate')
-                          }}
-                        >
-                          {strategy.status === 'active' ? (
-                            <>
-                              <Pause className="w-3 h-3 mr-1" />
-                              Pause
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-3 h-3 mr-1" />
-                              Resume
-                            </>
-                          )}
-                        </Button>
+                        {strategy.status === 'active' && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/transaction/stop_strategy?strategyId=${strategy.id}`)
+                            }}
+                          >
+                            Stop & Claim
+                          </Button>
+                        )}
                         
                         <Button 
                           size="sm" 
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation()
-                            // Handle settings/edit
+                            // Handle view details
+                            setSelectedStrategy(strategy)
                           }}
                         >
-                          <Settings className="w-3 h-3 mr-1" />
-                          Settings
+                          View Details
                         </Button>
                       </div>
                     </CardContent>
@@ -438,7 +453,8 @@ export default function StrategyManager() {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
-    </div>
+    </FinancialErrorBoundary>
   )
 }

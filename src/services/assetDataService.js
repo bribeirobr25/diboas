@@ -5,6 +5,7 @@
  */
 
 import { cacheManager, CACHE_POLICIES, cached } from '../utils/caching/CacheManager.js'
+import { mockupAssetMetadataProviderService } from './assets/MockupAssetMetadataProviderService.js'
 import logger from '../utils/logger'
 
 // Enhanced cache policies for different types of asset data
@@ -27,8 +28,9 @@ const ASSET_CACHE_POLICIES = {
   }
 }
 
-// Mock data for all supported assets
-const MOCK_ASSET_DATA = {
+// Legacy static asset data - now replaced with MockupAssetMetadataProviderService
+// Keeping for reference and potential fallback scenarios
+const LEGACY_MOCK_ASSET_DATA = {
   BTC: {
     symbol: 'BTC',
     name: 'Bitcoin',
@@ -251,17 +253,40 @@ class AssetDataService {
     const cacheKey = `asset_info_${symbol}`
     const cached = await cacheManager.get(cacheKey, ASSET_CACHE_POLICIES.STATIC_DATA)
     if (cached) return cached
-    // Simulate API call delay
-    await this.simulateApiDelay()
-
-    const assetData = MOCK_ASSET_DATA[symbol]
-    if (!assetData) {
-      throw new Error(`Asset ${symbol} not found`)
-    }
-
-    const result = {
-      ...assetData,
-      lastUpdated: new Date().toISOString()
+    let result
+    try {
+      // Get asset data from mockup service (includes realistic API delay)
+      const assetData = await mockupAssetMetadataProviderService.getAssetMetadata(symbol)
+      
+      // Transform to legacy format for backward compatibility
+      result = {
+        symbol: assetData.symbol,
+        name: assetData.name,
+        icon: assetData.icon || '○',
+        description: assetData.description,
+        website: assetData.links?.website,
+        whitepaper: assetData.links?.whitepaper,
+        chain: assetData.network?.mainnet || 'ETH',
+        decimals: assetData.technicalSpecs?.decimals || 18,
+        contractAddress: assetData.network?.contractAddress,
+        lastUpdated: new Date().toISOString()
+      }
+    } catch (error) {
+      // Fallback to create-new template data if asset not found
+      logger.warn(`Asset ${symbol} not found in mockup service, using fallback`, error)
+      
+      result = {
+        symbol: symbol,
+        name: `${symbol} Token`,
+        icon: '○',
+        description: `Digital asset ${symbol}`,
+        website: null,
+        whitepaper: null,
+        chain: 'ETH',
+        decimals: 18,
+        contractAddress: null,
+        lastUpdated: new Date().toISOString()
+      }
     }
 
     // Cache the result
@@ -523,4 +548,4 @@ class AssetDataService {
 export const assetDataService = new AssetDataService()
 
 // Export for testing
-export { AssetDataService, ASSET_CACHE_POLICIES as CACHE_CONFIG, MOCK_ASSET_DATA }
+export { AssetDataService, ASSET_CACHE_POLICIES as CACHE_CONFIG }

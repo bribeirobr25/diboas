@@ -130,7 +130,7 @@ export const TreeShaking = {
   markAsUsed(variable) {
     // This function helps bundle analyzers understand that code is used
     if (import.meta.env.DEV) {
-      console.debug('Marked as used:', variable)
+      logger.debug('Marked as used:', variable)
     }
     return variable
   },
@@ -310,11 +310,10 @@ export class PerformanceBudget {
       return
     }
 
-    console.group('⚠️  Performance Budget Violations')
+    logger.warn('⚠️  Performance Budget Violations:')
     this.violations.forEach(violation => {
       logger.warn(violation.message)
     })
-    console.groupEnd()
   }
 }
 
@@ -373,7 +372,7 @@ export class PreloadingStrategy {
     try {
       await moduleCache.importModule(modulePath, { cacheable: true })
       this.preloadedModules.add(modulePath)
-      console.debug(`✅ Preloaded module: ${modulePath}`)
+      logger.debug(`✅ Preloaded module: ${modulePath}`)
     } catch (error) {
       logger.warn(`❌ Failed to preload module: ${modulePath}`, error)
     }
@@ -452,11 +451,11 @@ export function initializeBundleOptimization() {
     // Report stats every 30 seconds in development
     setInterval(() => {
       const stats = bundleSizeAnalyzer.generateReport()
-      console.group('📊 Bundle Performance Report')
-      console.table(stats.largestModules)
-      console.table(stats.slowestModules)
+      logger.debug('📊 Bundle Performance Report:', {
+        largestModules: stats.largestModules,
+        slowestModules: stats.slowestModules
+      })
       performanceBudget.reportViolations()
-      console.groupEnd()
     }, 30000)
   }
 

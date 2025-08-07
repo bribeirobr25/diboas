@@ -275,7 +275,7 @@ describe('Transaction Performance Tests', () => {
       const calculationDuration = endTime - startTime
 
       expect(balanceReport).toHaveProperty('totalBalance')
-      expect(balanceReport).toHaveProperty('totalFees')
+      expect(balanceReport).toHaveProperty('total')
       expect(balanceReport).toHaveProperty('transactionCount')
       expect(calculationDuration).toBeLessThan(200) // Complex calculation under 200ms
     })

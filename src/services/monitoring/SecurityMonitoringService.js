@@ -3,7 +3,7 @@
  * Real-time security threat detection, audit logging, and compliance monitoring
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 
 export const THREAT_TYPES = {

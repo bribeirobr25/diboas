@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.j
 import { Button } from '@/components/ui/button.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import logger from '../utils/logger'
+import { useErrorHandler } from '../hooks/useErrorHandler.jsx'
+import FinancialErrorBoundary from './shared/FinancialErrorBoundary.jsx'
 import { 
   ArrowLeft,
   ExternalLink,
@@ -50,13 +52,6 @@ const TRANSACTION_CONFIGS = {
     bgColor: 'bg-blue-50',
     name: 'Send Money',
     description: 'Money sent to another diBoaS user'
-  },
-  transfer: {
-    icon: <ArrowRight className="w-6 h-6" />,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    name: 'Transfer',
-    description: 'Money transferred to external wallet'
   },
   buy: {
     icon: <TrendingUp className="w-6 h-6" />,
@@ -113,6 +108,11 @@ export default function TransactionDetailsPage({ transactionId: propTransactionI
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { getTransactions } = useSafeDataManager()
+  const { handleError, createSafeWrapper } = useErrorHandler({
+    logErrors: true,
+    autoRecovery: true,
+    notifyUser: true
+  })
   const [transaction, setTransaction] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -120,38 +120,50 @@ export default function TransactionDetailsPage({ transactionId: propTransactionI
   // Support both prop-based and URL parameter-based transaction ID
   const transactionId = propTransactionId || searchParams.get('id')
 
-  useEffect(() => {
-    if (!transactionId) {
-      setError('No transaction ID provided')
-      setLoading(false)
-      return
-    }
+  const loadTransaction = createSafeWrapper(
+    async () => {
+      if (!transactionId) {
+        setError('No transaction ID provided')
+        setLoading(false)
+        return
+      }
 
-    try {
+      setLoading(true)
       const allTransactions = getTransactions()
       const foundTransaction = allTransactions.find(tx => tx.id === transactionId)
       
       if (foundTransaction) {
         setTransaction(foundTransaction)
+        setError(null)
       } else {
         setError('Transaction not found')
       }
-    } catch (err) {
-      setError('Failed to load transaction details')
-      logger.error('Error loading transaction:', err)
-    } finally {
-      setLoading(false)
+    },
+    {
+      context: { transactionId, component: 'TransactionDetailsPage' },
+      fallback: () => {
+        setError('Failed to load transaction details')
+        setLoading(false)
+      }
     }
+  )
+
+  useEffect(() => {
+    loadTransaction().finally(() => setLoading(false))
   }, [transactionId, getTransactions])
 
-  const copyToClipboard = async (text, type) => {
-    try {
+  const copyToClipboard = createSafeWrapper(
+    async (text, type) => {
       await navigator.clipboard.writeText(text)
-      // You could add a toast notification here
-    } catch (err) {
-      logger.error('Failed to copy:', err)
+      logger.debug(`Copied ${type} to clipboard`)
+    },
+    {
+      context: { action: 'copy_to_clipboard' },
+      fallback: () => {
+        logger.warn('Clipboard copy failed - falling back to user notification')
+      }
     }
-  }
+  )
 
   const formatDate = (dateString) => {
     const date = new Date(dateString)
@@ -220,7 +232,11 @@ export default function TransactionDetailsPage({ transactionId: propTransactionI
   const statusConfig = STATUS_CONFIGS[transaction.status] || STATUS_CONFIGS.completed
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <FinancialErrorBoundary
+      componentName="TransactionDetailsPage"
+      transactionContext={{ transactionId }}
+    >
+      <div className="container mx-auto p-6 max-w-4xl">
       {/* Header */}
       <div className="mb-6">
         <Button
@@ -439,7 +455,8 @@ export default function TransactionDetailsPage({ transactionId: propTransactionI
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
-    </div>
+    </FinancialErrorBoundary>
   )
 }

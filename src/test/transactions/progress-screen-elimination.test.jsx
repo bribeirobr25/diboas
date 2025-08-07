@@ -6,7 +6,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { BrowserRouter } from 'react-router-dom'
 import TransactionPage from '../../components/TransactionPage.jsx'
 import * as transactionHooks from '../../hooks/transactions/index.js'
@@ -21,7 +21,7 @@ vi.mock('../../hooks/transactions/index.js', () => ({
   useFeeCalculator: vi.fn(() => ({ 
     fees: { 
       total: 15.9, 
-      totalFees: 15.9, 
+      total: 15.9, 
       diBoaS: 0.9, 
       network: 5, 
       provider: 10,
@@ -124,7 +124,7 @@ describe('Progress Screen Elimination', () => {
       // Mock confirming state without transaction ID
       vi.mocked(transactionHooks.useTransactionFlow).mockReturnValue({
         flowState: 'confirming',
-        flowData: { fees: { totalFees: 15.9 } }, // Include fees for confirmation
+        flowData: { fees: { total: 15.9 } }, // Include fees for confirmation
         flowError: null,
         executeTransactionFlow: mockExecuteTransactionFlow,
         confirmTransaction: mockConfirmTransaction,
@@ -165,7 +165,7 @@ describe('Progress Screen Elimination', () => {
     it('should show confirmation screen for confirming state', () => {
       vi.mocked(transactionHooks.useTransactionFlow).mockReturnValue({
         flowState: 'confirming',
-        flowData: { fees: { totalFees: 15.9 } },
+        flowData: { fees: { total: 15.9 } },
         flowError: null,
         executeTransactionFlow: mockExecuteTransactionFlow,
         confirmTransaction: mockConfirmTransaction,
@@ -201,7 +201,7 @@ describe('Progress Screen Elimination', () => {
       // Simulate confirming transaction (shows confirmation page)
       vi.mocked(transactionHooks.useTransactionFlow).mockReturnValue({
         flowState: 'confirming',
-        flowData: { fees: { totalFees: 15.9 } },
+        flowData: { fees: { total: 15.9 } },
         flowError: null,
         executeTransactionFlow: mockExecuteTransactionFlow,
         confirmTransaction: mockConfirmTransaction,
@@ -377,7 +377,7 @@ describe('Progress Screen Elimination', () => {
         flowState: 'processing',
         flowData: {
           // Legacy format without transactionId
-          fees: { total: 10.5, totalFees: 10.5 },
+          fees: { total: 10.5, total: 10.5 },
           result: 'pending'
         },
         flowError: null,

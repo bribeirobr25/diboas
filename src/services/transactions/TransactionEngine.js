@@ -504,8 +504,8 @@ export class TransactionEngine {
     if (routingPlan.needsRouting) {
       const routingFees = await this.calculateRoutingFees(routingPlan)
       fees.routing = routingFees.total
-      fees.totalFees += fees.routing
-      fees.total = fees.totalFees
+      fees.total += fees.routing
+      fees.total = fees.total
       
       // Add to breakdown
       if (!fees.breakdown) fees.breakdown = {}

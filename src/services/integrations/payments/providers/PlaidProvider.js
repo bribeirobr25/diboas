@@ -293,13 +293,13 @@ export class PlaidProvider {
       }
 
       // Minimum fee of $0.50, maximum of $10.00 for standard ACH
-      const totalFee = Math.max(0.50, Math.min(expedited ? 25.00 : 10.00, baseFee + percentageFee))
+      const total = Math.max(0.50, Math.min(expedited ? 25.00 : 10.00, baseFee + percentageFee))
 
       return {
         success: true,
         baseFee: baseFee.toFixed(2),
         percentageFee: percentageFee.toFixed(2),
-        totalFee: totalFee.toFixed(2),
+        total: total.toFixed(2),
         breakdown: {
           achFee: baseFee.toFixed(2),
           processingFee: percentageFee.toFixed(2),

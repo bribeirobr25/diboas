@@ -3,7 +3,7 @@
  * Tests all requested design changes with detailed verification
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { BrowserRouter } from 'react-router-dom'

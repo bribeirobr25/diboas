@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.j
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
 import { useErrorRecovery, useErrorMetrics, useCircuitBreaker } from '../../hooks/useErrorRecovery.jsx'
 import { ERROR_TYPES, ERROR_SEVERITY, RECOVERY_STRATEGIES } from '../../services/errorHandling/ErrorRecoveryService.js'
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import {
   AlertTriangle,
   Shield,

@@ -173,27 +173,10 @@ export default function YieldCategory() {
     navigate(`/yield/strategy/${strategyId}`)
   }, [navigate])
 
-  const handleStopStrategy = useCallback(async (e, strategyId) => {
+  const handleStopStrategy = useCallback((e, strategyId) => {
     e.stopPropagation() // Prevent navigation
-    
-    try {
-      // Use default balance if balance is null
-      const currentBalance = balance || { available: 0, strategy: 0 }
-      const result = await strategyLifecycleManager.stopStrategy(strategyId, currentBalance)
-      
-      if (result.success) {
-        logger.info('Strategy stopped successfully:', strategyId)
-        await loadStrategyData() // Refresh data
-      } else {
-        logger.error('Failed to stop strategy:', result.error)
-        // Show error to user - in real app would use toast/notification
-        alert(`Failed to stop strategy: ${result.error}`)
-      }
-    } catch (error) {
-      logger.error('Error stopping strategy:', error)
-      alert('Failed to stop strategy. Please try again.')
-    }
-  }, [balance, loadStrategyData])
+    navigate(`/transaction/stop_strategy?strategyId=${strategyId}`)
+  }, [navigate])
 
   if (loading) {
     return (

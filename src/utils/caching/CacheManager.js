@@ -136,7 +136,7 @@ export class CacheManager {
           await this.promoteToFasterCaches(key, result, level, policy)
           
           const endTime = performance.now()
-          console.debug(`📊 Cache HIT (${level}): ${key} in ${(endTime - startTime).toFixed(2)}ms`)
+          logger.debug(`📊 Cache HIT (${level}): ${key} in ${(endTime - startTime).toFixed(2)}ms`)
           
           return this.deserializeValue(result, policy)
         }
@@ -147,7 +147,7 @@ export class CacheManager {
     
     this.stats.misses++
     const endTime = performance.now()
-    console.debug(`📊 Cache MISS: ${key} in ${(endTime - startTime).toFixed(2)}ms`)
+    logger.debug(`📊 Cache MISS: ${key} in ${(endTime - startTime).toFixed(2)}ms`)
     
     return null
   }
@@ -173,7 +173,7 @@ export class CacheManager {
     await Promise.allSettled(promises)
     this.stats.sets++
     
-    console.debug(`📝 Cache SET: ${key} across ${policy.levels.length} levels`)
+    logger.debug(`📝 Cache SET: ${key} across ${policy.levels.length} levels`)
   }
 
   /**
@@ -196,7 +196,7 @@ export class CacheManager {
     await Promise.allSettled(promises)
     this.stats.deletes++
     
-    console.debug(`🗑️ Cache DELETE: ${key}`)
+    logger.debug(`🗑️ Cache DELETE: ${key}`)
   }
 
   /**
@@ -247,7 +247,7 @@ export class CacheManager {
       
       promises.push(
         cache.set(key, value, policy).catch(error => {
-          console.debug(`Failed to promote to ${level}:`, error)
+          logger.debug(`Failed to promote to ${level}:`, error)
         })
       )
     }

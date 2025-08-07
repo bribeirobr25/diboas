@@ -36,14 +36,14 @@ describe('Withdraw to External Wallet Fix Tests', () => {
       })
 
       console.log('Banking Withdraw to bank account:')
-      console.log(`Total: $${bankWithdraw.totalFees}`)
+      console.log(`Total: $${bankWithdraw.total}`)
       console.log(`diBoaS: $${bankWithdraw.diboas} (${bankWithdraw.breakdown.diBoaS.rate * 100}%)`)
       console.log(`Network: $${bankWithdraw.networkFee} (${bankWithdraw.breakdown.network.rate * 100}%)`)
       console.log(`DEX: $${bankWithdraw.dexFee} (${bankWithdraw.breakdown.dex.rate * 100}%)`)
       console.log(`Provider: $${bankWithdraw.providerFee} (${bankWithdraw.breakdown.provider.rate * 100}%)`)
 
       console.log('\nTransfer to External Wallet:')
-      console.log(`Total: $${externalTransfer.totalFees}`)
+      console.log(`Total: $${externalTransfer.total}`)
       console.log(`diBoaS: $${externalTransfer.diboas} (${externalTransfer.breakdown.diBoaS.rate * 100}%)`)
       console.log(`Network: $${externalTransfer.networkFee} (${externalTransfer.breakdown.network.rate * 100}%)`)
       console.log(`DEX: $${externalTransfer.dexFee} (${externalTransfer.breakdown.dex.rate * 100}%)`)
@@ -54,14 +54,14 @@ describe('Withdraw to External Wallet Fix Tests', () => {
       expect(bankWithdraw.networkFee).toBeCloseTo(0.03, 3) // 0.003% for SUI
       expect(bankWithdraw.dexFee).toBe(0) // NO DEX fee for off-ramp withdrawals
       expect(bankWithdraw.providerFee).toBeCloseTo(20, 2) // 2% bank fee
-      expect(bankWithdraw.totalFees).toBeCloseTo(29.03, 2) // Only diBoaS + Network + Provider
+      expect(bankWithdraw.total).toBeCloseTo(29.03, 2) // Only diBoaS + Network + Provider
 
       // Verify external transfer fees
       expect(externalTransfer.diboas).toBeCloseTo(9, 2) // 0.9%
       expect(externalTransfer.networkFee).toBeCloseTo(0.03, 3) // 0.003% for SUI
       expect(externalTransfer.dexFee).toBeCloseTo(8, 2) // 0.8%
       expect(externalTransfer.providerFee).toBe(0) // No provider fee
-      expect(externalTransfer.totalFees).toBeCloseTo(17.03, 2)
+      expect(externalTransfer.total).toBeCloseTo(17.03, 2)
     })
 
     it('should handle user expected scenario - assuming they mean transfer', async () => {
@@ -78,7 +78,7 @@ describe('Withdraw to External Wallet Fix Tests', () => {
       })
 
       console.log('\nUser Expected Scenario (SOL Transfer):')
-      console.log(`Total: $${userScenario.totalFees}`)
+      console.log(`Total: $${userScenario.total}`)
       console.log(`diBoaS: $${userScenario.diboas}`)
       console.log(`Network: $${userScenario.networkFee}`)
       console.log(`DEX: $${userScenario.dexFee}`)
@@ -88,7 +88,7 @@ describe('Withdraw to External Wallet Fix Tests', () => {
       expect(userScenario.networkFee).toBeCloseTo(0.01, 3) // 0.001% for SOL
       expect(userScenario.dexFee).toBeCloseTo(8, 2) // 0.8%
       expect(userScenario.providerFee).toBe(0) // No provider fee
-      expect(userScenario.totalFees).toBeCloseTo(17.01, 2) // Close to but not exactly $14.01
+      expect(userScenario.total).toBeCloseTo(17.01, 2) // Close to but not exactly $14.01
     })
 
     it('should properly calculate network fees for different chains', async () => {
@@ -110,7 +110,7 @@ describe('Withdraw to External Wallet Fix Tests', () => {
         console.log(`\n${chain} Transfer:`)
         console.log(`Network Fee: $${transfer.networkFee} (expected: $${expected})`)
         console.log(`DEX Fee: $${transfer.dexFee}`)
-        console.log(`Total: $${transfer.totalFees}`)
+        console.log(`Total: $${transfer.total}`)
 
         expect(transfer.networkFee).toBeCloseTo(expected, 2)
         expect(transfer.dexFee).toBeCloseTo(8, 2) // 0.8% should be consistent
@@ -167,7 +167,7 @@ describe('Withdraw to External Wallet Fix Tests', () => {
         chains: ['SOL']
       })
 
-      expect(transfer.totalFees).toBeGreaterThan(0)
+      expect(transfer.total).toBeGreaterThan(0)
       expect(transfer.diboas).toBeCloseTo(0.01, 3) // Minimum fee applied
       expect(transfer.dexFee).toBeCloseTo(0.008, 3) // 0.8% of $1
     })
@@ -181,7 +181,7 @@ describe('Withdraw to External Wallet Fix Tests', () => {
         chains: ['SOL']
       })
 
-      expect(transfer.totalFees).toBeGreaterThan(0)
+      expect(transfer.total).toBeGreaterThan(0)
       expect(transfer.diboas).toBeCloseTo(900, 2) // 0.9% of $100k
       expect(transfer.dexFee).toBeCloseTo(800, 2) // 0.8% of $100k
     })

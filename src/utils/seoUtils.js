@@ -352,11 +352,11 @@ export const seoMonitoring = {
   monitorCoreWebVitals: () => {
     if (typeof window !== 'undefined' && 'web-vitals' in window) {
       import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-        getCLS(console.log)
-        getFID(console.log)
-        getFCP(console.log)
-        getLCP(console.log)
-        getTTFB(console.log)
+        getCLS((metric) => logger.debug('CLS:', metric))
+        getFID((metric) => logger.debug('FID:', metric))
+        getFCP((metric) => logger.debug('FCP:', metric))
+        getLCP((metric) => logger.debug('LCP:', metric))
+        getTTFB((metric) => logger.debug('TTFB:', metric))
       })
     }
   },

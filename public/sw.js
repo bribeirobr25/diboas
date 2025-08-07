@@ -48,20 +48,20 @@ const CACHE_STRATEGIES = {
  * Install event - cache static assets
  */
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...')
+  // Service Worker: Installing...
   
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Service Worker: Caching static assets')
+        // Service Worker: Caching static assets
         return cache.addAll(STATIC_ASSETS)
       })
       .then(() => {
-        console.log('Service Worker: Static assets cached')
+        // Service Worker: Static assets cached
         return self.skipWaiting()
       })
       .catch((error) => {
-        console.error('Service Worker: Failed to cache static assets:', error)
+        // Service Worker: Failed to cache static assets
       })
   )
 })
@@ -70,7 +70,7 @@ self.addEventListener('install', (event) => {
  * Activate event - clean up old caches
  */
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...')
+  // Service Worker: Activating...
   
   event.waitUntil(
     caches.keys()
@@ -80,14 +80,14 @@ self.addEventListener('activate', (event) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
             if (!validCaches.includes(cacheName)) {
-              console.log('Service Worker: Deleting old cache:', cacheName)
+              // Service Worker: Deleting old cache
               return caches.delete(cacheName)
             }
           })
         )
       })
       .then(() => {
-        console.log('Service Worker: Activated')
+        // Service Worker: Activated
         return self.clients.claim()
       })
   )
@@ -167,7 +167,7 @@ async function handleCacheFirst(request, strategy) {
     return networkResponse
     
   } catch (error) {
-    console.error('Cache first strategy failed:', error)
+    // Cache first strategy failed
     
     // Try to return stale cache as last resort
     const cache = await caches.open(strategy.cacheName)
@@ -198,7 +198,7 @@ async function handleNetworkFirst(request, strategy) {
     return networkResponse
     
   } catch (error) {
-    console.warn('Network request failed, trying cache:', error)
+    // Network request failed, trying cache
     
     const cache = await caches.open(strategy.cacheName)
     const cachedResponse = await cache.match(request)
@@ -229,7 +229,7 @@ async function handleStaleWhileRevalidate(request, strategy) {
       return networkResponse
     })
     .catch((error) => {
-      console.warn('Background revalidation failed:', error)
+      // Background revalidation failed
     })
   
   // Return cached response if available, otherwise wait for network
@@ -283,7 +283,7 @@ self.addEventListener('sync', (event) => {
  */
 async function handleBackgroundSync() {
   // Implement background sync logic here
-  console.log('Service Worker: Background sync triggered')
+  // Service Worker: Background sync triggered
 }
 
 /**
@@ -394,7 +394,7 @@ async function getCacheStats() {
           totalSize += blob.size
         }
       } catch (error) {
-        console.warn('Error calculating cache size:', error)
+        // Error calculating cache size
       }
     }
     

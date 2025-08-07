@@ -30,7 +30,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.diboas).toBeCloseTo(0.09, 2) // 0.09% diBoaS fee
         expect(fees.networkFee).toBeCloseTo(0.001, 3) // SOL network fee
         expect(fees.providerFee).toBeCloseTo(1, 2) // 1% credit card fee
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
 
       it('should calculate fees correctly for Apple Pay add', async () => {
@@ -46,7 +46,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         
         expect(fees.diboas).toBeCloseTo(0.45, 2) // 0.09% diBoaS fee
         expect(fees.providerFee).toBeCloseTo(2.5, 2) // 0.5% Apple Pay fee
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
 
       it('should calculate fees correctly for bank account add', async () => {
@@ -62,7 +62,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         
         expect(fees.diboas).toBeCloseTo(0.9, 2) // 0.09% diBoaS fee
         expect(fees.providerFee).toBeCloseTo(10, 2) // 1% bank account fee
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
     })
 
@@ -81,7 +81,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.diboas).toBeCloseTo(0.18, 2) // 0.09% diBoaS fee
         expect(fees.networkFee).toBeCloseTo(0.002, 3) // SOL network fee
         expect(fees.providerFee).toBe(0) // No provider fee for diBoaS wallet
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
     })
 
@@ -99,7 +99,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         
         expect(fees.diboas).toBeCloseTo(2.7, 2) // 0.9% diBoaS fee for withdraw
         expect(fees.providerFee).toBeCloseTo(6, 2) // 2% bank account withdrawal fee
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
     })
   })
@@ -120,7 +120,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.diboas).toBeCloseTo(0.9, 2) // 0.09% diBoaS fee
         expect(fees.networkFee).toBeCloseTo(90, 2) // 9% BTC network fee
         expect(fees.dexFee).toBeCloseTo(10, 2) // 1% DEX fee for buy
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
 
       it('should calculate fees correctly for buy with credit card', async () => {
@@ -137,7 +137,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.diboas).toBeCloseTo(0.45, 2) // 0.09% diBoaS fee
         expect(fees.networkFee).toBeCloseTo(2.5, 2) // 0.5% ETH network fee
         expect(fees.providerFee).toBeCloseTo(5, 2) // 1% credit card fee
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
     })
 
@@ -156,7 +156,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.diboas).toBeCloseTo(0.72, 2) // 0.09% diBoaS fee
         expect(fees.networkFee).toBeCloseTo(4, 2) // 0.5% ETH network fee
         expect(fees.dexFee).toBeCloseTo(8, 2) // 1% DEX fee for sell
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
     })
 
@@ -175,7 +175,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.diboas).toBeCloseTo(5.4, 2) // 0.9% diBoaS fee for transfer
         expect(fees.networkFee).toBeCloseTo(0.006, 3) // SOL network fee
         expect(fees.dexFee).toBeCloseTo(4.8, 2) // 0.8% DEX fee for transfer
-        expect(fees.totalFees).toBeGreaterThan(0)
+        expect(fees.total).toBeGreaterThan(0)
       })
     })
   })
@@ -198,7 +198,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.dexFee).toBeCloseTo(5, 2) // 0.5% DEX fee for strategies
         expect(fees.providerFee).toBeCloseTo(5, 2) // DEX fee shown as provider fee
         expect(fees.defiFee).toBe(0) // No DeFi fee for strategies
-        expect(fees.totalFees).toBeCloseTo(5.91, 2)
+        expect(fees.total).toBeCloseTo(5.91, 2)
       })
 
       it('should calculate fees correctly for ETH strategy start', async () => {
@@ -215,7 +215,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.diboas).toBeCloseTo(1.8, 2) // 0.09% diBoaS fee
         expect(fees.networkFee).toBeCloseTo(10, 2) // ETH network fee
         expect(fees.dexFee).toBeCloseTo(10, 2) // 0.5% DEX fee for strategies
-        expect(fees.totalFees).toBeCloseTo(21.8, 2)
+        expect(fees.total).toBeCloseTo(21.8, 2)
       })
 
       it('should handle external payment methods for strategies (fallback)', async () => {
@@ -251,7 +251,7 @@ describe('Transaction Integration Tests - All Categories', () => {
         expect(fees.diboas).toBeCloseTo(1.35, 2) // 0.09% diBoaS fee
         expect(fees.networkFee).toBeCloseTo(0.015, 3) // SOL network fee
         expect(fees.dexFee).toBeCloseTo(7.5, 2) // 0.5% DEX fee
-        expect(fees.totalFees).toBeCloseTo(8.865, 3)
+        expect(fees.total).toBeCloseTo(8.865, 3)
       })
     })
   })
@@ -273,7 +273,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       const fees = await feeCalculator.calculateTransactionFees(transactionData, routingPlan)
       
       expect(fees.networkFee).toBeCloseTo(90, 2) // Should use BTC network fee
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
     })
 
     it('should default to transaction chains when no routing plan', async () => {
@@ -288,7 +288,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       const fees = await feeCalculator.calculateTransactionFees(transactionData)
       
       expect(fees.networkFee).toBeCloseTo(2.5, 2) // ETH network fee
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
     })
   })
 
@@ -313,7 +313,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       const fees = await feeCalculator.calculateTransactionFees(incompleteData)
       
       // Should use defaults: diboas_wallet, SOL, ['SOL']
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
     })
   })
 
@@ -340,16 +340,16 @@ describe('Transaction Integration Tests - All Categories', () => {
       expect(fees.platformFee).toBeDefined()
       expect(fees.networkFee).toBeDefined()
       expect(fees.providerFee).toBeDefined()
-      expect(fees.totalFee).toBeDefined()
-      expect(fees.totalFees).toBeDefined()
+      expect(fees.total).toBeDefined()
+      expect(fees.total).toBeDefined()
       
       // Values should match
       expect(fees.diBoaS).toBe(fees.diboas)
       expect(fees.diBoaS).toBe(fees.platformFee)
       expect(fees.network).toBe(fees.networkFee)
       expect(fees.provider).toBe(fees.providerFee)
-      expect(fees.total).toBe(fees.totalFee)
-      expect(fees.total).toBe(fees.totalFees)
+      expect(fees.total).toBe(fees.total)
+      expect(fees.total).toBe(fees.total)
     })
   })
 
@@ -373,7 +373,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       
       expect(results).toHaveLength(10)
       results.forEach(result => {
-        expect(result.totalFees).toBeGreaterThan(0)
+        expect(result.total).toBeGreaterThan(0)
       })
     })
 
@@ -397,7 +397,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       // Second call should use cache
       const fees2 = await feeCalculator.calculateTransactionFees(transactionData)
       
-      expect(fees1.totalFees).toBe(fees2.totalFees)
+      expect(fees1.total).toBe(fees2.total)
     })
   })
 
@@ -413,7 +413,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       }
 
       const addFees = await feeCalculator.calculateTransactionFees(addTransaction)
-      expect(addFees.totalFees).toBeGreaterThan(0)
+      expect(addFees.total).toBeGreaterThan(0)
       
       // User buys crypto with diBoaS balance
       const buyTransaction = {
@@ -425,7 +425,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       }
 
       const buyFees = await feeCalculator.calculateTransactionFees(buyTransaction)
-      expect(buyFees.totalFees).toBeGreaterThan(0)
+      expect(buyFees.total).toBeGreaterThan(0)
     })
 
     it('should handle strategy investment workflow', async () => {
@@ -439,7 +439,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       }
 
       const startFees = await feeCalculator.calculateTransactionFees(startStrategy)
-      expect(startFees.totalFees).toBeGreaterThan(0)
+      expect(startFees.total).toBeGreaterThan(0)
       
       // Later, user stops the strategy
       const stopStrategy = {
@@ -451,7 +451,7 @@ describe('Transaction Integration Tests - All Categories', () => {
       }
 
       const stopFees = await feeCalculator.calculateTransactionFees(stopStrategy)
-      expect(stopFees.totalFees).toBeGreaterThan(0)
+      expect(stopFees.total).toBeGreaterThan(0)
     })
 
     it('should handle complete investment to withdrawal workflow', async () => {
@@ -491,10 +491,10 @@ describe('Transaction Integration Tests - All Categories', () => {
         chains: ['SOL']
       })
 
-      expect(addFees.totalFees).toBeGreaterThan(0)
-      expect(buyFees.totalFees).toBeGreaterThan(0)
-      expect(sellFees.totalFees).toBeGreaterThan(0)
-      expect(withdrawFees.totalFees).toBeGreaterThan(0)
+      expect(addFees.total).toBeGreaterThan(0)
+      expect(buyFees.total).toBeGreaterThan(0)
+      expect(sellFees.total).toBeGreaterThan(0)
+      expect(withdrawFees.total).toBeGreaterThan(0)
     })
   })
 })

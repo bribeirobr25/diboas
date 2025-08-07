@@ -3,7 +3,7 @@
  * Tests core functionality without complex user interactions
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ObjectiveConfig from '../../components/yield/ObjectiveConfig.jsx'

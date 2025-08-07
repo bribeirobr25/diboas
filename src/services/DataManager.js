@@ -64,8 +64,21 @@ class DataManager {
   initializeCleanState() {
     const userId = 'demo_user_12345'
     
-    // Clear any existing data
+    // Clear any existing data and localStorage
     this.clearAllData(userId)
+    
+    // Force clear localStorage to ensure completely clean state
+    const keysToRemove = [
+      `diboas_balances_${userId}`,
+      `diboas_balance_state_${userId}`, 
+      `diboas_transaction_history_${userId}`,
+      `diboas_wallets_${userId}`
+    ]
+    keysToRemove.forEach(key => {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(key)
+      }
+    })
     
     // Set clean initial state - no mock balances or transactions
     this.state = {
@@ -666,53 +679,77 @@ class DataManager {
     this.emit('balance:loading', true)
 
     try {
-      const { type, amount, fees, asset, paymentMethod } = transactionData
-      const numericAmount = parseFloat(amount)
-      const feesTotal = parseFloat(fees?.total || 0)
+      const { type, amount, netAmount, fees, asset, paymentMethod } = transactionData
+      
+      // Use the pre-calculated netAmount if provided (single source of truth)
+      // Otherwise fall back to amount for backward compatibility
+      const amountToProcess = netAmount !== undefined ? parseFloat(netAmount) : parseFloat(amount)
+      
+      // Debug logging to track balance processing
+      logger.debug('DataManager updateBalance:', {
+        transactionType: type,
+        originalAmount: amount,
+        netAmount: netAmount,
+        amountToProcess: amountToProcess,
+        fees: fees,
+        paymentMethod
+      })
 
       // Update balance based on transaction type
       switch (type) {
         case 'add': {
-          // Add/Deposit transaction
-          // Available Balance = current + (transaction amount - fees)
-          // Invested Balance = no changes
-          const netAmountAdded = numericAmount - feesTotal
-          this.state.balance.availableForSpending += netAmountAdded
+          // Add/Deposit transaction per TRANSACTIONS.md section 3.1.1
+          // The net amount (amount - fees) has already been calculated in the transaction flow
+          // This is the single source of truth - we just apply it directly
+          
+          logger.debug('Add transaction balance update:', {
+            currentAvailable: this.state.balance.availableForSpending,
+            amountToAdd: amountToProcess,
+            newAvailable: this.state.balance.availableForSpending + amountToProcess
+          })
+          
+          this.state.balance.availableForSpending += amountToProcess
           // Invested balance unchanged
           break
         }
           
-        case 'withdraw':
-          // Withdraw (Off-Ramp): Only affects Available Balance  
-          // Available Balance = current - amount (fees already deducted from amount by provider)
-          this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - numericAmount)
+        case 'withdraw': {
+          // Withdraw transaction per specification section 3.1.2
+          // Money Flow: From = diBoaS Available Balance (transaction amount) → To = selected external method (amount - fees)
+          // Technical: USDC → Fiat (Off-ramp) or USDC → USDC (On-chain)
+          // Available Balance = current - transaction amount (full amount deducted upfront)
+          // Invested Balance = no changes, Strategy Balance = no changes
+          this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - amountToProcess)
           break
+        }
           
         case 'send':
-        case 'transfer':
-          // Send/Transfer (On-Chain): Only affects Available Balance
-          // Available Balance = current - amount (includes fees)
-          this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - numericAmount)
+          // Send transaction per specification section 3.1.3
+          // Money Flow: From = diBoaS Available Balance (transaction amount) → To = another user diBoaS Available Balance (amount - fees)
+          // Available Balance = current - transaction amount, Invested Balance = no change, Strategy Balance = no change
+          this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - amountToProcess)
           break
           
         case 'receive':
           // Receive: Add full amount to Available Balance
-          this.state.balance.availableForSpending += numericAmount
+          this.state.balance.availableForSpending += amountToProcess
           break
           
         case 'buy': {
-          // Buy transaction
-          const netInvestmentAmount = numericAmount - feesTotal
+          // Buy transaction - use original amount and calculate net amount for invested balance
+          const originalAmount = parseFloat(amount)
+          const feesTotal = parseFloat(fees?.total || 0)
+          const netInvestmentAmount = originalAmount - feesTotal
           
           if (paymentMethod === 'diboas_wallet') {
             // Buy transaction diBoaS wallet
-            // Available Balance = current - transaction amount
+            // Available Balance = current - transaction amount (full amount deducted)
             // Invested Balance = current + (transaction amount - fees)
-            this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - numericAmount)
+            this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - originalAmount)
             this.state.balance.investedAmount += netInvestmentAmount
           } else {
             // Buy transaction other payment methods
-            // Available Balance = no changes
+            // Available Balance = no changes (external payment)
             // Invested Balance = current + (transaction amount - fees)
             this.state.balance.investedAmount += netInvestmentAmount
           }
@@ -736,18 +773,20 @@ class DataManager {
           // Sell transaction
           // Available Balance = current + (transaction amount - fees)
           // Invested Balance = current - transaction amount
-          const netSellProceeds = numericAmount - feesTotal
+          const originalAmount = parseFloat(amount)
+          const feesTotal = parseFloat(fees?.total || 0)
+          const netSellProceeds = originalAmount - feesTotal
           this.state.balance.availableForSpending += netSellProceeds
-          this.state.balance.investedAmount = Math.max(0, this.state.balance.investedAmount - numericAmount)
+          this.state.balance.investedAmount = Math.max(0, this.state.balance.investedAmount - originalAmount)
           
           // Update asset tracking
           if (this.state.balance.assets[asset]) {
-            this.state.balance.assets[asset].usdValue = Math.max(0, this.state.balance.assets[asset].usdValue - numericAmount)
-            this.state.balance.assets[asset].investedAmount = Math.max(0, this.state.balance.assets[asset].investedAmount - numericAmount)
+            this.state.balance.assets[asset].usdValue = Math.max(0, this.state.balance.assets[asset].usdValue - originalAmount)
+            this.state.balance.assets[asset].investedAmount = Math.max(0, this.state.balance.assets[asset].investedAmount - originalAmount)
             
             // Update quantity tracking
             const estimatedPrice = this.getEstimatedAssetPrice(asset)
-            const quantitySold = numericAmount / estimatedPrice
+            const quantitySold = originalAmount / estimatedPrice
             this.state.balance.assets[asset].quantity = Math.max(0, this.state.balance.assets[asset].quantity - quantitySold)
             
             if (this.state.balance.assets[asset].investedAmount === 0) {
@@ -759,13 +798,15 @@ class DataManager {
           
         case 'start_strategy': {
           // Start Strategy transaction
-          const netStrategyAmount = numericAmount - feesTotal
+          const originalAmount = parseFloat(amount)
+          const feesTotal = parseFloat(fees?.total || 0)
+          const netStrategyAmount = originalAmount - feesTotal
           
           if (paymentMethod === 'diboas_wallet') {
             // Start strategy using diBoaS wallet
             // Available Balance = current - transaction amount
             // Strategy Balance = current + (transaction amount - fees)
-            this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - numericAmount)
+            this.state.balance.availableForSpending = Math.max(0, this.state.balance.availableForSpending - amountToProcess)
             this.state.balance.strategyBalance += netStrategyAmount
           } else {
             // Start strategy using external payment methods
@@ -798,6 +839,42 @@ class DataManager {
           // Update FinObjective if this is based on a template
           if (strategyConfig.objectiveId && strategyConfig.objectiveId !== 'create-new') {
             this.startFinObjective(strategyConfig.objectiveId, netStrategyAmount)
+          }
+          
+          break
+        }
+          
+        case 'stop_strategy': {
+          // Stop Strategy transaction per TRANSACTIONS.md section 3.3.3
+          const originalAmount = parseFloat(amount)
+          const totalStrategyValue = originalAmount // This is the total strategy value including yields
+          const netProceeds = totalStrategyValue - feesTotal
+          
+          // Available Balance = current + (total strategy value - fees)
+          this.state.balance.availableForSpending += netProceeds
+          
+          // Strategy Balance = current - total strategy value
+          this.state.balance.strategyBalance = Math.max(0, this.state.balance.strategyBalance - totalStrategyValue)
+          
+          // Update specific strategy record if strategyId provided
+          const strategyId = transactionData.strategyId
+          if (strategyId && this.state.balance.strategies && this.state.balance.strategies[strategyId]) {
+            // Mark strategy as stopped and archive performance data
+            const strategy = this.state.balance.strategies[strategyId]
+            strategy.status = 'stopped'
+            strategy.stoppedAt = Date.now()
+            strategy.finalAmount = totalStrategyValue
+            strategy.totalEarned = totalStrategyValue - strategy.initialAmount
+            strategy.finalAPY = ((totalStrategyValue / strategy.initialAmount) - 1) * 100
+            
+            // Move to archived strategies for historical tracking
+            if (!this.state.balance.archivedStrategies) {
+              this.state.balance.archivedStrategies = {}
+            }
+            this.state.balance.archivedStrategies[strategyId] = { ...strategy }
+            
+            // Remove from active strategies
+            delete this.state.balance.strategies[strategyId]
           }
           
           break
@@ -1246,7 +1323,9 @@ class DataManager {
       'transfer': 'banking',
       'yield': 'yield',
       'stake': 'yield',
-      'unstake': 'yield'
+      'unstake': 'yield',
+      'start_strategy': 'yield',
+      'stop_strategy': 'yield'
     }
     return categoryMap[type] || 'banking'
   }
@@ -1255,7 +1334,7 @@ class DataManager {
    * Generate transaction description
    */
   generateTransactionDescription(transactionData) {
-    const { type, amount, asset, paymentMethod } = transactionData
+    const { type, amount, asset, paymentMethod, strategyConfig } = transactionData
     
     switch (type) {
       case 'add':
@@ -1272,6 +1351,10 @@ class DataManager {
         return `Sold $${amount} worth of ${asset}`
       case 'transfer':
         return `Transferred $${amount} to external wallet`
+      case 'start_strategy':
+        return `Started ${strategyConfig?.strategyName || 'strategy'} with $${amount}`
+      case 'stop_strategy':
+        return `Stopped ${strategyConfig?.strategyName || 'strategy'} strategy`
       default:
         return `${type} transaction of $${amount}`
     }
@@ -1613,8 +1696,8 @@ class DataManager {
     
     const newBalance = this.state.balance.totalUSD
     
-    // Validate the balance change
-    const validation = this.validateBalanceChange(userId, previousBalance, newBalance, operation)
+    // Validate the balance change with transaction data for context
+    const validation = this.validateBalanceChange(userId, previousBalance, newBalance, operation, transactionData)
     if (!validation.success) {
       // Revert balance change
       this.state.balance.totalUSD = previousBalance
@@ -1627,7 +1710,7 @@ class DataManager {
   /**
    * SECURITY: Prevent balance manipulation by validating balance changes
    */
-  validateBalanceChange(userId, previousBalance, newBalance, operation) {
+  validateBalanceChange(userId, previousBalance, newBalance, operation, transactionData = null) {
     // Prevent direct balance manipulation (bypassing transaction flow)
     if (operation === 'direct_set') {
       secureLogger.audit('BALANCE_MANIPULATION_ATTEMPT', {
@@ -1646,13 +1729,22 @@ class DataManager {
     const balanceChange = Math.abs(newBalance - previousBalance)
     const changePercent = previousBalance > 0 ? (balanceChange / previousBalance) * 100 : 0
     
-    if (changePercent > 1000 && previousBalance > 0) { // More than 10x increase
+    // Allow large percentage increases for legitimate on-ramp transactions
+    const isLegitimateDeposit = transactionData && 
+      (transactionData.type === 'add' || transactionData.type === 'deposit') &&
+      transactionData.paymentMethod !== 'diboas_wallet' && // External payment method
+      balanceChange <= 100000 // Cap at $100K for single transaction
+    
+    // Allow large increases if it's a legitimate external deposit or if previous balance was very small
+    if (changePercent > 1000 && previousBalance > 0 && !isLegitimateDeposit && previousBalance > 100) {
       secureLogger.audit('SUSPICIOUS_BALANCE_CHANGE', {
         userId,
         previousBalance,
         newBalance,
         changePercent,
-        operation
+        operation,
+        transactionType: transactionData?.type,
+        paymentMethod: transactionData?.paymentMethod
       })
       return {
         success: false,
@@ -1841,7 +1933,7 @@ class DataManager {
     const userTransactions = this.state.transactions.filter(tx => tx.userId === userId)
     
     let totalBalance = 0
-    let totalFees = 0
+    let total = 0
     let pendingAmount = 0
     
     for (const tx of userTransactions) {
@@ -1849,13 +1941,13 @@ class DataManager {
         pendingAmount += tx.amount
       } else if (tx.status === 'completed') {
         totalBalance += tx.type === 'withdraw' ? -tx.amount : tx.amount
-        totalFees += tx.fees?.total || 0
+        total += tx.fees?.total || 0
       }
     }
     
     const result = {
       totalBalance,
-      totalFees,
+      total,
       pendingAmount,
       transactionCount: userTransactions.length,
       lastCalculated: Date.now()

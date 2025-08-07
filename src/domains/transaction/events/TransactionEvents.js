@@ -219,3 +219,96 @@ export class LargeTransactionAlertEvent extends TransactionEvent {
     this.threshold = data.threshold
   }
 }
+
+/**
+ * On-Ramp Events
+ */
+export class OnRampInitiated extends TransactionEvent {
+  constructor(data) {
+    super(data)
+    this.type = 'OnRampInitiated'
+    this.userId = data.userId
+    this.amount = data.amount
+    this.paymentMethod = data.paymentMethod
+  }
+}
+
+export class OnRampCompleted extends TransactionEvent {
+  constructor(data) {
+    super(data)
+    this.type = 'OnRampCompleted'
+    this.userId = data.userId
+    this.amountReceived = data.amountReceived
+    this.providerTransactionId = data.providerTransactionId
+  }
+}
+
+/**
+ * Off-Ramp Events
+ */
+export class OffRampInitiated extends TransactionEvent {
+  constructor(data) {
+    super(data)
+    this.type = 'OffRampInitiated'
+    this.userId = data.userId
+    this.amount = data.amount
+    this.destination = data.destination
+  }
+}
+
+export class OffRampCompleted extends TransactionEvent {
+  constructor(data) {
+    super(data)
+    this.type = 'OffRampCompleted'
+    this.userId = data.userId
+    this.amountSent = data.amountSent
+    this.providerTransactionId = data.providerTransactionId
+  }
+}
+
+/**
+ * P2P Events
+ */
+export class P2PSendInitiated extends TransactionEvent {
+  constructor(data) {
+    super(data)
+    this.type = 'P2PSendInitiated'
+    this.userId = data.userId
+    this.recipient = data.recipient
+    this.amount = data.amount
+  }
+}
+
+export class P2PSendCompleted extends TransactionEvent {
+  constructor(data) {
+    super(data)
+    this.type = 'P2PSendCompleted'
+    this.userId = data.userId
+    this.recipient = data.recipient
+    this.transactionHash = data.transactionHash
+  }
+}
+
+/**
+ * Asset Trading Events
+ */
+export class AssetPurchaseInitiated extends TransactionEvent {
+  constructor(data) {
+    super(data)
+    this.type = 'AssetPurchaseInitiated'
+    this.userId = data.userId
+    this.asset = data.asset
+    this.amountUSD = data.amountUSD
+  }
+}
+
+export class AssetPurchaseCompleted extends TransactionEvent {
+  constructor(data) {
+    super(data)
+    this.type = 'AssetPurchaseCompleted'
+    this.userId = data.userId
+    this.asset = data.asset
+    this.amountPurchased = data.amountPurchased
+    this.exchangeRate = data.exchangeRate
+  }
+}

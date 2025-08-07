@@ -26,11 +26,11 @@ describe('Withdraw to External Wallet - Final Fix Test', () => {
       console.log('SUI Withdraw (Fixed):')
       console.log(`Network Fee: $${suiWithdraw.networkFee} (should be $0.03)`)
       console.log(`DEX Fee: $${suiWithdraw.dexFee} (should be $5.00)`)
-      console.log(`Total: $${suiWithdraw.totalFees} (should be $14.03)`)
+      console.log(`Total: $${suiWithdraw.total} (should be $14.03)`)
 
       expect(suiWithdraw.networkFee).toBeCloseTo(0.03, 3) // SUI network fee
       expect(suiWithdraw.dexFee).toBeCloseTo(5.00, 2) // 0.5% DEX fee
-      expect(suiWithdraw.totalFees).toBeCloseTo(14.03, 2) // Total should be $14.03
+      expect(suiWithdraw.total).toBeCloseTo(14.03, 2) // Total should be $14.03
     })
 
     it('should calculate correct network fees for BTC withdraw', async () => {
@@ -45,11 +45,11 @@ describe('Withdraw to External Wallet - Final Fix Test', () => {
       console.log('BTC Withdraw (Fixed):')
       console.log(`Network Fee: $${btcWithdraw.networkFee} (should be $90.00)`)
       console.log(`DEX Fee: $${btcWithdraw.dexFee} (should be $5.00)`)
-      console.log(`Total: $${btcWithdraw.totalFees} (should be $104.00)`)
+      console.log(`Total: $${btcWithdraw.total} (should be $104.00)`)
 
       expect(btcWithdraw.networkFee).toBeCloseTo(90.00, 2) // 9% BTC network fee
       expect(btcWithdraw.dexFee).toBeCloseTo(5.00, 2) // 0.5% DEX fee
-      expect(btcWithdraw.totalFees).toBeCloseTo(104.00, 2) // Total should be $104.00
+      expect(btcWithdraw.total).toBeCloseTo(104.00, 2) // Total should be $104.00
     })
 
     it('should calculate correct network fees for ETH withdraw', async () => {
@@ -64,11 +64,11 @@ describe('Withdraw to External Wallet - Final Fix Test', () => {
       console.log('ETH Withdraw (Fixed):')
       console.log(`Network Fee: $${ethWithdraw.networkFee} (should be $5.00)`)
       console.log(`DEX Fee: $${ethWithdraw.dexFee} (should be $5.00)`)
-      console.log(`Total: $${ethWithdraw.totalFees} (should be $19.00)`)
+      console.log(`Total: $${ethWithdraw.total} (should be $19.00)`)
 
       expect(ethWithdraw.networkFee).toBeCloseTo(5.00, 2) // 0.5% ETH network fee
       expect(ethWithdraw.dexFee).toBeCloseTo(5.00, 2) // 0.5% DEX fee
-      expect(ethWithdraw.totalFees).toBeCloseTo(19.00, 2) // Total should be $19.00
+      expect(ethWithdraw.total).toBeCloseTo(19.00, 2) // Total should be $19.00
     })
 
     it('should calculate correct network fees for SOL withdraw', async () => {
@@ -83,11 +83,11 @@ describe('Withdraw to External Wallet - Final Fix Test', () => {
       console.log('SOL Withdraw:')
       console.log(`Network Fee: $${solWithdraw.networkFee} (should be $0.01)`)
       console.log(`DEX Fee: $${solWithdraw.dexFee} (should be $0.00)`)
-      console.log(`Total: $${solWithdraw.totalFees} (should be $9.01)`)
+      console.log(`Total: $${solWithdraw.total} (should be $9.01)`)
 
       expect(solWithdraw.networkFee).toBeCloseTo(0.01, 3) // SOL network fee
       expect(solWithdraw.dexFee).toBe(0) // NO DEX fee for SOL
-      expect(solWithdraw.totalFees).toBeCloseTo(9.01, 2) // Total should be $9.01
+      expect(solWithdraw.total).toBeCloseTo(9.01, 2) // Total should be $9.01
     })
   })
 
@@ -108,13 +108,13 @@ describe('Withdraw to External Wallet - Final Fix Test', () => {
       console.log(`diBoaS Fee (0.9%): $${suiWithdraw.diboas} (user saw: $9.00) ✅`)
       console.log(`Network Fee (0.003%): $${suiWithdraw.networkFee} (user saw: $0.01, expected: $0.03) ✅ FIXED`)
       console.log(`DEX Fee (0.5%): $${suiWithdraw.dexFee} (user saw: $0.00, expected: $5.00) ✅ FIXED`)
-      console.log(`Total: $${suiWithdraw.totalFees} (user saw: $14.01, corrected: $14.03)`)
+      console.log(`Total: $${suiWithdraw.total} (user saw: $14.01, corrected: $14.03)`)
 
       // Verify all fees are calculated correctly
       expect(suiWithdraw.diboas).toBeCloseTo(9.00, 2)
       expect(suiWithdraw.networkFee).toBeCloseTo(0.03, 3) // Fixed: Now shows SUI fee
       expect(suiWithdraw.dexFee).toBeCloseTo(5.00, 2) // Fixed: Now shows withdraw DEX fee
-      expect(suiWithdraw.totalFees).toBeCloseTo(14.03, 2) // Corrected total
+      expect(suiWithdraw.total).toBeCloseTo(14.03, 2) // Corrected total
     })
 
     it('should verify transfer vs withdraw fee difference', async () => {

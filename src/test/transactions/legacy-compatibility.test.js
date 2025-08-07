@@ -48,8 +48,8 @@ describe('Legacy Compatibility Tests', () => {
       expect(fees.providerFee).toBeDefined()
       expect(fees.dexFee).toBeDefined()
       expect(fees.defiFee).toBeDefined()
-      expect(fees.totalFee).toBeDefined()
-      expect(fees.totalFees).toBeDefined()
+      expect(fees.total).toBeDefined()
+      expect(fees.total).toBeDefined()
 
       // Check new field names are also present
       expect(fees.diBoaS).toBeDefined()
@@ -66,8 +66,8 @@ describe('Legacy Compatibility Tests', () => {
       expect(fees.providerFee).toBe(fees.provider)
       expect(fees.dexFee).toBe(fees.dex)
       expect(fees.defiFee).toBe(fees.defi)
-      expect(fees.totalFee).toBe(fees.total)
-      expect(fees.totalFees).toBe(fees.total)
+      expect(fees.total).toBe(fees.total)
+      expect(fees.total).toBe(fees.total)
     })
 
     it('should handle Banking category transactions correctly', async () => {
@@ -77,7 +77,7 @@ describe('Legacy Compatibility Tests', () => {
         amount: 100,
         paymentMethod: 'apple_pay'
       })
-      expect(addFees.totalFees).toBeGreaterThan(0)
+      expect(addFees.total).toBeGreaterThan(0)
 
       // Send transaction  
       const sendFees = await feeCalculator.calculateTransactionFees({
@@ -85,7 +85,7 @@ describe('Legacy Compatibility Tests', () => {
         amount: 50,
         paymentMethod: 'diboas_wallet'
       })
-      expect(sendFees.totalFees).toBeGreaterThan(0)
+      expect(sendFees.total).toBeGreaterThan(0)
 
       // Withdraw transaction
       const withdrawFees = await feeCalculator.calculateTransactionFees({
@@ -93,7 +93,7 @@ describe('Legacy Compatibility Tests', () => {
         amount: 75,
         paymentMethod: 'bank_account'
       })
-      expect(withdrawFees.totalFees).toBeGreaterThan(0)
+      expect(withdrawFees.total).toBeGreaterThan(0)
     })
 
     it('should handle Investment category transactions correctly', async () => {
@@ -105,7 +105,7 @@ describe('Legacy Compatibility Tests', () => {
         asset: 'BTC',
         chains: ['BTC']
       })
-      expect(buyFees.totalFees).toBeGreaterThan(0)
+      expect(buyFees.total).toBeGreaterThan(0)
       expect(buyFees.dexFee).toBeGreaterThan(0) // Should have DEX fee
 
       // Sell transaction
@@ -116,7 +116,7 @@ describe('Legacy Compatibility Tests', () => {
         asset: 'ETH',
         chains: ['ETH']
       })
-      expect(sellFees.totalFees).toBeGreaterThan(0)
+      expect(sellFees.total).toBeGreaterThan(0)
       expect(sellFees.dexFee).toBeGreaterThan(0) // Should have DEX fee
 
       // Transfer transaction
@@ -127,7 +127,7 @@ describe('Legacy Compatibility Tests', () => {
         asset: 'SOL',
         chains: ['SOL']
       })
-      expect(transferFees.totalFees).toBeGreaterThan(0)
+      expect(transferFees.total).toBeGreaterThan(0)
       expect(transferFees.dexFee).toBeGreaterThan(0) // Should have DEX fee
     })
 
@@ -141,7 +141,7 @@ describe('Legacy Compatibility Tests', () => {
         chains: ['SOL']
       })
       
-      expect(startFees.totalFees).toBeGreaterThan(0)
+      expect(startFees.total).toBeGreaterThan(0)
       expect(startFees.diboas).toBeCloseTo(0.9, 2) // 0.09% diBoaS fee
       expect(startFees.dexFee).toBeCloseTo(5, 2) // 0.5% DEX fee for strategies
       expect(startFees.providerFee).toBeCloseTo(5, 2) // DEX fee shown as provider fee
@@ -156,7 +156,7 @@ describe('Legacy Compatibility Tests', () => {
         chains: ['SOL']
       })
       
-      expect(stopFees.totalFees).toBeGreaterThan(0)
+      expect(stopFees.total).toBeGreaterThan(0)
       expect(stopFees.diboas).toBeCloseTo(1.08, 2) // 0.09% diBoaS fee
       expect(stopFees.dexFee).toBeCloseTo(6, 2) // 0.5% DEX fee for strategies
       expect(stopFees.defiFee).toBe(0) // No DeFi fee for strategies
@@ -177,7 +177,7 @@ describe('Legacy Compatibility Tests', () => {
 
       const fees = await feeCalculator.calculateTransactionFees(transactionData, routingPlan)
       
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
       expect(fees.networkFee).toBeCloseTo(90, 2) // Should use BTC network fee (9%)
     })
 
@@ -189,7 +189,7 @@ describe('Legacy Compatibility Tests', () => {
 
       const fees = await feeCalculator.calculateTransactionFees(minimalData)
       
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
       // Should default to diboas_wallet payment method, SOL asset, SOL chain
     })
 
@@ -210,9 +210,9 @@ describe('Legacy Compatibility Tests', () => {
       
       expect(results).toHaveLength(5)
       results.forEach((result, index) => {
-        expect(result.totalFees).toBeGreaterThan(0)
+        expect(result.total).toBeGreaterThan(0)
         expect(result.diboas).toBeDefined()
-        expect(result.totalFee).toBeDefined()
+        expect(result.total).toBeDefined()
       })
     })
 
@@ -273,7 +273,7 @@ describe('Legacy Compatibility Tests', () => {
       const fees = await feeCalculator.calculateTransactionFees(hookTransactionData)
       
       expect(fees).toBeDefined()
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
       expect(fees.diboas).toBeCloseTo(0.09, 2)
       expect(fees.providerFee).toBeCloseTo(1, 2) // 1% credit card fee
     })
@@ -295,7 +295,7 @@ describe('Legacy Compatibility Tests', () => {
 
       const fees = await feeCalculator.calculateTransactionFees(realTransactionData)
       
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
       expect(fees.diboas).toBeCloseTo(0.09, 2) // 0.09% diBoaS fee
       expect(fees.providerFee).toBeCloseTo(0.5, 2) // 0.5% Apple Pay fee
       expect(fees.networkFee).toBeCloseTo(0.001, 3) // SOL network fee
@@ -314,7 +314,7 @@ describe('Legacy Compatibility Tests', () => {
 
       const fees = await feeCalculator.calculateTransactionFees(buyTransactionData)
       
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
       expect(fees.diboas).toBeCloseTo(0.45, 2) // 0.09% diBoaS fee
       expect(fees.networkFee).toBeCloseTo(45, 2) // 9% BTC network fee
       expect(fees.dexFee).toBeCloseTo(5, 2) // 1% DEX fee for buy
@@ -333,7 +333,7 @@ describe('Legacy Compatibility Tests', () => {
 
       const fees = await feeCalculator.calculateTransactionFees(strategyTransactionData)
       
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
       expect(fees.diboas).toBeCloseTo(0.9, 2) // 0.09% diBoaS fee
       expect(fees.networkFee).toBeCloseTo(5, 2) // 0.5% ETH network fee
       expect(fees.dexFee).toBeCloseTo(5, 2) // 0.5% DEX fee for strategies
@@ -350,9 +350,9 @@ describe('Legacy Compatibility Tests', () => {
         paymentMethod: 'diboas_wallet'
       })
       
-      expect(fees.totalFees).toBeGreaterThan(0)
+      expect(fees.total).toBeGreaterThan(0)
       expect(fees.diboas).toBeDefined()
-      expect(fees.totalFee).toBeDefined()
+      expect(fees.total).toBeDefined()
     })
   })
 })

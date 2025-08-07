@@ -33,7 +33,7 @@ export class Transaction extends AggregateRoot {
    */
   determineDirection(type) {
     const incomingTypes = ['add', 'receive', 'buy']
-    const outgoingTypes = ['withdraw', 'send', 'sell', 'transfer']
+    const outgoingTypes = ['withdraw', 'send', 'sell']
     
     if (incomingTypes.includes(type)) return TransactionDirection.INCOMING
     if (outgoingTypes.includes(type)) return TransactionDirection.OUTGOING
@@ -424,7 +424,6 @@ export const TransactionType = {
   WITHDRAW: 'withdraw',
   SEND: 'send',
   RECEIVE: 'receive',
-  TRANSFER: 'transfer',
   BUY: 'buy',
   SELL: 'sell',
   INVEST: 'invest'

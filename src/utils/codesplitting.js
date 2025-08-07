@@ -168,7 +168,7 @@ export class ChunkPreloader {
         // This triggers the dynamic import without rendering
         await component._payload._result
         this.preloadedChunks.add(chunkName)
-        console.debug(`Preloaded chunk: ${chunkName} (${reason})`)
+        logger.debug(`Preloaded chunk: ${chunkName} (${reason})`)
       }
     } catch (error) {
       logger.warn(`Failed to preload chunk ${chunkName}:`, error)

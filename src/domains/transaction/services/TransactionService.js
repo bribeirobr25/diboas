@@ -146,8 +146,6 @@ export class TransactionService {
       case TransactionType.SELL:
         return await this.executeSell(transaction)
       
-      case TransactionType.TRANSFER:
-        return await this.executeTransfer(transaction)
       
       case TransactionType.INVEST:
         return await this.executeInvest(transaction)
@@ -263,26 +261,6 @@ export class TransactionService {
     }
   }
 
-  /**
-   * Execute transfer transaction
-   */
-  async executeTransfer(transaction) {
-    // Check balance
-    const balance = await this.balanceService.getBalance(transaction.accountId)
-    if (!balance.hasSufficientBalance(transaction.getTotalCost(), transaction.asset)) {
-      throw new Error('Insufficient balance')
-    }
-    
-    // Mock cross-chain transfer
-    const txHash = await this.simulateCrossChainTransfer(transaction)
-    transaction.addConfirmation(txHash)
-    
-    return {
-      success: true,
-      transactionHash: txHash,
-      bridgeId: `bridge_${Date.now()}`
-    }
-  }
 
   /**
    * Execute invest transaction
@@ -417,7 +395,7 @@ export class TransactionService {
       network: fees.networkFee,
       provider: fees.providerFee,
       routing: fees.routing || 0,
-      total: fees.totalFees
+      total: fees.total
     }
   }
 

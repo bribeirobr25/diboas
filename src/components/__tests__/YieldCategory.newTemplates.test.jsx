@@ -3,7 +3,7 @@
  * Tests the new template-based strategy system
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { BrowserRouter, MemoryRouter } from 'react-router-dom'

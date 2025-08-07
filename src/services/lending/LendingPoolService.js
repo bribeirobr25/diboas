@@ -3,7 +3,7 @@
  * Advanced P2P lending, flash loans, and liquidity provision features
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 import protocolService from '../defi/ProtocolService.js'
 
@@ -665,7 +665,7 @@ class LendingPoolService {
         minimumCollateralRatio: pool.minimumCollateralRatio + '%',
         performance: {
           totalInterestEarned: pool.utilizedLiquidity * (pool.lendingRate / 100),
-          totalFeesCollected: pool.totalLoans * 50, // Estimate $50 average fee per loan
+          totalCollected: pool.totalLoans * 50, // Estimate $50 average fee per loan
           defaultRate: Math.random() * 1, // 0-1% default rate
         },
         lastUpdated: new Date().toISOString()

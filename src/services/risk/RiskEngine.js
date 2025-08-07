@@ -3,7 +3,7 @@
  * Provides dynamic risk assessment, portfolio rebalancing, and risk management
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 import protocolService from '../defi/ProtocolService.js'
 

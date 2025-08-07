@@ -3,7 +3,7 @@
  * Tests authentication security, rate limiting, and edge cases
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { useAuthentication } from '../useAuthentication.js'

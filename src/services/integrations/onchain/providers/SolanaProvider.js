@@ -177,7 +177,7 @@ export class SolanaProvider {
         success: true,
         baseFee,
         priorityFee,
-        totalFee: baseFee + priorityFee,
+        total: baseFee + priorityFee,
         estimatedCost: {
           lamports: baseFee + priorityFee,
           sol: ((baseFee + priorityFee) / 1e9).toFixed(9),

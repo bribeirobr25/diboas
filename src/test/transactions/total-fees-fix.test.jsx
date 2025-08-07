@@ -34,7 +34,7 @@ const renderWithRouter = (component) => {
 
 describe('Total Fees Fix', () => {
   describe('Confirmation Page Fee Display', () => {
-    it('should display totalFees property when available', () => {
+    it('should display total property when available', () => {
       const mockTransactionData = {
         type: 'buy',
         amount: '1000',
@@ -42,9 +42,9 @@ describe('Total Fees Fix', () => {
         asset: 'BTC'
       }
 
-      // Mock fees with both totalFees and total (totalFees should be used)
+      // Mock fees with both total and total (total should be used)
       const mockFees = {
-        totalFees: 15.9, // This should be displayed
+        total: 15.9, // This should be displayed
         total: 100.9,    // This should NOT be displayed
         diBoaS: 0.9,
         network: 5,
@@ -61,14 +61,14 @@ describe('Total Fees Fix', () => {
         />
       )
 
-      // Should display the totalFees value ($15.90)
+      // Should display the total value ($15.90)
       expect(screen.getByText('$15.90')).toBeTruthy()
       
       // Should NOT display the total value ($100.90)
       expect(screen.queryByText('$100.90')).toBeFalsy()
     })
 
-    it('should fallback to total property when totalFees is undefined', () => {
+    it('should fallback to total property when total is undefined', () => {
       const mockTransactionData = {
         type: 'withdraw',
         amount: '500',
@@ -81,7 +81,7 @@ describe('Total Fees Fix', () => {
         diBoaS: 4.5,
         network: 1.0,
         dex: 20.0
-        // totalFees is undefined
+        // total is undefined
       }
 
       renderWithRouter(
@@ -98,19 +98,19 @@ describe('Total Fees Fix', () => {
       expect(screen.getByText('$25.50')).toBeTruthy()
     })
 
-    it('should show 0.00 when both totalFees and total are undefined', () => {
+    it('should show 0.00 when both total and total are undefined', () => {
       const mockTransactionData = {
         type: 'sell',
         amount: '250',
         paymentMethod: 'diboas_wallet'
       }
 
-      // Mock fees with neither totalFees nor total
+      // Mock fees with neither total nor total
       const mockFeesWithoutEither = {
         diBoaS: 2.25,
         network: 0.25,
         dex: 2.5
-        // Both totalFees and total are undefined
+        // Both total and total are undefined
       }
 
       renderWithRouter(
@@ -150,7 +150,7 @@ describe('Total Fees Fix', () => {
   })
 
   describe('Success Page Fee Display', () => {
-    it('should display correct totalFees in success state', () => {
+    it('should display correct total in success state', () => {
       const mockTransactionData = {
         type: 'buy',
         amount: '1000',
@@ -159,7 +159,7 @@ describe('Total Fees Fix', () => {
       }
 
       const mockFees = {
-        totalFees: 15.9,
+        total: 15.9,
         total: 25.5, // Should not be used
         diBoaS: 0.9,
         network: 5,
@@ -181,7 +181,7 @@ describe('Total Fees Fix', () => {
       expect(screen.queryByText('$25.50')).toBeFalsy()
     })
 
-    it('should calculate correct net amount using totalFees', () => {
+    it('should calculate correct net amount using total', () => {
       const mockTransactionData = {
         type: 'buy',
         amount: '1000',
@@ -190,7 +190,7 @@ describe('Total Fees Fix', () => {
       }
 
       const mockFees = {
-        totalFees: 15.9,
+        total: 15.9,
         total: 100.9, // Wrong value that should not be used for calculation
         diBoaS: 0.9,
         network: 5,
@@ -207,7 +207,7 @@ describe('Total Fees Fix', () => {
         />
       )
 
-      // Net amount should be 1000 - 15.9 = 984.10 (using totalFees)
+      // Net amount should be 1000 - 15.9 = 984.10 (using total)
       expect(screen.getByText('$984.10')).toBeTruthy()
       
       // Should NOT show 899.10 (which would be 1000 - 100.9 using wrong total)
@@ -233,7 +233,7 @@ describe('Total Fees Fix', () => {
         }
 
         const mockFees = {
-          totalFees: 12.34,
+          total: 12.34,
           total: 56.78, // Should not be used
           diBoaS: 2.34,
           network: 10.0
@@ -260,7 +260,7 @@ describe('Total Fees Fix', () => {
   })
 
   describe('Edge Cases', () => {
-    it('should handle zero totalFees correctly', () => {
+    it('should handle zero total correctly', () => {
       const mockTransactionData = {
         type: 'send',
         amount: '100',
@@ -268,7 +268,7 @@ describe('Total Fees Fix', () => {
       }
 
       const mockFees = {
-        totalFees: 0,
+        total: 0,
         total: 5.0,
         diBoaS: 0,
         network: 0
@@ -284,7 +284,7 @@ describe('Total Fees Fix', () => {
         />
       )
 
-      // Should show 0.00 for totalFees, not fallback to total
+      // Should show 0.00 for total, not fallback to total
       expect(screen.getByText('$0.00')).toBeTruthy()
       expect(screen.queryByText('$5.00')).toBeFalsy()
     })
@@ -297,7 +297,7 @@ describe('Total Fees Fix', () => {
       }
 
       const mockFees = {
-        totalFees: 0.01,
+        total: 0.01,
         total: 1.0,
         diBoaS: 0.009,
         network: 0.001
@@ -326,7 +326,7 @@ describe('Total Fees Fix', () => {
       }
 
       const mockFees = {
-        totalFees: 309.0,
+        total: 309.0,
         total: 500.0,
         diBoaS: 9.0,
         network: 0.01,

@@ -121,12 +121,12 @@ export class StripeProvider {
     // Add fixed fee
     const fixedFee = new Money(feeStructure.fixed, currency)
     
-    const totalFee = percentageFee.add(fixedFee)
+    const total = percentageFee.add(fixedFee)
 
     return {
-      processing: totalFee,
+      processing: total,
       network: Money.zero(currency),
-      total: totalFee
+      total: total
     }
   }
 

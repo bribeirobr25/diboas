@@ -278,7 +278,7 @@ export class StrategyTransactionIntegration {
       const summary = {
         totalTransactions: transactions.length,
         totalContributions: 0,
-        totalFees: 0,
+        total: 0,
         totalYield: 0,
         lastActivity: null,
         transactionTypes: {}
@@ -296,7 +296,7 @@ export class StrategyTransactionIntegration {
           summary.totalYield += txn.amount
         }
         
-        summary.totalFees += txn.fees?.total || 0
+        summary.total += txn.fees?.total || 0
         
         // Track last activity
         if (!summary.lastActivity || new Date(txn.timestamp) > new Date(summary.lastActivity)) {

@@ -56,17 +56,6 @@ export default function TransactionForm({
             </div>
           )}
 
-          {/* Transfer Address Input - Wallet address input with autocomplete */}
-          {currentTransactionType === 'transfer' && (
-            <div>
-              <Label htmlFor="recipient">To Address</Label>
-              <WalletAddressInput
-                value={recipientWalletAddress}
-                onChange={setRecipientWalletAddress}
-                validationErrors={transactionValidationErrors}
-              />
-            </div>
-          )}
 
           {/* Withdraw to External Wallet - Shows when external_wallet is selected */}
           {currentTransactionType === 'withdraw' && chosenPaymentMethod === 'external_wallet' && (
@@ -114,6 +103,62 @@ export default function TransactionForm({
               </div>
             </div>
           )}
+
+          {/* Strategy Information - Show for Stop Strategy transactions */}
+          {currentTransactionType === 'stop_strategy' && (() => {
+            const urlParams = new URLSearchParams(window.location.search)
+            const strategyId = urlParams.get('strategyId')
+            const strategy = currentWalletBalance?.strategies?.[strategyId]
+            
+            if (!strategy) {
+              return (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700">Strategy not found</p>
+                </div>
+              )
+            }
+            
+            return (
+              <div className="space-y-4">
+                <Label>Strategy Details</Label>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Strategy Name:</span>
+                    <span className="font-medium">{strategy.name || 'Unknown Strategy'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Chain:</span>
+                    <span className="font-medium">{strategy.chain || 'SOL'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Current Balance:</span>
+                    <span className="font-medium text-green-600">
+                      ${strategy.currentAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                    </span>
+                  </div>
+                  {strategy.totalEarned > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Earned:</span>
+                      <span className="font-medium text-green-600">
+                        +${strategy.totalEarned?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+                  {strategy.apy && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Current APY:</span>
+                      <span className="font-medium">{strategy.apy}%</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Note:</strong> Stopping this strategy will claim all funds and move them to your Available Balance. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Crypto Wallet Address Display - Shows when crypto_wallet is selected for Add */}
           {currentTransactionType === 'add' && chosenPaymentMethod === 'crypto_wallet' && (

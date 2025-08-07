@@ -290,7 +290,7 @@ describe('Transaction Domain', () => {
       expect(stats.byType.buy).toBe(1)
       expect(stats.byType.sell).toBe(1)
       expect(stats.totalVolume).toBe(100) // Only completed transactions
-      expect(stats.totalFees).toBe(5)
+      expect(stats.total).toBe(5)
     })
   })
 
@@ -432,7 +432,7 @@ describe('Transaction Domain', () => {
       
       expect(stats.total).toBe(2)
       expect(stats.totalVolume).toBe(300)
-      expect(stats.totalFees).toBe(15)
+      expect(stats.total).toBe(15)
       expect(stats.byType.buy).toBe(1)
       expect(stats.byType.sell).toBe(1)
     })

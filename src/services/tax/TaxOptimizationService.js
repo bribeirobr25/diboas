@@ -3,7 +3,7 @@
  * Provides tax-efficient investment strategies, loss harvesting, and compliance features
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 
 export const TAX_STRATEGIES = {

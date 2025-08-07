@@ -28,14 +28,14 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       console.log(`Network Fee: $${bankWithdraw.networkFee} (should be $0.01)`)
       console.log(`Provider Fee: $${bankWithdraw.providerFee} (should be $20.00)`)
       console.log(`DEX Fee: $${bankWithdraw.dexFee} (should be $0.00)`)
-      console.log(`Total: $${bankWithdraw.totalFees} (should be $29.01)`)
+      console.log(`Total: $${bankWithdraw.total} (should be $29.01)`)
 
       // Verify fees
       expect(bankWithdraw.diboas).toBeCloseTo(9.00, 2) // 0.9%
       expect(bankWithdraw.networkFee).toBeCloseTo(0.01, 3) // SOL network fee
       expect(bankWithdraw.providerFee).toBeCloseTo(20.00, 2) // 2% bank fee
       expect(bankWithdraw.dexFee).toBe(0) // NO DEX fee for off-ramp
-      expect(bankWithdraw.totalFees).toBeCloseTo(29.01, 2) // diBoaS + Network + Provider ONLY
+      expect(bankWithdraw.total).toBeCloseTo(29.01, 2) // diBoaS + Network + Provider ONLY
     })
 
     it('should calculate correct fees for credit card withdrawal - NO DEX fee', async () => {
@@ -52,13 +52,13 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       console.log(`Network Fee: $${cardWithdraw.networkFee}`)
       console.log(`Provider Fee: $${cardWithdraw.providerFee}`)
       console.log(`DEX Fee: $${cardWithdraw.dexFee} (should be $0.00)`)
-      console.log(`Total: $${cardWithdraw.totalFees} (should be $29.01)`)
+      console.log(`Total: $${cardWithdraw.total} (should be $29.01)`)
 
       expect(cardWithdraw.diboas).toBeCloseTo(9.00, 2)
       expect(cardWithdraw.networkFee).toBeCloseTo(0.01, 3)
       expect(cardWithdraw.providerFee).toBeCloseTo(20.00, 2) // 2% card fee
       expect(cardWithdraw.dexFee).toBe(0) // NO DEX fee
-      expect(cardWithdraw.totalFees).toBeCloseTo(29.01, 2)
+      expect(cardWithdraw.total).toBeCloseTo(29.01, 2)
     })
 
     it('should calculate correct fees for PayPal withdrawal - NO DEX fee', async () => {
@@ -75,13 +75,13 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       console.log(`Network Fee: $${paypalWithdraw.networkFee}`)
       console.log(`Provider Fee: $${paypalWithdraw.providerFee}`)
       console.log(`DEX Fee: $${paypalWithdraw.dexFee} (should be $0.00)`)
-      console.log(`Total: $${paypalWithdraw.totalFees} (should be $49.01)`)
+      console.log(`Total: $${paypalWithdraw.total} (should be $49.01)`)
 
       expect(paypalWithdraw.diboas).toBeCloseTo(9.00, 2)
       expect(paypalWithdraw.networkFee).toBeCloseTo(0.01, 3)
       expect(paypalWithdraw.providerFee).toBeCloseTo(40.00, 2) // 4% PayPal fee
       expect(paypalWithdraw.dexFee).toBe(0) // NO DEX fee
-      expect(paypalWithdraw.totalFees).toBeCloseTo(49.01, 2)
+      expect(paypalWithdraw.total).toBeCloseTo(49.01, 2)
     })
 
     it('should verify breakdown rates for off-ramp withdrawals', async () => {
@@ -116,13 +116,13 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       console.log(`Network Fee: $${solWithdraw.networkFee} (should be $0.01)`)
       console.log(`Provider Fee: $${solWithdraw.providerFee} (should be $0.00)`)
       console.log(`DEX Fee: $${solWithdraw.dexFee} (should be $0.00)`)
-      console.log(`Total: $${solWithdraw.totalFees} (should be $9.01)`)
+      console.log(`Total: $${solWithdraw.total} (should be $9.01)`)
 
       expect(solWithdraw.diboas).toBeCloseTo(9.00, 2)
       expect(solWithdraw.networkFee).toBeCloseTo(0.01, 3)
       expect(solWithdraw.providerFee).toBe(0) // No provider fee
       expect(solWithdraw.dexFee).toBe(0) // NO DEX fee for SOL
-      expect(solWithdraw.totalFees).toBeCloseTo(9.01, 2) // diBoaS + Network ONLY
+      expect(solWithdraw.total).toBeCloseTo(9.01, 2) // diBoaS + Network ONLY
     })
 
     it('should calculate correct fees for SUI external wallet - WITH DEX fee', async () => {
@@ -139,13 +139,13 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       console.log(`Network Fee: $${suiWithdraw.networkFee} (should be $0.03)`)
       console.log(`Provider Fee: $${suiWithdraw.providerFee} (should be $0.00)`)
       console.log(`DEX Fee: $${suiWithdraw.dexFee} (should be $5.00)`)
-      console.log(`Total: $${suiWithdraw.totalFees} (should be $14.03)`)
+      console.log(`Total: $${suiWithdraw.total} (should be $14.03)`)
 
       expect(suiWithdraw.diboas).toBeCloseTo(9.00, 2)
       expect(suiWithdraw.networkFee).toBeCloseTo(0.03, 3)
       expect(suiWithdraw.providerFee).toBe(0)
       expect(suiWithdraw.dexFee).toBeCloseTo(5.00, 2) // 0.5% DEX fee for cross-chain
-      expect(suiWithdraw.totalFees).toBeCloseTo(14.03, 2) // diBoaS + Network + DEX
+      expect(suiWithdraw.total).toBeCloseTo(14.03, 2) // diBoaS + Network + DEX
     })
 
     it('should calculate correct fees for BTC external wallet - WITH DEX fee', async () => {
@@ -162,13 +162,13 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       console.log(`Network Fee: $${btcWithdraw.networkFee} (should be $90.00)`)
       console.log(`Provider Fee: $${btcWithdraw.providerFee}`)
       console.log(`DEX Fee: $${btcWithdraw.dexFee} (should be $5.00)`)
-      console.log(`Total: $${btcWithdraw.totalFees} (should be $104.00)`)
+      console.log(`Total: $${btcWithdraw.total} (should be $104.00)`)
 
       expect(btcWithdraw.diboas).toBeCloseTo(9.00, 2)
       expect(btcWithdraw.networkFee).toBeCloseTo(90.00, 2) // 9% BTC network fee
       expect(btcWithdraw.providerFee).toBe(0)
       expect(btcWithdraw.dexFee).toBeCloseTo(5.00, 2) // 0.5% DEX fee
-      expect(btcWithdraw.totalFees).toBeCloseTo(104.00, 2)
+      expect(btcWithdraw.total).toBeCloseTo(104.00, 2)
     })
 
     it('should calculate correct fees for ETH external wallet - WITH DEX fee', async () => {
@@ -185,13 +185,13 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       console.log(`Network Fee: $${ethWithdraw.networkFee} (should be $5.00)`)
       console.log(`Provider Fee: $${ethWithdraw.providerFee}`)
       console.log(`DEX Fee: $${ethWithdraw.dexFee} (should be $5.00)`)
-      console.log(`Total: $${ethWithdraw.totalFees} (should be $19.00)`)
+      console.log(`Total: $${ethWithdraw.total} (should be $19.00)`)
 
       expect(ethWithdraw.diboas).toBeCloseTo(9.00, 2)
       expect(ethWithdraw.networkFee).toBeCloseTo(5.00, 2) // 0.5% ETH network fee
       expect(ethWithdraw.providerFee).toBe(0)
       expect(ethWithdraw.dexFee).toBeCloseTo(5.00, 2) // 0.5% DEX fee
-      expect(ethWithdraw.totalFees).toBeCloseTo(19.00, 2)
+      expect(ethWithdraw.total).toBeCloseTo(19.00, 2)
     })
 
     it('should verify breakdown rates for external wallet withdrawals', async () => {
@@ -242,11 +242,11 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       })
 
       console.log('\nComparison - Bank vs External Wallet (SUI):')
-      console.log(`Bank Total: $${bankWithdraw.totalFees} (diBoaS + Network + Provider)`)
-      console.log(`External Total: $${externalWithdraw.totalFees} (diBoaS + Network + DEX)`)
+      console.log(`Bank Total: $${bankWithdraw.total} (diBoaS + Network + Provider)`)
+      console.log(`External Total: $${externalWithdraw.total} (diBoaS + Network + DEX)`)
 
       // Bank should be more expensive due to provider fee
-      expect(bankWithdraw.totalFees).toBeGreaterThan(externalWithdraw.totalFees)
+      expect(bankWithdraw.total).toBeGreaterThan(externalWithdraw.total)
       
       // Verify components
       expect(bankWithdraw.providerFee).toBeGreaterThan(0) // Has provider fee
@@ -269,7 +269,7 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
       })
 
       console.log('\ndiBoaS Wallet Withdraw (SUI):')
-      console.log(`Total: $${diboasWithdraw.totalFees}`)
+      console.log(`Total: $${diboasWithdraw.total}`)
       console.log(`DEX Fee: $${diboasWithdraw.dexFee} (should be $5.00)`)
 
       expect(diboasWithdraw.dexFee).toBeCloseTo(5.00, 2) // Should have DEX fee for cross-chain
@@ -287,7 +287,7 @@ describe('Banking Withdraw Fee Calculation Fixes', () => {
 
       expect(smallWithdraw.diboas).toBeCloseTo(0.09, 3) // 0.9% of $10
       expect(smallWithdraw.dexFee).toBeCloseTo(0.05, 3) // 0.5% of $10
-      expect(smallWithdraw.totalFees).toBeGreaterThan(0)
+      expect(smallWithdraw.total).toBeGreaterThan(0)
     })
   })
 })

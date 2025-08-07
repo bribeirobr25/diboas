@@ -30,139 +30,10 @@ import {
 import PageHeader from '../shared/PageHeader.jsx'
 import EnhancedTransactionProgressScreen from '../shared/EnhancedTransactionProgressScreen.jsx'
 import { useWalletBalance, useTransactionFlow, useFeeCalculator } from '../../hooks/transactions/index.js'
+import { useStrategyTemplates } from '../../hooks/useStrategyTemplates.js'
+import { useRiskProfiles } from '../../hooks/useRiskProfiles.js'
 
-// Strategy template configurations
-const STRATEGY_TEMPLATES = {
-  'emergency-funds': {
-    id: 'emergency-funds',
-    title: 'Emergency Funds',
-    description: 'Build your safety net with low-risk, liquid investments',
-    icon: '🛡️',
-    defaultImage: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=800&h=400&fit=crop',
-    suggestedAmount: 1000,
-    suggestedTarget: 5000,
-    riskLevel: 'Conservative',
-    expectedAPY: '3-5%',
-    timeline: 'up-to-6-months',
-    color: 'bg-red-100 text-red-600'
-  },
-  'free-coffee': {
-    id: 'free-coffee',
-    title: 'Free Coffee',
-    description: 'Generate passive income to cover your daily coffee expenses',
-    icon: '☕',
-    defaultImage: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&h=400&fit=crop',
-    suggestedAmount: 100,
-    suggestedTarget: 1200,
-    riskLevel: 'Moderate',
-    expectedAPY: '5-8%',
-    timeline: '6-to-12-months',
-    color: 'bg-amber-100 text-amber-600'
-  },
-  'home-down-payment': {
-    id: 'home-down-payment',
-    title: 'Home Down Payment',
-    description: 'Save for your dream home with optimized growth strategies',
-    icon: '🏠',
-    defaultImage: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=400&fit=crop',
-    suggestedAmount: 1000,
-    suggestedTarget: 50000,
-    riskLevel: 'Aggressive',
-    expectedAPY: '8-12%',
-    timeline: 'more-than-12-months',
-    color: 'bg-blue-100 text-blue-600'
-  },
-  'dream-vacation': {
-    id: 'dream-vacation',
-    title: 'Dream Vacation',
-    description: 'Save for your perfect getaway with balanced liquidity pools',
-    icon: '🏖️',
-    defaultImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop',
-    suggestedAmount: 500,
-    suggestedTarget: 8000,
-    riskLevel: 'Balanced',
-    expectedAPY: '8-12%',
-    timeline: '6-to-12-months',
-    color: 'bg-cyan-100 text-cyan-600'
-  },
-  'new-car': {
-    id: 'new-car',
-    title: 'New Car',
-    description: 'Drive your dream car with growth-oriented protocols',
-    icon: '🚗',
-    defaultImage: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&h=400&fit=crop',
-    suggestedAmount: 1000,
-    suggestedTarget: 25000,
-    riskLevel: 'Balanced',
-    expectedAPY: '10-15%',
-    timeline: 'more-than-12-months',
-    color: 'bg-indigo-100 text-indigo-600'
-  },
-  'education-fund': {
-    id: 'education-fund',
-    title: 'Education Fund',
-    description: 'Invest in your future with steady growth protocols',
-    icon: '🎓',
-    defaultImage: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=400&fit=crop',
-    suggestedAmount: 500,
-    suggestedTarget: 15000,
-    riskLevel: 'Balanced',
-    expectedAPY: '8-14%',
-    timeline: 'more-than-12-months',
-    color: 'bg-emerald-100 text-emerald-600'
-  },
-  'create-new': {
-    id: 'create-new',
-    title: 'Create New',
-    description: 'Design your own objective with personalized parameters',
-    icon: '🎯',
-    defaultImage: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800&h=400&fit=crop',
-    suggestedAmount: 100,
-    suggestedTarget: 1000,
-    riskLevel: 'Moderate',
-    expectedAPY: '5-8%',
-    timeline: '6-to-12-months',
-    color: 'bg-purple-100 text-purple-600'
-  }
-}
-
-const RISK_LEVELS = {
-  'Conservative': {
-    label: 'Conservative',
-    apy: '3-5%',
-    description: 'Stable returns with minimal volatility. Focus on capital preservation.',
-    color: 'bg-green-100 text-green-800',
-    riskScore: 1
-  },
-  'Moderate': {
-    label: 'Moderate',
-    apy: '5-8%',
-    description: 'Balanced approach with moderate risk for steady growth.',
-    color: 'bg-yellow-100 text-yellow-800',
-    riskScore: 2
-  },
-  'Balanced': {
-    label: 'Balanced',
-    apy: '8-15%',
-    description: 'Multi-strategy approach with automated rebalancing.',
-    color: 'bg-blue-100 text-blue-800',
-    riskScore: 3
-  },
-  'Aggressive': {
-    label: 'Aggressive',
-    apy: '12-25%',
-    description: 'High-yield farming with leveraged positions.',
-    color: 'bg-orange-100 text-orange-800',
-    riskScore: 4
-  },
-  'Very Aggressive': {
-    label: 'Very Aggressive',
-    apy: '10-15%',
-    description: 'Maximum growth potential with significant risk.',
-    color: 'bg-red-100 text-red-800',
-    riskScore: 4
-  }
-}
+// Strategy templates and risk levels are now loaded dynamically via hooks
 
 const PAYMENT_METHODS = [
   { 
@@ -229,9 +100,25 @@ export default function ObjectiveConfig() {
     resetFlow 
   } = useTransactionFlow()
 
+  // Load dynamic strategy templates and risk profiles
+  const { templates: strategyTemplates, getTemplateById, isLoading: templatesLoading } = useStrategyTemplates()
+  const { riskProfiles, isLoading: riskProfilesLoading } = useRiskProfiles()
+
   // Get objective ID from URL params
   const objectiveId = searchParams.get('objective') || 'create-new'
-  const template = STRATEGY_TEMPLATES[objectiveId] || STRATEGY_TEMPLATES['create-new']
+  const template = getTemplateById(objectiveId) || strategyTemplates['create-new'] || {
+    id: 'create-new',
+    title: 'Create New',
+    description: 'Design your own objective with personalized parameters',
+    icon: '🎯',
+    defaultImage: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800&h=400&fit=crop',
+    suggestedAmount: 100,
+    suggestedTarget: 1000,
+    riskLevel: 'Moderate',
+    expectedAPY: '5-8%',
+    timeline: '6-to-12-months',
+    color: 'bg-purple-100 text-purple-600'
+  }
 
   // Configuration state
   const [currentStep, setCurrentStep] = useState(1)
@@ -287,7 +174,7 @@ export default function ObjectiveConfig() {
         
         if (config.paymentMethod === 'diboas_wallet') {
           const requiredAmount = parseFloat(config.initialAmount) || 0
-          const totalWithFees = requiredAmount + (strategyFees.totalFees || 0)
+          const totalWithFees = requiredAmount + (strategyFees.total || 0)
           const availableBalance = balance?.availableForSpending || 0
           const hasSufficientBalance = availableBalance >= totalWithFees
           return hasPaymentMethod && hasAcceptedRisks && hasSufficientBalance
@@ -319,8 +206,8 @@ export default function ObjectiveConfig() {
     const monthlyRecurring = config.recurringFrequency === 'weekly' ? recurring * 4 : 
                            config.recurringFrequency === 'biweekly' ? recurring * 2 : recurring
     
-    const riskData = RISK_LEVELS[config.riskLevel]
-    const avgAPY = parseFloat(riskData.apy.split('-')[0]) || 5
+    const riskData = riskProfiles[config.riskLevel]
+    const avgAPY = riskData ? parseFloat(riskData.apy.split('-')[0]) : 5
     
     // Simple compound interest calculation (monthly compounding)
     const months = config.timeline === 'up-to-6-months' ? 6 :
@@ -351,7 +238,7 @@ export default function ObjectiveConfig() {
   const [strategyFees, setStrategyFees] = useState({
     processingFee: 0,
     networkFee: 0,
-    totalFees: 0,
+    total: 0,
     netAmount: 0,
     processingFeeRate: '0%',
     networkFeeRate: '0%'
@@ -365,7 +252,7 @@ export default function ObjectiveConfig() {
       const fallback = {
         processingFee: 0,
         networkFee: 0,
-        totalFees: 0,
+        total: 0,
         netAmount: amount,
         processingFeeRate: '0%',
         networkFeeRate: '0%'
@@ -387,8 +274,8 @@ export default function ObjectiveConfig() {
       const result = {
         processingFee: fees.providerFee || 0,
         networkFee: fees.networkFee || 0,
-        totalFees: fees.totalFees || 0,
-        netAmount: amount - (fees.totalFees || 0),
+        total: fees.total || 0,
+        netAmount: amount - (fees.total || 0),
         processingFeeRate: fees.providerFeeRate || '0%',
         networkFeeRate: fees.networkFeeRate || '0%'
       }
@@ -396,13 +283,13 @@ export default function ObjectiveConfig() {
       setStrategyFees(result)
       return result
     } catch (error) {
-      console.warn('Fee calculation failed, using fallback:', error)
+      logger.warn('Fee calculation failed, using fallback:', error)
       // Fallback to payment method rates for display
       const selectedPaymentMethod = PAYMENT_METHODS.find(method => method.id === config.paymentMethod)
       const fallback = {
         processingFee: 0,
         networkFee: 0,
-        totalFees: 0,
+        total: 0,
         netAmount: amount,
         processingFeeRate: selectedPaymentMethod?.processingFee || '0%',
         networkFeeRate: selectedPaymentMethod?.networkFee || '0%'
@@ -499,7 +386,22 @@ export default function ObjectiveConfig() {
   }
 
   const simulation = simulationData()
-  const riskData = RISK_LEVELS[config.riskLevel]
+  const riskData = riskProfiles[config.riskLevel]
+
+  // Show loading state while data is being fetched
+  if (templatesLoading || riskProfilesLoading) {
+    return (
+      <div className="main-layout">
+        <PageHeader showUserActions={true} />
+        <div className="page-container max-w-4xl mx-auto">
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-6 h-6 animate-spin mr-3" />
+            <span>Loading strategy templates...</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="main-layout">
@@ -800,7 +702,7 @@ export default function ObjectiveConfig() {
                       </div>
                       
                       <div className="space-y-3">
-                        {Object.entries(RISK_LEVELS).map(([key, risk]) => (
+                        {Object.entries(riskProfiles).map(([key, risk]) => (
                           <Card 
                             key={key}
                             className={`cursor-pointer transition-all hover:shadow-md ${
@@ -979,7 +881,7 @@ export default function ObjectiveConfig() {
                         <div className="space-y-3">
                           {PAYMENT_METHODS.map((method) => {
                             const isSelected = config.paymentMethod === method.id
-                            const totalRequired = parseFloat(config.initialAmount || 0) + (strategyFees.totalFees || 0)
+                            const totalRequired = parseFloat(config.initialAmount || 0) + (strategyFees.total || 0)
                             const isInsufficientBalance = method.id === 'diboas_wallet' && 
                               (balance?.availableForSpending || 0) < totalRequired
                             
@@ -1036,7 +938,7 @@ export default function ObjectiveConfig() {
                                       
                                       {isSelected && (
                                         <div className="text-xs text-gray-600">
-                                          <div>Fee: ${strategyFees.totalFees.toFixed(2)}</div>
+                                          <div>Fee: ${strategyFees.total.toFixed(2)}</div>
                                           <div className="font-medium text-blue-600">
                                             Net: ${strategyFees.netAmount.toFixed(2)}
                                           </div>
@@ -1069,7 +971,7 @@ export default function ObjectiveConfig() {
                               </div>
                               <div className="flex justify-between border-t pt-1 font-medium">
                                 <span>Total Fees:</span>
-                                <span>${strategyFees.totalFees.toFixed(2)}</span>
+                                <span>${strategyFees.total.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between font-medium text-blue-600">
                                 <span>Net Investment:</span>
@@ -1125,7 +1027,7 @@ export default function ObjectiveConfig() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Fees:</span>
-                            <span className="font-medium text-red-600">-${strategyFees.totalFees.toFixed(2)}</span>
+                            <span className="font-medium text-red-600">-${strategyFees.total.toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Net Investment:</span>
@@ -1188,7 +1090,7 @@ export default function ObjectiveConfig() {
                       </div>
                       <div className="flex justify-between">
                         <span>Total Fees:</span>
-                        <span className="font-medium">-${strategyFees.totalFees.toFixed(2)}</span>
+                        <span className="font-medium">-${strategyFees.total.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between font-medium">
                         <span>Net Investment:</span>
@@ -1248,11 +1150,11 @@ export default function ObjectiveConfig() {
             
             {/* Insufficient Balance Warning */}
             {config.paymentMethod === 'diboas_wallet' && 
-             (balance?.availableForSpending || 0) < (parseFloat(config.initialAmount || 0) + (strategyFees.totalFees || 0)) && (
+             (balance?.availableForSpending || 0) < (parseFloat(config.initialAmount || 0) + (strategyFees.total || 0)) && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
                 <p className="text-red-800 text-sm font-medium">Insufficient Balance</p>
                 <p className="text-red-600 text-xs mt-1">
-                  You need ${(parseFloat(config.initialAmount || 0) + (strategyFees.totalFees || 0)).toFixed(2)} (including fees) but only have ${(balance?.availableForSpending || 0).toFixed(2)} available.
+                  You need ${(parseFloat(config.initialAmount || 0) + (strategyFees.total || 0)).toFixed(2)} (including fees) but only have ${(balance?.availableForSpending || 0).toFixed(2)} available.
                 </p>
                 <Button 
                   variant="link" 

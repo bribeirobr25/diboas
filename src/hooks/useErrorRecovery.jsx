@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import errorRecoveryService, { ERROR_TYPES, ERROR_SEVERITY, RECOVERY_STRATEGIES } from '../services/errorHandling/ErrorRecoveryService.js'
-import logger from '../utils/logger.js'
+import logger from '../utils/logger'
 
 /**
  * Main error recovery hook

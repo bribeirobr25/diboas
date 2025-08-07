@@ -310,7 +310,7 @@ export class PayPalProvider {
         success: true,
         paypalFee: fees.providerFee.toFixed(2),
         fixedFee: '0.30', // PayPal fixed fee (kept for compatibility)
-        totalFee: (fees.providerFee + 0.30).toFixed(2),
+        total: (fees.providerFee + 0.30).toFixed(2),
         currency: 'USD'
       }
     } catch (error) {

@@ -3,7 +3,7 @@
  * Advanced portfolio analysis, market intelligence, and personalized recommendations
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 import strategyAnalyticsService from '../analytics/StrategyAnalyticsService.js'
 import riskEngine from '../risk/RiskEngine.js'

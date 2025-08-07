@@ -721,11 +721,11 @@ describe('Transaction Flow Integration Tests', () => {
           routing
         )
         
-        feeComparisons.push({ method, totalFee: fees.total })
+        feeComparisons.push({ method, total: fees.total })
       }
 
       // Sort by lowest fee
-      feeComparisons.sort((a, b) => a.totalFee - b.totalFee)
+      feeComparisons.sort((a, b) => a.total - b.total)
       
       // Apple Pay should be among the lowest fees
       expect(feeComparisons[0].method).toMatch(/^(apple_pay|google_pay|bank_account)$/)

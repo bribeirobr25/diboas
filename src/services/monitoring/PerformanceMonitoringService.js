@@ -3,7 +3,7 @@
  * Real-time application performance monitoring, metrics collection, and alerting
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 
 export const METRIC_TYPES = {

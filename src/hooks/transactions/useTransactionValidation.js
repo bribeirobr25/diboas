@@ -104,7 +104,7 @@ export const useTransactionValidation = () => {
       // Minimum amount validation - Updated per TRANSACTIONS.md
       const minimumAmounts = {
         'add': 10, 'withdraw': 5, 'send': 5,
-        'transfer': 5, 'buy': 10, 'sell': 5, 'invest': 10
+        'buy': 10, 'sell': 5, 'invest': 10
       }
 
       if (numericAmount < minimumAmounts[type]) {
@@ -117,12 +117,12 @@ export const useTransactionValidation = () => {
       // Balance validation based on transaction type and proper financial flow
       const currentBalance = dataManager.getBalance()
       
-      if (['withdraw', 'send', 'transfer'].includes(type)) {
+      if (['withdraw', 'send'].includes(type)) {
         // These transactions only use Available Balance (USDC)
         const availableBalance = currentBalance?.availableForSpending || 0
         
         if (numericAmount > availableBalance) {
-          const actionName = type === 'withdraw' ? 'withdraw' : type === 'send' ? 'send' : 'transfer'
+          const actionName = type === 'withdraw' ? 'withdraw' : 'send'
           errors.amount = { 
             message: `Cannot ${actionName} more than available balance. Maximum: $${availableBalance.toFixed(2)}`, 
             isValid: false 
@@ -151,19 +151,9 @@ export const useTransactionValidation = () => {
       }
 
       // Recipient validation
-      if (['send', 'transfer'].includes(type)) {
+      if (type === 'send') {
         if (!recipient) {
           errors.recipient = { message: 'Recipient is required', isValid: false }
-        } else if (type === 'transfer') {
-          // External wallet address validation using fee calculator
-          const addressInfo = defaultFeeCalculator.detectNetworkFromAddressDetailed(recipient)
-          
-          if (!addressInfo.isValid) {
-            errors.recipient = { 
-              message: 'Invalid wallet address format. Supported networks: Bitcoin (BTC), Ethereum (ETH), Arbitrum (ARB), Base (BASE), Solana (SOL), Sui (SUI)', 
-              isValid: false 
-            }
-          }
         } else {
           // diBoaS username validation for send transactions
           const usernameValidation = await validateDiBoaSUsername(recipient)
@@ -189,10 +179,26 @@ export const useTransactionValidation = () => {
         }
       }
       
-      // Payment method validation for Add transactions
+      // Payment method validation for Add, Buy, and Withdraw transactions
       if (type === 'add' && !transactionData.paymentMethod) {
         errors.paymentMethod = { 
           message: 'Please select a payment method to add funds', 
+          isValid: false 
+        }
+      }
+      
+      // Payment method validation for Buy transactions
+      if (type === 'buy' && !transactionData.paymentMethod) {
+        errors.paymentMethod = { 
+          message: 'Please select a payment method to buy assets', 
+          isValid: false 
+        }
+      }
+      
+      // Payment method validation for Withdraw transactions
+      if (type === 'withdraw' && !transactionData.paymentMethod) {
+        errors.paymentMethod = { 
+          message: 'Please select where to withdraw funds', 
           isValid: false 
         }
       }

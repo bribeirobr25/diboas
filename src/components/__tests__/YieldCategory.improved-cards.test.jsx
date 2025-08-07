@@ -3,7 +3,7 @@
  * Tests the improved card design without square aspect ratio
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { BrowserRouter } from 'react-router-dom'

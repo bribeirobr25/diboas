@@ -34,7 +34,9 @@ import PageHeader from '../shared/PageHeader.jsx'
 import { useWalletBalance, useTransactionFlow, useFeeCalculator } from '../../hooks/transactions/index.js'
 import strategySearchEngine from '../../services/strategies/StrategySearchEngine.js'
 import strategyLifecycleManager from '../../services/strategies/StrategyLifecycleManager.js'
+import { dataManager } from '../../services/DataManager.js'
 import logger from '../../utils/logger'
+import { safeToFixed, safeToNumber, safeCurrencyFormat, sanitizeFeeBreakdown, createDefaultFeeStructure } from '../../utils/numberFormatting'
 
 // Strategy templates
 const STRATEGY_TEMPLATES = {
@@ -46,7 +48,10 @@ const STRATEGY_TEMPLATES = {
     defaultImage: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=800&h=400&fit=crop',
     riskLevel: 'low',
     suggestedAPY: 4.5,
-    color: 'bg-red-100 text-red-600'
+    color: 'bg-red-100 text-red-600',
+    chain: 'SOL',
+    protocol: 'Solend',
+    asset: 'USDC'
   },
   'free-coffee': {
     id: 'free-coffee',
@@ -56,7 +61,10 @@ const STRATEGY_TEMPLATES = {
     defaultImage: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&h=400&fit=crop',
     riskLevel: 'low',
     suggestedAPY: 6.5,
-    color: 'bg-amber-100 text-amber-600'
+    color: 'bg-amber-100 text-amber-600',
+    chain: 'ETH',
+    protocol: 'Aave',
+    asset: 'USDC'
   },
   'home-down-payment': {
     id: 'home-down-payment',
@@ -66,7 +74,10 @@ const STRATEGY_TEMPLATES = {
     defaultImage: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=400&fit=crop',
     riskLevel: 'high',
     suggestedAPY: 10.0,
-    color: 'bg-blue-100 text-blue-600'
+    color: 'bg-blue-100 text-blue-600',
+    chain: 'BTC',
+    protocol: 'Lightning Network',
+    asset: 'BTC'
   },
   'dream-vacation': {
     id: 'dream-vacation',
@@ -76,7 +87,10 @@ const STRATEGY_TEMPLATES = {
     defaultImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop',
     riskLevel: 'medium',
     suggestedAPY: 8.5,
-    color: 'bg-cyan-100 text-cyan-600'
+    color: 'bg-cyan-100 text-cyan-600',
+    chain: 'SUI',
+    protocol: 'Cetus',
+    asset: 'SUI'
   },
   'new-car': {
     id: 'new-car',
@@ -86,7 +100,10 @@ const STRATEGY_TEMPLATES = {
     defaultImage: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&h=400&fit=crop',
     riskLevel: 'medium',
     suggestedAPY: 9.0,
-    color: 'bg-indigo-100 text-indigo-600'
+    color: 'bg-indigo-100 text-indigo-600',
+    chain: 'SOL',
+    protocol: 'Raydium',
+    asset: 'SOL'
   },
   'custom': {
     id: 'custom',
@@ -160,6 +177,28 @@ export default function StrategyConfigurationWizard() {
   const [searchMessage, setSearchMessage] = useState('')
 
   const template = wizardData.templateId ? STRATEGY_TEMPLATES[wizardData.templateId] : null
+  
+  // Helper function to get network fee percentage by chain
+  const getNetworkFeePercentage = (chain) => {
+    const networkFeeRates = {
+      'SOL': '0.0001%',
+      'ETH': '0.5%', 
+      'BTC': '1%',
+      'SUI': '0.0003%'
+    }
+    return networkFeeRates[chain] || '0.0001%'
+  }
+
+  // Helper function to get DeFi fee percentage by chain
+  const getDeFiFeePercentage = (chain) => {
+    const defiFeeRates = {
+      'SOL': '0.7%',
+      'SUI': '0.9%',
+      'ETH': '1.2%',
+      'BTC': '1.5%'
+    }
+    return defiFeeRates[chain] || '0.7%'
+  }
 
   // Initialize template data
   useEffect(() => {
@@ -172,32 +211,48 @@ export default function StrategyConfigurationWizard() {
     }
   }, [template, wizardData.strategyName])
 
-  // Calculate fees when amounts change
+  // Calculate fees when amounts change - with comprehensive error handling
   useEffect(() => {
-    if (currentStep >= 6 && wizardData.initialAmount > 0) {
+    if (currentStep >= 6 && safeToNumber(wizardData.initialAmount) > 0) {
       const calculateFeesAsync = async () => {
         try {
+          const safeAmount = safeToNumber(wizardData.initialAmount, 0)
+          
+          // Get chain and asset from selected strategy or template
+          const strategyChain = wizardData.selectedStrategy?.chain || template?.chain || 'SOL'
+          const strategyAsset = wizardData.selectedStrategy?.asset || template?.asset || 'USDC'
+          
           const fees = await calculateFees({
             type: 'start_strategy',
-            amount: wizardData.initialAmount,
-            asset: 'USDC',
+            amount: safeAmount,
+            asset: strategyAsset,
             paymentMethod: 'diboas_wallet',
-            chains: ['SOL']
+            chains: [strategyChain]
           })
           
-          setWizardData(prev => ({ ...prev, feeBreakdown: fees }))
-        } catch (error) {
-          logger.error('Error calculating fees:', error)
-          // Set default fee structure if calculation fails
+          // Sanitize the fee response to ensure numeric values
+          const sanitizedFees = sanitizeFeeBreakdown(fees)
+          
+          // Add chain information to the fee breakdown for UI display
           setWizardData(prev => ({ 
             ...prev, 
             feeBreakdown: {
-              breakdown: {
-                diboas: wizardData.initialAmount * 0.0009, // 0.09%
-                network: 0.05, // $0.05 default
-                dex: wizardData.initialAmount * 0.005 // 0.5%
-              },
-              total: (wizardData.initialAmount * 0.0009) + 0.05 + (wizardData.initialAmount * 0.005)
+              ...sanitizedFees,
+              chain: strategyChain,
+              asset: strategyAsset
+            }
+          }))
+        } catch (error) {
+          logger.error('Error calculating fees:', error)
+          // Set safe default fee structure using utility
+          const safeAmount = safeToNumber(wizardData.initialAmount, 0)
+          const defaultFees = createDefaultFeeStructure(safeAmount)
+          setWizardData(prev => ({ 
+            ...prev, 
+            feeBreakdown: {
+              ...defaultFees,
+              chain: wizardData.selectedStrategy?.chain || template?.chain || 'SOL',
+              asset: wizardData.selectedStrategy?.asset || template?.asset || 'USDC'
             }
           }))
         }
@@ -205,7 +260,7 @@ export default function StrategyConfigurationWizard() {
       
       calculateFeesAsync()
     }
-  }, [wizardData.initialAmount, currentStep, calculateFees])
+  }, [wizardData.initialAmount, wizardData.selectedStrategy, currentStep, calculateFees, template])
 
   const updateWizardData = useCallback((updates) => {
     setWizardData(prev => ({ ...prev, ...updates }))
@@ -215,51 +270,67 @@ export default function StrategyConfigurationWizard() {
   const validateStep = useCallback((step) => {
     const newErrors = {}
 
-    switch (step) {
-      case 1:
-        if (!wizardData.strategyName.trim()) {
-          newErrors.strategyName = 'Strategy name is required'
-        }
-        break
-        
-      case 2:
-        if (wizardData.initialAmount <= 0) {
-          newErrors.initialAmount = 'Initial amount must be greater than 0'
-        }
-        if (balance && wizardData.initialAmount > balance.available) {
-          newErrors.initialAmount = `Insufficient balance. Available: $${balance.available.toFixed(2)}`
-        }
-        if (wizardData.hasRecurring && wizardData.recurringAmount <= 0) {
-          newErrors.recurringAmount = 'Recurring amount must be greater than 0'
-        }
-        break
-        
-      case 3:
-        if (wizardData.goalType === 'target-date') {
-          if (wizardData.targetAmount <= 0) {
-            newErrors.targetAmount = 'Target amount is required'
+    try {
+      switch (step) {
+        case 1:
+          if (!wizardData.strategyName || !wizardData.strategyName.trim()) {
+            newErrors.strategyName = 'Strategy name is required'
           }
-          if (!wizardData.targetDate) {
-            newErrors.targetDate = 'Target date is required'
+          break
+          
+        case 2:
+          const safeInitialAmount = safeToNumber(wizardData.initialAmount, 0)
+          const safeRecurringAmount = safeToNumber(wizardData.recurringAmount, 0)
+          const safeAvailableBalance = safeToNumber(balance?.available, 0)
+          
+          if (safeInitialAmount <= 0) {
+            newErrors.initialAmount = 'Initial amount must be greater than 0'
+          }
+          if (balance && safeInitialAmount > safeAvailableBalance) {
+            newErrors.initialAmount = `Insufficient balance. Available: ${safeCurrencyFormat(safeAvailableBalance, '$', 2)}`
+          }
+          if (wizardData.hasRecurring && safeRecurringAmount <= 0) {
+            newErrors.recurringAmount = 'Recurring amount must be greater than 0'
+          }
+          break
+          
+        case 3:
+          if (wizardData.goalType === 'target-date') {
+            const safeTargetAmount = safeToNumber(wizardData.targetAmount, 0)
+            
+            if (safeTargetAmount <= 0) {
+              newErrors.targetAmount = 'Target amount is required'
+            }
+            if (!wizardData.targetDate) {
+              newErrors.targetDate = 'Target date is required'
+            } else {
+              try {
+                const targetDate = new Date(wizardData.targetDate)
+                const today = new Date()
+                if (isNaN(targetDate.getTime()) || targetDate <= today) {
+                  newErrors.targetDate = 'Target date must be a valid future date'
+                }
+              } catch (dateError) {
+                newErrors.targetDate = 'Invalid target date format'
+              }
+            }
           } else {
-            const targetDate = new Date(wizardData.targetDate)
-            const today = new Date()
-            if (targetDate <= today) {
-              newErrors.targetDate = 'Target date must be in the future'
+            const safePeriodicAmount = safeToNumber(wizardData.periodicAmount, 0)
+            if (safePeriodicAmount <= 0) {
+              newErrors.periodicAmount = 'Periodic amount is required'
             }
           }
-        } else {
-          if (wizardData.periodicAmount <= 0) {
-            newErrors.periodicAmount = 'Periodic amount is required'
+          break
+          
+        case 5:
+          if (!wizardData.selectedStrategy || !wizardData.selectedStrategy.id) {
+            newErrors.selectedStrategy = 'Please select a strategy'
           }
-        }
-        break
-        
-      case 5:
-        if (!wizardData.selectedStrategy) {
-          newErrors.selectedStrategy = 'Please select a strategy'
-        }
-        break
+          break
+      }
+    } catch (validationError) {
+      logger.error('Validation error:', validationError)
+      newErrors.validation = 'Validation failed. Please check your inputs.'
     }
 
     setErrors(newErrors)
@@ -273,8 +344,24 @@ export default function StrategyConfigurationWizard() {
   }, [currentStep, validateStep])
 
   const handlePrevious = useCallback(() => {
-    setCurrentStep(prev => Math.max(1, prev - 1))
-  }, [])
+    // Clear errors when going back
+    setErrors({})
+    
+    const nextStep = Math.max(1, currentStep - 1)
+    
+    // Clear search results cache only when going back to step 3 or earlier
+    if (nextStep <= 3 && wizardData.searchResults) {
+      logger.info('🗑️ Clearing search results cache - going back to step 3 or earlier')
+      setWizardData(prev => ({
+        ...prev,
+        searchResults: null,
+        selectedStrategy: null,
+        requiredAPY: 0
+      }))
+    }
+    
+    setCurrentStep(nextStep)
+  }, [currentStep, wizardData.searchResults])
 
   const handleStrategySearch = useCallback(async () => {
     logger.info('🔍 handleStrategySearch called!')
@@ -282,19 +369,22 @@ export default function StrategyConfigurationWizard() {
     setSearchMessage('🔍 Analyzing your goals...')
     
     try {
-      // Build goal configuration
+      // Build goal configuration with safe number extraction
+      const safeInitialAmount = safeToNumber(wizardData.initialAmount, 0)
+      const safeRecurringAmount = safeToNumber(wizardData.recurringAmount, 0)
+      
       const goalConfig = {
-        initialAmount: wizardData.initialAmount,
-        recurringAmount: wizardData.hasRecurring ? wizardData.recurringAmount : 0,
-        recurringPeriod: wizardData.recurringPeriod
+        initialAmount: safeInitialAmount,
+        recurringAmount: wizardData.hasRecurring ? safeRecurringAmount : 0,
+        recurringPeriod: wizardData.recurringPeriod || 'monthly'
       }
 
       if (wizardData.goalType === 'target-date') {
-        goalConfig.targetAmount = wizardData.targetAmount
+        goalConfig.targetAmount = safeToNumber(wizardData.targetAmount, 0)
         goalConfig.targetDate = wizardData.targetDate
       } else {
-        goalConfig.targetPeriodAmount = wizardData.periodicAmount
-        goalConfig.targetPeriod = wizardData.periodicPeriod
+        goalConfig.targetPeriodAmount = safeToNumber(wizardData.periodicAmount, 0)
+        goalConfig.targetPeriod = wizardData.periodicPeriod || 'monthly'
       }
 
       // Show intermediate messages to simulate search process
@@ -310,11 +400,18 @@ export default function StrategyConfigurationWizard() {
         preferredChains: ['SOL', 'ETH', 'SUI']
       })
 
-      setSearchMessage(`✅ Found ${searchResults.strategiesFound} strategies!`)
+      // Validate and sanitize search results
+      const safeSearchResults = {
+        requiredAPY: safeToNumber(searchResults?.requiredAPY, 0),
+        strategiesFound: safeToNumber(searchResults?.strategiesFound, 0),
+        strategies: Array.isArray(searchResults?.strategies) ? searchResults.strategies : []
+      }
+
+      setSearchMessage(`✅ Found ${safeSearchResults.strategiesFound} strategies!`)
       await new Promise(resolve => setTimeout(resolve, 500))
       
       updateWizardData({
-        searchResults,
+        searchResults: safeSearchResults,
         requiredAPY: searchResults.requiredAPY
       })
 
@@ -356,48 +453,143 @@ export default function StrategyConfigurationWizard() {
   }, [wizardData, updateWizardData])
 
   const handleStrategyLaunch = useCallback(async () => {
-    if (!wizardData.selectedStrategy) return
+    if (!wizardData.selectedStrategy) {
+      logger.error('No strategy selected for launch')
+      return
+    }
 
     // Move to step 7 (launching) immediately
     setCurrentStep(7)
     updateWizardData({ launchInProgress: true })
 
     try {
+      // Safely extract values with proper type conversion
+      const safeInitialAmount = safeToNumber(wizardData.initialAmount, 0)
+      const safeRecurringAmount = safeToNumber(wizardData.recurringAmount, 0)
+      const safeTargetAmount = safeToNumber(wizardData.targetAmount, 0)
+      const safePeriodicAmount = safeToNumber(wizardData.periodicAmount, 0)
+      
       const strategyConfig = {
-        strategyId: wizardData.selectedStrategy.id,
+        strategyId: wizardData.selectedStrategy.id || 'unknown',
         strategyData: wizardData.selectedStrategy,
         goalConfig: {
-          initialAmount: wizardData.initialAmount,
-          recurringAmount: wizardData.hasRecurring ? wizardData.recurringAmount : 0,
-          recurringPeriod: wizardData.recurringPeriod,
-          goalType: wizardData.goalType,
-          targetAmount: wizardData.targetAmount,
-          targetDate: wizardData.targetDate,
-          periodicAmount: wizardData.periodicAmount,
-          periodicPeriod: wizardData.periodicPeriod
+          initialAmount: safeInitialAmount,
+          recurringAmount: wizardData.hasRecurring ? safeRecurringAmount : 0,
+          recurringPeriod: wizardData.recurringPeriod || 'monthly',
+          goalType: wizardData.goalType || 'amount_goal',
+          targetAmount: safeTargetAmount,
+          targetDate: wizardData.targetDate || null,
+          periodicAmount: safePeriodicAmount,
+          periodicPeriod: wizardData.periodicPeriod || 'monthly'
         },
-        initialAmount: wizardData.initialAmount,
-        selectedChain: wizardData.selectedStrategy.chain
+        initialAmount: safeInitialAmount,
+        selectedChain: wizardData.selectedStrategy.chain || 'SOL'
       }
 
-      const result = await strategyLifecycleManager.launchStrategy(strategyConfig, balance || { available: 0, strategy: 0 })
+      // Ensure balance object is safe
+      const safeBalance = balance || { available: 0, strategy: 0 }
+      const result = await strategyLifecycleManager.launchStrategy(strategyConfig, safeBalance)
+      
+      // Validate result object
+      const safeResult = result || { success: false, error: 'Unknown launch error' }
       
       updateWizardData({ 
-        launchResult: result,
+        launchResult: safeResult,
         launchInProgress: false 
       })
 
-      if (result.success) {
+      if (safeResult.success) {
+        // Add transaction to DataManager
+        if (safeResult.transaction) {
+          // Calculate total cost (amount + fees) for proper balance deduction
+          const total = safeToNumber(wizardData.feeBreakdown?.total, 0)
+          const totalCost = safeInitialAmount + total
+          
+          const transactionData = {
+            ...safeResult.transaction,
+            type: 'start_strategy',
+            amount: totalCost, // Use total cost for balance deduction
+            investmentAmount: safeInitialAmount, // Keep track of actual investment
+            fees: wizardData.feeBreakdown || safeResult.transaction.fees,
+            paymentMethod: 'diboas_wallet', // Strategy launches are always paid from diBoaS wallet
+            description: `Started ${wizardData.strategyName} strategy`,
+            strategyConfig: {
+              strategyId: wizardData.selectedStrategy.id,
+              strategyName: wizardData.strategyName,
+              protocol: wizardData.selectedStrategy.protocol,
+              apy: wizardData.selectedStrategy.apy.current
+            }
+          }
+          
+          // Add transaction to history
+          dataManager.addTransaction(transactionData)
+          
+          // Update balance through DataManager
+          await dataManager.updateBalance(transactionData)
+        }
+        
         // Show launch success for a moment, then move to final step
         setTimeout(() => {
           setCurrentStep(8) // Move to success step
         }, 2000)
+      } else {
+        logger.error('Strategy launch was not successful:', safeResult.error)
+        
+        // Record failed launch in transaction history
+        const failedTransactionData = {
+          id: `strategy_launch_failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          type: 'start_strategy_failed',
+          status: 'failed',
+          amount: 0, // No amount deducted
+          investmentAmount: safeInitialAmount, // Track intended investment
+          fees: { total: 0, breakdown: {} }, // No fees charged
+          paymentMethod: 'diboas_wallet',
+          description: `Failed to start ${wizardData.strategyName} strategy: ${safeResult.error}`,
+          date: new Date().toISOString(),
+          asset: 'USD',
+          strategyConfig: {
+            strategyId: wizardData.selectedStrategy.id,
+            strategyName: wizardData.strategyName,
+            protocol: wizardData.selectedStrategy.protocol,
+            apy: wizardData.selectedStrategy.apy.current
+          }
+        }
+        
+        // Add failed transaction to history
+        dataManager.addTransaction(failedTransactionData)
+        // No balance update needed as no funds were charged
       }
 
     } catch (error) {
       logger.error('Strategy launch failed:', error)
+      const errorMessage = error?.message || 'Unknown error occurred during strategy launch'
+      
+      // Record failed launch in transaction history
+      const failedTransactionData = {
+        id: `strategy_launch_failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'start_strategy_failed',
+        status: 'failed',
+        amount: 0, // No amount deducted
+        investmentAmount: wizardData.initialAmount || 0, // Track intended investment
+        fees: { total: 0, breakdown: {} }, // No fees charged
+        paymentMethod: 'diboas_wallet',
+        description: `Failed to start ${wizardData.strategyName} strategy: ${errorMessage}`,
+        date: new Date().toISOString(),
+        asset: 'USD',
+        strategyConfig: wizardData.selectedStrategy ? {
+          strategyId: wizardData.selectedStrategy.id,
+          strategyName: wizardData.strategyName,
+          protocol: wizardData.selectedStrategy.protocol,
+          apy: wizardData.selectedStrategy.apy?.current
+        } : null
+      }
+      
+      // Add failed transaction to history
+      dataManager.addTransaction(failedTransactionData)
+      // No balance update needed as no funds were charged
+      
       updateWizardData({ 
-        launchResult: { success: false, error: error.message },
+        launchResult: { success: false, error: errorMessage },
         launchInProgress: false 
       })
     }
@@ -514,7 +706,7 @@ export default function StrategyConfigurationWizard() {
           <Info className="w-4 h-4 text-blue-600" />
           <span className="font-medium text-blue-900">Available Balance</span>
         </div>
-        <p className="text-2xl font-bold text-blue-900">${balance?.available?.toFixed(2) || '0.00'}</p>
+        <p className="text-2xl font-bold text-blue-900">{safeCurrencyFormat(balance?.available, '$', 2)}</p>
         <p className="text-sm text-blue-700">All strategy payments are made from your diBoaS wallet in USDC</p>
       </div>
 
@@ -705,13 +897,13 @@ export default function StrategyConfigurationWizard() {
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-yellow-600" />
               <span className="font-medium text-yellow-900">
-                Required APY: {wizardData.requiredAPY.toFixed(1)}%
+                Required APY: {safeToFixed(wizardData.requiredAPY, 1)}%
               </span>
             </div>
             <p className="text-yellow-700 text-sm mt-1">
               {wizardData.requiredAPY > 30 
-                ? `Your goals require a ${wizardData.requiredAPY.toFixed(1)}% APY. We'll show you the best available strategies, even if they have lower returns.`
-                : `Based on your goals, we're looking for strategies with at least ${wizardData.requiredAPY.toFixed(1)}% APY`
+                ? `Your goals require a ${safeToFixed(wizardData.requiredAPY, 1)}% APY. We'll show you the best available strategies, even if they have lower returns.`
+                : `Based on your goals, we're looking for strategies with at least ${safeToFixed(wizardData.requiredAPY, 1)}% APY`
               }
             </p>
           </CardContent>
@@ -727,6 +919,26 @@ export default function StrategyConfigurationWizard() {
 
     return (
       <div className="space-y-6">
+        {/* Required APY Section at Top */}
+        {wizardData.requiredAPY > 0 && (
+          <Card className="bg-yellow-50 border-yellow-200">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-yellow-600" />
+                <span className="font-medium text-yellow-900">
+                  Required APY: {safeToFixed(wizardData.requiredAPY, 1)}%
+                </span>
+              </div>
+              <p className="text-yellow-700 text-sm mt-1">
+                {wizardData.requiredAPY > 30 
+                  ? `Your goals require a ${safeToFixed(wizardData.requiredAPY, 1)}% APY. We'll show you the best available strategies, even if they have lower returns.`
+                  : `Based on your goals, we're looking for strategies with at least ${safeToFixed(wizardData.requiredAPY, 1)}% APY`
+                }
+              </p>
+            </CardContent>
+          </Card>
+        )}
+        
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Strategy</h2>
           <p className="text-gray-600">
@@ -735,51 +947,59 @@ export default function StrategyConfigurationWizard() {
         </div>
 
 
-        <div className="space-y-4">
-          {strategies.map((strategy, index) => (
-            <Card 
-              key={strategy.id} 
-              className={`cursor-pointer transition-all ${
-                wizardData.selectedStrategy?.id === strategy.id 
-                  ? 'ring-2 ring-blue-500 bg-blue-50' 
-                  : 'hover:shadow-md'
-              }`}
-              onClick={() => updateWizardData({ selectedStrategy: strategy })}
-            >
-              <CardContent className="pt-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-blue-100 text-blue-800">
-                        #{index + 1}
-                      </Badge>
-                      <h3 className="font-semibold text-lg">{strategy.name}</h3>
-                      {index === 0 && (
-                        <Badge className="bg-green-100 text-green-800 text-xs">
-                          Highest APY
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {(strategies || []).map((strategy, index) => {
+            // Safe strategy object validation
+            if (!strategy || !strategy.id) {
+              logger.warn('Invalid strategy object:', strategy)
+              return null
+            }
+            
+            return (
+              <Card 
+                key={strategy.id} 
+                className={`cursor-pointer transition-all ${
+                  wizardData.selectedStrategy?.id === strategy.id 
+                    ? 'ring-2 ring-blue-500 bg-blue-50' 
+                    : 'hover:shadow-md'
+                }`}
+                onClick={() => updateWizardData({ selectedStrategy: strategy })}
+              >
+                <CardContent className="pt-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className="bg-blue-100 text-blue-800">
+                          #{index + 1}
                         </Badge>
-                      )}
+                        <h3 className="font-semibold text-lg">{strategy.name || 'Unknown Strategy'}</h3>
+                        {index === 0 && (
+                          <Badge className="bg-green-100 text-green-800 text-xs">
+                            Highest APY
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-gray-600 mb-2">{strategy.protocol || 'Unknown Protocol'} on {strategy.chain || 'Unknown Chain'}</p>
+                      <div className="flex gap-4 text-sm">
+                        <span className="font-medium text-green-600">
+                          {safeToFixed(strategy.apy?.current, 1)}% APY
+                        </span>
+                        <span className="text-gray-500">
+                          Risk: {strategy.risk || 'Unknown'}
+                        </span>
+                        <span className="text-gray-500">
+                          Liquidity: {strategy.liquidity || 'Unknown'}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-gray-600 mb-2">{strategy.protocol} on {strategy.chain}</p>
-                    <div className="flex gap-4 text-sm">
-                      <span className="font-medium text-green-600">
-                        {strategy.apy.current.toFixed(1)}% APY
-                      </span>
-                      <span className="text-gray-500">
-                        Risk: {strategy.risk}
-                      </span>
-                      <span className="text-gray-500">
-                        Liquidity: {strategy.liquidity}
-                      </span>
-                    </div>
+                    <Button variant="ghost" size="sm">
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          }).filter(Boolean)}
         </div>
 
         {errors.selectedStrategy && (
@@ -821,7 +1041,7 @@ export default function StrategyConfigurationWizard() {
             <div>
               <span className="text-gray-500">Expected APY:</span>
               <p className="font-medium text-green-600">
-                {wizardData.selectedStrategy?.apy.current.toFixed(1)}%
+                {safeToFixed(wizardData.selectedStrategy?.apy.current, 1)}%
               </p>
             </div>
           </div>
@@ -836,13 +1056,13 @@ export default function StrategyConfigurationWizard() {
         <CardContent className="space-y-3">
           <div className="flex justify-between">
             <span>Initial Investment:</span>
-            <span className="font-medium">${wizardData.initialAmount.toFixed(2)}</span>
+            <span className="font-medium">{safeCurrencyFormat(wizardData.initialAmount, '$', 2)}</span>
           </div>
           {wizardData.hasRecurring && (
             <div className="flex justify-between">
               <span>Recurring Investment:</span>
               <span className="font-medium">
-                ${wizardData.recurringAmount.toFixed(2)} {wizardData.recurringPeriod}
+                {safeCurrencyFormat(wizardData.recurringAmount, '$', 2)} {wizardData.recurringPeriod}
               </span>
             </div>
           )}
@@ -850,35 +1070,41 @@ export default function StrategyConfigurationWizard() {
       </Card>
 
       {/* Fee Breakdown */}
-      {wizardData.feeBreakdown && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Fee Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span>diBoaS Fee (0.09%):</span>
-              <span>${wizardData.feeBreakdown.breakdown.diboas.toFixed(4)}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Fee Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {wizardData.feeBreakdown && wizardData.feeBreakdown.breakdown ? (
+            <>
+              <div className="flex justify-between">
+                <span>diBoaS Fee (0.09%):</span>
+                <span>{safeCurrencyFormat(wizardData.feeBreakdown.breakdown.diboas, '$', 2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Network Fee ({getNetworkFeePercentage(wizardData.feeBreakdown.chain)}):</span>
+                <span>{safeCurrencyFormat(wizardData.feeBreakdown.breakdown.network, '$', 2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>DeFi Fee ({getDeFiFeePercentage(wizardData.feeBreakdown.chain)}):</span>
+                <span>{safeCurrencyFormat(wizardData.feeBreakdown.breakdown.defi, '$', 2)}</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between font-medium">
+                <span>Total Fees:</span>
+                <span>{safeCurrencyFormat(wizardData.feeBreakdown.total, '$', 2)}</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                <span>Total Cost:</span>
+                <span>{safeCurrencyFormat(safeToNumber(wizardData.initialAmount) + safeToNumber(wizardData.feeBreakdown.total), '$', 2)}</span>
+              </div>
+            </>
+          ) : (
+            <div className="text-gray-500 text-center py-4">
+              Calculating fees...
             </div>
-            <div className="flex justify-between">
-              <span>Network Fee:</span>
-              <span>${wizardData.feeBreakdown.breakdown.network.toFixed(4)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>DEX Fee (0.5%):</span>
-              <span>${wizardData.feeBreakdown.breakdown.dex.toFixed(4)}</span>
-            </div>
-            <div className="border-t pt-2 flex justify-between font-medium">
-              <span>Total Fees:</span>
-              <span>${wizardData.feeBreakdown.total.toFixed(4)}</span>
-            </div>
-            <div className="border-t pt-2 flex justify-between font-bold text-lg">
-              <span>Total Cost:</span>
-              <span>${(wizardData.initialAmount + wizardData.feeBreakdown.total).toFixed(2)}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 
@@ -923,11 +1149,29 @@ export default function StrategyConfigurationWizard() {
             ) : (
               <>
                 <p className="text-lg font-medium text-red-900 mb-2">
-                  Launch Failed
+                  Strategy Launch Failed
                 </p>
-                <p className="text-red-700 text-sm">
+                <p className="text-blue-700 text-sm mb-4">
+                  Don't worry, your funds are safe. No money has been deducted from your account.
+                </p>
+                <p className="text-red-700 text-sm mb-6">
                   {wizardData.launchResult.error}
                 </p>
+                
+                <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                  <Button 
+                    onClick={() => setCurrentStep(6)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Try Again
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate('/category/yield')}
+                  >
+                    Go to Dashboard
+                  </Button>
+                </div>
               </>
             )}
           </>
@@ -953,7 +1197,7 @@ export default function StrategyConfigurationWizard() {
               <div className="flex justify-between">
                 <span>Amount Invested:</span>
                 <span className="font-medium">
-                  ${wizardData.initialAmount.toFixed(2)}
+                  {safeCurrencyFormat(wizardData.initialAmount, '$', 2)}
                 </span>
               </div>
             </div>
@@ -989,13 +1233,13 @@ export default function StrategyConfigurationWizard() {
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold text-green-600">
-                  {wizardData.selectedStrategy?.apy.current.toFixed(1)}%
+                  {safeToFixed(wizardData.selectedStrategy?.apy.current, 1)}%
                 </p>
                 <p className="text-sm text-gray-500">Expected APY</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-blue-600">
-                  ${wizardData.initialAmount.toFixed(2)}
+                  {safeCurrencyFormat(wizardData.initialAmount, '$', 2)}
                 </p>
                 <p className="text-sm text-gray-500">Invested</p>
               </div>

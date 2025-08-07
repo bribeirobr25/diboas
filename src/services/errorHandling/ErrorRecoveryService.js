@@ -3,7 +3,7 @@
  * Comprehensive error handling, recovery mechanisms, and resilience patterns
  */
 
-import logger from '../../utils/logger.js'
+import logger from '../../utils/logger'
 import secureLogger from '../../utils/secureLogger.js'
 
 export const ERROR_TYPES = {
